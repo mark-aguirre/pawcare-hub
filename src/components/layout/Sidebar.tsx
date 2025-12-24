@@ -11,6 +11,7 @@ import {
   BarChart3,
   Settings,
   LogOut,
+  Sparkles,
 } from 'lucide-react';
 
 const navigation = [
@@ -32,48 +33,62 @@ export function Sidebar() {
   const location = useLocation();
 
   return (
-    <aside className="fixed left-0 top-0 z-40 h-screen w-64 bg-sidebar border-r border-sidebar-border">
-      <div className="flex h-full flex-col">
+    <aside className="fixed left-0 top-0 z-40 h-screen w-64 bg-sidebar border-r border-sidebar-border overflow-hidden">
+      {/* Decorative gradient overlay */}
+      <div className="absolute inset-0 bg-gradient-to-b from-primary/5 via-transparent to-transparent pointer-events-none" />
+      
+      <div className="relative flex h-full flex-col">
         {/* Logo */}
-        <div className="flex h-16 items-center gap-3 px-6 border-b border-sidebar-border">
-          <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-gradient-primary shadow-glow">
-            <PawPrint className="h-5 w-5 text-primary-foreground" />
+        <div className="flex h-20 items-center gap-3 px-6 border-b border-sidebar-border">
+          <div className="relative flex h-12 w-12 items-center justify-center rounded-2xl bg-gradient-primary shadow-glow">
+            <PawPrint className="h-6 w-6 text-primary-foreground" />
+            <div className="absolute -right-1 -top-1">
+              <Sparkles className="h-4 w-4 text-accent animate-pulse-soft" />
+            </div>
           </div>
           <div>
-            <h1 className="text-lg font-bold text-sidebar-foreground">PawCare</h1>
-            <p className="text-xs text-sidebar-foreground/60">Clinic Management</p>
+            <h1 className="text-xl font-display font-bold text-sidebar-foreground tracking-tight">PawCare</h1>
+            <p className="text-xs text-sidebar-foreground/50">Clinic Management</p>
           </div>
         </div>
 
         {/* Navigation */}
-        <nav className="flex-1 space-y-1 px-3 py-4 overflow-y-auto">
-          {navigation.map((item) => {
+        <nav className="flex-1 space-y-1.5 px-3 py-6 overflow-y-auto">
+          {navigation.map((item, index) => {
             const isActive = location.pathname === item.href;
             return (
               <NavLink
                 key={item.name}
                 to={item.href}
                 className={cn(
-                  'group flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition-all duration-200',
+                  'group relative flex items-center gap-3 rounded-xl px-4 py-3 text-sm font-medium transition-all duration-300',
                   isActive
-                    ? 'bg-sidebar-primary text-sidebar-primary-foreground shadow-glow'
+                    ? 'bg-gradient-primary text-primary-foreground shadow-glow'
                     : 'text-sidebar-foreground/70 hover:bg-sidebar-accent hover:text-sidebar-foreground'
                 )}
+                style={{ animationDelay: `${index * 50}ms` }}
               >
                 <item.icon
                   className={cn(
-                    'h-5 w-5 transition-transform duration-200 group-hover:scale-110',
-                    isActive ? 'text-sidebar-primary-foreground' : 'text-sidebar-foreground/60'
+                    'h-5 w-5 transition-all duration-300',
+                    isActive 
+                      ? 'text-primary-foreground' 
+                      : 'text-sidebar-foreground/50 group-hover:text-sidebar-foreground group-hover:scale-110'
                   )}
                 />
-                {item.name}
+                <span className="tracking-wide">{item.name}</span>
+                
+                {/* Active indicator */}
+                {isActive && (
+                  <div className="absolute right-3 h-2 w-2 rounded-full bg-primary-foreground/80 animate-pulse-soft" />
+                )}
               </NavLink>
             );
           })}
         </nav>
 
         {/* Bottom Navigation */}
-        <div className="border-t border-sidebar-border px-3 py-4 space-y-1">
+        <div className="border-t border-sidebar-border px-3 py-4 space-y-1.5">
           {bottomNavigation.map((item) => {
             const isActive = location.pathname === item.href;
             return (
@@ -81,20 +96,20 @@ export function Sidebar() {
                 key={item.name}
                 to={item.href}
                 className={cn(
-                  'group flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition-all duration-200',
+                  'group flex items-center gap-3 rounded-xl px-4 py-3 text-sm font-medium transition-all duration-300',
                   isActive
-                    ? 'bg-sidebar-primary text-sidebar-primary-foreground'
+                    ? 'bg-gradient-primary text-primary-foreground'
                     : 'text-sidebar-foreground/70 hover:bg-sidebar-accent hover:text-sidebar-foreground'
                 )}
               >
-                <item.icon className="h-5 w-5 text-sidebar-foreground/60" />
+                <item.icon className="h-5 w-5 text-sidebar-foreground/50 group-hover:text-sidebar-foreground" />
                 {item.name}
               </NavLink>
             );
           })}
           
-          <button className="group flex w-full items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium text-sidebar-foreground/70 transition-all duration-200 hover:bg-destructive/10 hover:text-destructive">
-            <LogOut className="h-5 w-5" />
+          <button className="group flex w-full items-center gap-3 rounded-xl px-4 py-3 text-sm font-medium text-sidebar-foreground/70 transition-all duration-300 hover:bg-destructive/20 hover:text-destructive">
+            <LogOut className="h-5 w-5 transition-transform group-hover:-translate-x-1" />
             Logout
           </button>
         </div>
