@@ -1,7 +1,8 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { MainLayout } from '@/components/layout/MainLayout';
+import { LoadingWrapper } from '@/components/ui/loading-wrapper';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -17,8 +18,18 @@ import { useAppSettings } from '@/contexts/AppSettingsContext';
 
 export default function SettingsPage() {
   const { settings: appSettings, updateSettings: updateAppSettings } = useAppSettings();
+  const [isLoading, setIsLoading] = useState(true);
   const [selectedUser, setSelectedUser] = useState('');
   const [openUserSelect, setOpenUserSelect] = useState(false);
+
+  useEffect(() => {
+    // Simulate loading time
+    const timer = setTimeout(() => {
+      setIsLoading(false);
+    }, 800);
+
+    return () => clearTimeout(timer);
+  }, []);
 
   const users = [
     { value: 'dr-smith', label: 'Dr. Sarah Smith', role: 'Veterinarian' },
@@ -85,6 +96,7 @@ export default function SettingsPage() {
 
   return (
     <MainLayout title="Settings" subtitle="Manage your clinic preferences">
+      <LoadingWrapper isLoading={isLoading} variant="list">
       <Tabs defaultValue="general" className="space-y-6">
         <TabsList className="grid w-full grid-cols-3">
           <TabsTrigger value="branding">Branding</TabsTrigger>
@@ -488,6 +500,7 @@ export default function SettingsPage() {
           </Button>
         </div>
       </Tabs>
+      </LoadingWrapper>
     </MainLayout>
   );
 }

@@ -1,12 +1,13 @@
 "use client";
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { MainLayout } from '@/components/layout/MainLayout';
 import { InventoryCard } from '@/components/inventory/InventoryCard';
 import { InventoryDetailPanel } from '@/components/inventory/InventoryDetailModal';
 import { InventoryFormPanel } from '@/components/inventory/InventoryFormModal';
 import { StockAdjustmentPanel } from '@/components/inventory/StockAdjustmentModal';
 import { InventoryAnalytics } from '@/components/inventory/InventoryAnalytics';
+import { LoadingWrapper } from '@/components/ui/loading-wrapper';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -35,6 +36,7 @@ const statusFilters = ['all', 'in-stock', 'low-stock', 'out-of-stock', 'expired'
 const categoryFilters = ['all', 'medication', 'supplies', 'equipment', 'food', 'toys', 'other'] as const;
 
 export default function Inventory() {
+  const [isLoading, setIsLoading] = useState(true);
   const [activeTab, setActiveTab] = useState('inventory');
   const [search, setSearch] = useState('');
   const [selectedStatus, setSelectedStatus] = useState<typeof statusFilters[number]>('all');
@@ -46,6 +48,15 @@ export default function Inventory() {
   const [isStockAdjustmentOpen, setIsStockAdjustmentOpen] = useState(false);
   const [editingItem, setEditingItem] = useState<InventoryItem | null>(null);
   const [inventoryItems, setInventoryItems] = useState<InventoryItem[]>(mockInventoryItems);
+
+  useEffect(() => {
+    // Simulate loading time
+    const timer = setTimeout(() => {
+      setIsLoading(false);
+    }, 1400);
+
+    return () => clearTimeout(timer);
+  }, []);
 
   const filteredItems = inventoryItems.filter((item) => {
     const matchesSearch =
@@ -160,6 +171,7 @@ export default function Inventory() {
       subtitle={`${totalItems} total items • ${lowStockItems} low stock • ${outOfStockItems} out of stock`}
       action={{ label: 'Add Item', onClick: handleCreateItem }}
     >
+      <LoadingWrapper isLoading={isLoading} variant="billing">
       <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
         <TabsList className="grid w-full grid-cols-3">
           <TabsTrigger value="inventory">Inventory</TabsTrigger>
@@ -504,6 +516,7 @@ export default function Inventory() {
           </Card>
         </TabsContent>
       </Tabs>
+      </LoadingWrapper>
 
       <InventoryDetailPanel
         item={selectedItem}

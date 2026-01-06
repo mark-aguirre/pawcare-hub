@@ -1,5 +1,6 @@
 import { TrendingUp, TrendingDown, Target, Award, Users, Calendar } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { MonthlyRevenueMetric } from './MonthlyRevenueMetric';
 
 interface MetricProps {
   label: string;
@@ -57,14 +58,6 @@ function Metric({ label, value, change, target, icon: Icon, color }: MetricProps
 export function PerformanceSummary() {
   const metrics = [
     {
-      label: 'Monthly Revenue',
-      value: '$24,500',
-      change: 15.2,
-      target: 30000,
-      icon: TrendingUp,
-      color: 'bg-primary',
-    },
-    {
       label: 'Patient Satisfaction',
       value: '4.8/5',
       change: 2.1,
@@ -105,11 +98,17 @@ export function PerformanceSummary() {
       </div>
 
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+        <MonthlyRevenueMetric
+          value="$24,500"
+          change={15.2}
+          target={30000}
+          delay={300}
+        />
         {metrics.map((metric, index) => (
           <div
             key={metric.label}
             className="animate-slide-up"
-            style={{ animationDelay: `${300 + index * 100}ms` }}
+            style={{ animationDelay: `${400 + index * 100}ms` }}
           >
             <Metric {...metric} />
           </div>

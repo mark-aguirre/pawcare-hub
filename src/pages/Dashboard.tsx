@@ -1,5 +1,9 @@
+'use client';
+
+import { useState, useEffect } from 'react';
 import { MainLayout } from '@/components/layout/MainLayout';
 import { StatCard } from '@/components/dashboard/StatCard';
+import { RevenueStatCard } from '@/components/dashboard/RevenueStatCard';
 import { AppointmentCard } from '@/components/dashboard/AppointmentCard';
 import { QuickActions } from '@/components/dashboard/QuickActions';
 import { RecentPets } from '@/components/dashboard/RecentPets';
@@ -9,10 +13,12 @@ import { LowStockAlert } from '@/components/dashboard/LowStockAlert';
 import { RecentActivity } from '@/components/dashboard/RecentActivity';
 import { WelcomeMessage } from '@/components/dashboard/WelcomeMessage';
 import { PerformanceSummary } from '@/components/dashboard/PerformanceSummary';
+import { LoadingWrapper } from '@/components/ui/loading-wrapper';
 import { mockAppointments, mockDashboardStats } from '@/data/mockData';
 import { Calendar, DollarSign, PawPrint, Package, CheckCircle, AlertTriangle } from 'lucide-react';
 
 export default function Dashboard() {
+  const [isLoading, setIsLoading] = useState(true);
   const today = new Date();
   const todayAppointments = mockAppointments.filter(
     (apt) => apt.date.toDateString() === today.toDateString()
@@ -21,11 +27,21 @@ export default function Dashboard() {
   // For demo purposes, show welcome message (in real app, this would be based on user state)
   const isFirstTime = false; // Set to true to see welcome message
 
+  useEffect(() => {
+    // Simulate loading time
+    const timer = setTimeout(() => {
+      setIsLoading(false);
+    }, 1500);
+
+    return () => clearTimeout(timer);
+  }, []);
+
   return (
     <MainLayout
       title="Dashboard"
       subtitle={today.toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric', year: 'numeric' })}
     >
+      <LoadingWrapper isLoading={isLoading} variant="dashboard">
       {/* Welcome Message for new users */}
       <WelcomeMessage userName="Dr. Smith" isFirstTime={isFirstTime} />
 
@@ -46,11 +62,8 @@ export default function Dashboard() {
           variant="success"
           delay={100}
         />
-        <StatCard
-          title="Revenue Today"
+        <RevenueStatCard
           value={`$${mockDashboardStats.revenueToday.toLocaleString()}`}
-          icon={DollarSign}
-          variant="accent"
           trend={{ value: 8, isPositive: true }}
           delay={200}
         />
@@ -114,6 +127,7 @@ export default function Dashboard() {
         <RecentActivity />
         <RecentPets />
       </div>
+      </LoadingWrapper>
     </MainLayout>
   );
 }

@@ -1,6 +1,7 @@
 'use client';
 
 import { MainLayout } from '@/components/layout/MainLayout';
+import { LoadingWrapper } from '@/components/ui/loading-wrapper';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
@@ -8,12 +9,22 @@ import { ChartContainer, ChartTooltip, ChartTooltipContent } from '@/components/
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, ResponsiveContainer, PieChart, Pie, Cell, LineChart, Line, Area, AreaChart } from 'recharts';
 import { mockInvoices, mockAppointments, mockPets, mockMedicalRecords } from '@/data/mockData';
 import { Calendar, DollarSign, Users, Activity, TrendingUp, PieChart as PieChartIcon } from 'lucide-react';
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 
 const COLORS = ['#0088FE', '#00C49F', '#FFBB28', '#FF8042', '#8884D8', '#82CA9D'];
 
 export default function ReportsPage() {
+  const [isLoading, setIsLoading] = useState(true);
   const [dateRange, setDateRange] = useState('30');
+
+  useEffect(() => {
+    // Simulate loading time
+    const timer = setTimeout(() => {
+      setIsLoading(false);
+    }, 1600);
+
+    return () => clearTimeout(timer);
+  }, []);
 
   // Revenue Analytics
   const revenueData = mockInvoices
@@ -86,6 +97,7 @@ export default function ReportsPage() {
 
   return (
     <MainLayout title="Reports & Analytics" subtitle="Comprehensive insights and performance metrics">
+      <LoadingWrapper isLoading={isLoading} variant="billing">
       <div className="space-y-6">
         {/* Header Controls */}
         <div className="flex justify-between items-center">
@@ -340,6 +352,7 @@ export default function ReportsPage() {
           </TabsContent>
         </Tabs>
       </div>
+      </LoadingWrapper>
     </MainLayout>
   );
 }

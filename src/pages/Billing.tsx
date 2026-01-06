@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { MainLayout } from '@/components/layout/MainLayout';
 import { InvoiceCard } from '@/components/billing/InvoiceCard';
 import { InvoiceDetailPanel } from '@/components/billing/InvoiceDetailModal';
@@ -8,6 +8,7 @@ import { InvoiceFormPanel } from '@/components/billing/InvoiceFormModal';
 import { PaymentPanel } from '@/components/billing/PaymentModal';
 import { BillingAnalytics } from '@/components/billing/BillingAnalytics';
 import { BillingSettings } from '@/components/billing/BillingSettings';
+import { LoadingWrapper } from '@/components/ui/loading-wrapper';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -40,6 +41,7 @@ const statusFilters = ['all', 'draft', 'sent', 'paid', 'overdue', 'cancelled'] a
 const paymentMethodFilters = ['all', 'cash', 'card', 'check', 'insurance', 'online'] as const;
 
 export default function Billing() {
+  const [isLoading, setIsLoading] = useState(true);
   const [activeTab, setActiveTab] = useState('invoices');
   const [search, setSearch] = useState('');
   const [selectedStatus, setSelectedStatus] = useState<typeof statusFilters[number]>('all');
@@ -53,6 +55,15 @@ export default function Billing() {
   const [editingInvoice, setEditingInvoice] = useState<Invoice | null>(null);
   const [invoices, setInvoices] = useState<Invoice[]>(mockInvoices);
   const [payments, setPayments] = useState<PaymentRecord[]>(mockPaymentRecords);
+
+  useEffect(() => {
+    // Simulate loading time
+    const timer = setTimeout(() => {
+      setIsLoading(false);
+    }, 1300);
+
+    return () => clearTimeout(timer);
+  }, []);
 
   const filteredInvoices = invoices.filter((invoice) => {
     const matchesSearch =
@@ -168,6 +179,7 @@ export default function Billing() {
       subtitle={`${totalInvoices} total invoices • ${pendingInvoices + overdueInvoices} pending payment`}
       action={{ label: 'New Invoice', onClick: handleCreateInvoice }}
     >
+      <LoadingWrapper isLoading={isLoading} variant="billing">
       <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
         <TabsList className="grid w-full grid-cols-4">
           <TabsTrigger value="invoices">Invoices</TabsTrigger>
@@ -422,6 +434,7 @@ export default function Billing() {
           <BillingSettings />
         </TabsContent>
       </Tabs>
+      </LoadingWrapper>
 
       {/* Panels */}
       <InvoiceDetailPanel

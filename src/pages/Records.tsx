@@ -1,10 +1,11 @@
 "use client";
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { MainLayout } from '@/components/layout/MainLayout';
 import { RecordCard } from '@/components/records/RecordCard';
 import { RecordDetailModal } from '@/components/records/RecordDetailModal';
 import { NewRecordPanel } from '@/components/dashboard/panels/NewRecordPanel';
+import { LoadingWrapper } from '@/components/ui/loading-wrapper';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -32,6 +33,7 @@ const typeFilters = ['all', 'checkup', 'vaccination', 'surgery', 'treatment', 'l
 
 export default function Records() {
   const { toast } = useToast();
+  const [isLoading, setIsLoading] = useState(true);
   const [search, setSearch] = useState('');
   const [selectedStatus, setSelectedStatus] = useState<typeof statusFilters[number]>('all');
   const [selectedType, setSelectedType] = useState<typeof typeFilters[number]>('all');
@@ -39,6 +41,15 @@ export default function Records() {
   const [selectedRecord, setSelectedRecord] = useState<MedicalRecord | null>(null);
   const [isDetailModalOpen, setIsDetailModalOpen] = useState(false);
   const [isRecordPanelOpen, setIsRecordPanelOpen] = useState(false);
+
+  useEffect(() => {
+    // Simulate loading time
+    const timer = setTimeout(() => {
+      setIsLoading(false);
+    }, 1100);
+
+    return () => clearTimeout(timer);
+  }, []);
 
   const filteredRecords = mockMedicalRecords.filter((record) => {
     const matchesSearch =
@@ -114,6 +125,7 @@ export default function Records() {
       subtitle={`${totalRecords} total records • ${pendingRecords} pending review`}
       action={{ label: 'New Record', onClick: handleNewRecord }}
     >
+      <LoadingWrapper isLoading={isLoading} variant="records">
       <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
         {/* Main Content */}
         <div className="lg:col-span-3 space-y-6">
@@ -368,6 +380,7 @@ export default function Records() {
           </Card>
         </div>
       </div>
+      </LoadingWrapper>
 
       {/* Record Detail Modal */}
       <RecordDetailModal
