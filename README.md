@@ -1,8 +1,21 @@
-# Welcome to your Lovable project
+# PawCare Hub - Veterinary Practice Management System
+
+A modern, responsive veterinary practice management system built with Next.js and shadcn/ui.
 
 ## Project info
 
 **URL**: https://lovable.dev/projects/REPLACE_WITH_PROJECT_ID
+
+## Features
+
+- **Dashboard**: Overview of clinic operations with key metrics
+- **Pet Management**: Comprehensive pet profiles and medical history
+- **Owner Management**: Client information and contact details
+- **Appointment Scheduling**: Calendar-based appointment system
+- **Medical Records**: Digital health records and treatment history
+- **Inventory Management**: Track supplies and medications
+- **Billing System**: Invoice generation and payment tracking
+- **Reports**: Analytics and business insights
 
 ## How can I edit this code?
 
@@ -30,7 +43,7 @@ git clone <YOUR_GIT_URL>
 cd <YOUR_PROJECT_NAME>
 
 # Step 3: Install the necessary dependencies.
-npm i
+npm install
 
 # Step 4: Start the development server with auto-reloading and an instant preview.
 npm run dev
@@ -54,11 +67,35 @@ npm run dev
 
 This project is built with:
 
-- Vite
-- TypeScript
-- React
-- shadcn-ui
-- Tailwind CSS
+- **Next.js 15** - React framework with App Router
+- **TypeScript** - Type-safe JavaScript
+- **React 18** - UI library with modern hooks
+- **shadcn/ui** - Beautiful and accessible UI components
+- **Tailwind CSS** - Utility-first CSS framework
+- **Lucide React** - Beautiful icons
+- **React Query** - Data fetching and caching
+- **React Hook Form** - Form handling with validation
+- **Zod** - Schema validation
+
+## Project Structure
+
+```
+src/
+├── app/                 # Next.js App Router pages
+│   ├── layout.tsx      # Root layout
+│   ├── page.tsx        # Home page
+│   ├── globals.css     # Global styles
+│   └── [routes]/       # Route pages
+├── components/         # Reusable UI components
+│   ├── ui/            # shadcn/ui components
+│   ├── layout/        # Layout components
+│   └── [features]/    # Feature-specific components
+├── pages/             # Page components
+├── hooks/             # Custom React hooks
+├── lib/               # Utility functions
+├── types/             # TypeScript type definitions
+└── data/              # Mock data and constants
+```
 
 ## How can I deploy this project?
 

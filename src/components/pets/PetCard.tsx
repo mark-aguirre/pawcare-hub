@@ -8,6 +8,7 @@ import { Pet } from '@/types';
 interface PetCardProps {
   pet: Pet;
   delay?: number;
+  onClick?: () => void;
 }
 
 const speciesColors = {
@@ -28,13 +29,14 @@ const speciesEmoji = {
   other: '🐾',
 };
 
-export function PetCard({ pet, delay = 0 }: PetCardProps) {
+export function PetCard({ pet, delay = 0, onClick }: PetCardProps) {
   const hasConditions = pet.conditions.length > 0 || pet.allergies.length > 0;
 
   return (
     <div
-      className="group relative rounded-2xl border border-border bg-card overflow-hidden transition-all duration-300 hover:border-primary/30 hover:shadow-xl hover:shadow-primary/5 animate-slide-up"
+      className="group relative rounded-2xl border border-border bg-card overflow-hidden transition-all duration-300 hover:border-primary/30 hover:shadow-xl hover:shadow-primary/5 animate-slide-up cursor-pointer"
       style={{ animationDelay: `${delay}ms` }}
+      onClick={onClick}
     >
       {/* Top gradient bar */}
       <div className="absolute top-0 left-0 right-0 h-1 bg-gradient-primary opacity-0 group-hover:opacity-100 transition-opacity duration-300" />

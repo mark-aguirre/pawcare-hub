@@ -9,16 +9,18 @@ import { cn } from '@/lib/utils';
 interface OwnerCardProps {
   owner: Owner;
   delay?: number;
+  onClick?: () => void;
 }
 
-export function OwnerCard({ owner, delay = 0 }: OwnerCardProps) {
+export function OwnerCard({ owner, delay = 0, onClick }: OwnerCardProps) {
   const ownerPets = mockPets.filter((pet) => pet.ownerId === owner.id);
   const initials = owner.name.split(' ').map((n) => n[0]).join('');
 
   return (
     <div
-      className="group relative rounded-2xl border border-border bg-card overflow-hidden transition-all duration-300 hover:border-primary/30 hover:shadow-xl hover:shadow-primary/5 animate-slide-up"
+      className="group relative rounded-2xl border border-border bg-card overflow-hidden transition-all duration-300 hover:border-primary/30 hover:shadow-xl hover:shadow-primary/5 animate-slide-up cursor-pointer"
       style={{ animationDelay: `${delay}ms` }}
+      onClick={onClick}
     >
       {/* Top gradient bar */}
       <div className="absolute top-0 left-0 right-0 h-1 bg-gradient-accent opacity-0 group-hover:opacity-100 transition-opacity duration-300" />

@@ -3,6 +3,12 @@ import { StatCard } from '@/components/dashboard/StatCard';
 import { AppointmentCard } from '@/components/dashboard/AppointmentCard';
 import { QuickActions } from '@/components/dashboard/QuickActions';
 import { RecentPets } from '@/components/dashboard/RecentPets';
+import { RevenueChart } from '@/components/dashboard/RevenueChart';
+import { UpcomingAppointments } from '@/components/dashboard/UpcomingAppointments';
+import { LowStockAlert } from '@/components/dashboard/LowStockAlert';
+import { RecentActivity } from '@/components/dashboard/RecentActivity';
+import { WelcomeMessage } from '@/components/dashboard/WelcomeMessage';
+import { PerformanceSummary } from '@/components/dashboard/PerformanceSummary';
 import { mockAppointments, mockDashboardStats } from '@/data/mockData';
 import { Calendar, DollarSign, PawPrint, Package, CheckCircle, AlertTriangle } from 'lucide-react';
 
@@ -12,11 +18,17 @@ export default function Dashboard() {
     (apt) => apt.date.toDateString() === today.toDateString()
   );
 
+  // For demo purposes, show welcome message (in real app, this would be based on user state)
+  const isFirstTime = false; // Set to true to see welcome message
+
   return (
     <MainLayout
       title="Dashboard"
       subtitle={today.toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric', year: 'numeric' })}
     >
+      {/* Welcome Message for new users */}
+      <WelcomeMessage userName="Dr. Smith" isFirstTime={isFirstTime} />
+
       {/* Stats Grid */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
         <StatCard
@@ -32,7 +44,7 @@ export default function Dashboard() {
           value={mockDashboardStats.completedToday}
           icon={CheckCircle}
           variant="success"
-          delay={50}
+          delay={100}
         />
         <StatCard
           title="Revenue Today"
@@ -40,21 +52,22 @@ export default function Dashboard() {
           icon={DollarSign}
           variant="accent"
           trend={{ value: 8, isPositive: true }}
-          delay={100}
+          delay={200}
         />
         <StatCard
           title="Low Stock Items"
           value={mockDashboardStats.lowStockItems}
           icon={Package}
           variant="warning"
-          delay={150}
+          delay={300}
         />
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+      {/* Main Content Grid */}
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-6">
         {/* Today's Appointments */}
         <div className="lg:col-span-2">
-          <div className="rounded-xl border border-border bg-card p-5 animate-slide-up" style={{ animationDelay: '100ms' }}>
+          <div className="rounded-xl border border-border bg-card p-5 animate-slide-up">
             <div className="flex items-center justify-between mb-4">
               <h3 className="text-lg font-semibold text-foreground">Today's Appointments</h3>
               <span className="text-sm text-muted-foreground">{todayAppointments.length} scheduled</span>
@@ -65,7 +78,7 @@ export default function Dashboard() {
                   <AppointmentCard
                     key={appointment.id}
                     appointment={appointment}
-                    delay={150 + index * 50}
+                    delay={index * 50}
                   />
                 ))
               ) : (
@@ -78,11 +91,28 @@ export default function Dashboard() {
           </div>
         </div>
 
-        {/* Sidebar */}
-        <div className="space-y-6">
+        {/* Quick Actions */}
+        <div>
           <QuickActions />
-          <RecentPets />
         </div>
+      </div>
+
+      {/* Performance Summary */}
+      <div className="mb-6">
+        <PerformanceSummary />
+      </div>
+
+      {/* Secondary Content Grid */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-6 mb-6">
+        <RevenueChart />
+        <UpcomingAppointments />
+        <LowStockAlert />
+      </div>
+
+      {/* Bottom Content Grid */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        <RecentActivity />
+        <RecentPets />
       </div>
     </MainLayout>
   );
