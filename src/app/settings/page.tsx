@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { MainLayout } from '@/components/layout/MainLayout';
+import { ProtectedRoute } from '@/components/auth/ProtectedRoute';
 import { LoadingWrapper } from '@/components/ui/loading-wrapper';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -95,8 +96,9 @@ export default function SettingsPage() {
   ];
 
   return (
-    <MainLayout title="Settings" subtitle="Manage your clinic preferences">
-      <LoadingWrapper isLoading={isLoading} variant="list">
+    <ProtectedRoute requiredPermissions={['settings']}>
+      <MainLayout title="Settings" subtitle="Manage your clinic preferences">
+        <LoadingWrapper isLoading={isLoading} variant="list">
       <Tabs defaultValue="general" className="space-y-6">
         <TabsList className="grid w-full grid-cols-3">
           <TabsTrigger value="branding">Branding</TabsTrigger>
@@ -502,5 +504,6 @@ export default function SettingsPage() {
       </Tabs>
       </LoadingWrapper>
     </MainLayout>
+    </ProtectedRoute>
   );
 }

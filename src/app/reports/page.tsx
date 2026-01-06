@@ -1,6 +1,7 @@
 'use client';
 
 import { MainLayout } from '@/components/layout/MainLayout';
+import { ProtectedRoute } from '@/components/auth/ProtectedRoute';
 import { LoadingWrapper } from '@/components/ui/loading-wrapper';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
@@ -96,8 +97,9 @@ export default function ReportsPage() {
   };
 
   return (
-    <MainLayout title="Reports & Analytics" subtitle="Comprehensive insights and performance metrics">
-      <LoadingWrapper isLoading={isLoading} variant="billing">
+    <ProtectedRoute requiredPermissions={['reports']}>
+      <MainLayout title="Reports & Analytics" subtitle="Comprehensive insights and performance metrics">
+        <LoadingWrapper isLoading={isLoading} variant="billing">
       <div className="space-y-6">
         {/* Header Controls */}
         <div className="flex justify-between items-center">
@@ -354,5 +356,6 @@ export default function ReportsPage() {
       </div>
       </LoadingWrapper>
     </MainLayout>
+    </ProtectedRoute>
   );
 }

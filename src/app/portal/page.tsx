@@ -2,33 +2,23 @@
 
 import { useState, useEffect } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
+import { ProtectedRoute } from '@/components/auth/ProtectedRoute';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { LoadingWrapper } from '@/components/ui/loading-wrapper';
-import { PawPrint, Calendar, FileText, Receipt, Download, Phone, Mail } from 'lucide-react';
+import { PawPrint, Calendar, FileText, Receipt, Download, Phone, Mail, LogOut } from 'lucide-react';
 import { mockPets, mockAppointments, mockMedicalRecords, mockInvoices } from '@/data/mockData';
 
 export default function PortalPage() {
-  const { user } = useAuth();
+  const { user, logout } = useAuth();
   const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
     const timer = setTimeout(() => setIsLoading(false), 1000);
     return () => clearTimeout(timer);
   }, []);
-
-  if (user?.role !== 'pet-owner') {
-    return (
-      <div className="min-h-screen flex items-center justify-center">
-        <div className="text-center">
-          <h1 className="text-2xl font-bold text-destructive mb-2">Access Denied</h1>
-          <p className="text-muted-foreground">This portal is only available to pet owners.</p>
-        </div>
-      </div>
-    );
-  }
 
   // Mock data for the logged-in pet owner
   const ownerPets = mockPets.filter(pet => pet.ownerId === 'owner-1'); // Assuming logged-in owner
@@ -37,29 +27,34 @@ export default function PortalPage() {
   const ownerInvoices = mockInvoices.filter(invoice => invoice.ownerId === 'owner-1');
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-primary/5 via-background to-secondary/5">
+    <ProtectedRoute requiredPermissions={['portal']}>
+      <div className="min-h-screen bg-gradient-to-br from-primary/5 via-background to-secondary/5">
       <LoadingWrapper isLoading={isLoading} variant="dashboard">
         {/* Header */}
-        <div className="bg-white border-b">
+        <div className="bg-gradient-to-r from-primary to-primary/80 text-primary-foreground">
           <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-            <div className="flex items-center justify-between h-16">
-              <div className="flex items-center gap-3">
-                <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-gradient-primary shadow-glow">
-                  <PawPrint className="h-5 w-5 text-primary-foreground" />
+            <div className="flex items-center justify-between h-20">
+              <div className="flex items-center gap-4">
+                <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-white/20 backdrop-blur">
+                  <PawPrint className="h-6 w-6" />
                 </div>
                 <div>
-                  <h1 className="text-xl font-bold">PawCare Portal</h1>
-                  <p className="text-sm text-muted-foreground">Welcome, {user?.name}</p>
+                  <h1 className="text-2xl font-bold">PawCare Portal</h1>
+                  <p className="text-primary-foreground/80">Welcome back, {user?.name}</p>
                 </div>
               </div>
-              <div className="flex items-center gap-4">
-                <Button variant="outline" size="sm">
+              <div className="flex items-center gap-3">
+                <Button variant="secondary" size="sm" className="bg-white/20 hover:bg-white/30 border-0" onClick={() => window.open('tel:+15551234567')}>
                   <Phone className="h-4 w-4 mr-2" />
                   Call Clinic
                 </Button>
-                <Button variant="outline" size="sm">
+                <Button variant="secondary" size="sm" className="bg-white/20 hover:bg-white/30 border-0" onClick={() => window.open('mailto:info@pawcare.com')}>
                   <Mail className="h-4 w-4 mr-2" />
                   Contact
+                </Button>
+                <Button variant="secondary" size="sm" className="bg-white/20 hover:bg-white/30 border-0" onClick={logout}>
+                  <LogOut className="h-4 w-4 mr-2" />
+                  Logout
                 </Button>
               </div>
             </div>
@@ -68,48 +63,48 @@ export default function PortalPage() {
 
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
           {/* Quick Stats */}
-          <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
-            <Card>
-              <CardContent className="p-4">
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8">
+            <Card className="bg-gradient-to-br from-blue-50 to-blue-100 border-blue-200">
+              <CardContent className="p-6">
                 <div className="flex items-center justify-between">
                   <div>
-                    <p className="text-sm font-medium text-muted-foreground">My Pets</p>
-                    <p className="text-2xl font-bold">{ownerPets.length}</p>
+                    <p className="text-sm font-medium text-blue-700">My Pets</p>
+                    <p className="text-3xl font-bold text-blue-900">{ownerPets.length}</p>
                   </div>
-                  <PawPrint className="h-8 w-8 text-primary" />
+                  <PawPrint className="h-10 w-10 text-blue-600" />
                 </div>
               </CardContent>
             </Card>
-            <Card>
-              <CardContent className="p-4">
+            <Card className="bg-gradient-to-br from-green-50 to-green-100 border-green-200">
+              <CardContent className="p-6">
                 <div className="flex items-center justify-between">
                   <div>
-                    <p className="text-sm font-medium text-muted-foreground">Appointments</p>
-                    <p className="text-2xl font-bold">{ownerAppointments.length}</p>
+                    <p className="text-sm font-medium text-green-700">Appointments</p>
+                    <p className="text-3xl font-bold text-green-900">{ownerAppointments.length}</p>
                   </div>
-                  <Calendar className="h-8 w-8 text-primary" />
+                  <Calendar className="h-10 w-10 text-green-600" />
                 </div>
               </CardContent>
             </Card>
-            <Card>
-              <CardContent className="p-4">
+            <Card className="bg-gradient-to-br from-purple-50 to-purple-100 border-purple-200">
+              <CardContent className="p-6">
                 <div className="flex items-center justify-between">
                   <div>
-                    <p className="text-sm font-medium text-muted-foreground">Medical Records</p>
-                    <p className="text-2xl font-bold">{ownerRecords.length}</p>
+                    <p className="text-sm font-medium text-purple-700">Records</p>
+                    <p className="text-3xl font-bold text-purple-900">{ownerRecords.length}</p>
                   </div>
-                  <FileText className="h-8 w-8 text-primary" />
+                  <FileText className="h-10 w-10 text-purple-600" />
                 </div>
               </CardContent>
             </Card>
-            <Card>
-              <CardContent className="p-4">
+            <Card className="bg-gradient-to-br from-orange-50 to-orange-100 border-orange-200">
+              <CardContent className="p-6">
                 <div className="flex items-center justify-between">
                   <div>
-                    <p className="text-sm font-medium text-muted-foreground">Pending Bills</p>
-                    <p className="text-2xl font-bold">{ownerInvoices.filter(i => i.status !== 'paid').length}</p>
+                    <p className="text-sm font-medium text-orange-700">Pending Bills</p>
+                    <p className="text-3xl font-bold text-orange-900">{ownerInvoices.filter(i => i.status !== 'paid').length}</p>
                   </div>
-                  <Receipt className="h-8 w-8 text-warning" />
+                  <Receipt className="h-10 w-10 text-orange-600" />
                 </div>
               </CardContent>
             </Card>
@@ -117,38 +112,38 @@ export default function PortalPage() {
 
           {/* Main Content */}
           <Tabs defaultValue="pets" className="space-y-6">
-            <TabsList className="grid w-full grid-cols-4">
-              <TabsTrigger value="pets">My Pets</TabsTrigger>
-              <TabsTrigger value="appointments">Appointments</TabsTrigger>
-              <TabsTrigger value="records">Medical Records</TabsTrigger>
-              <TabsTrigger value="billing">Billing</TabsTrigger>
+            <TabsList className="grid w-full grid-cols-4 h-12">
+              <TabsTrigger value="pets" className="text-sm font-medium">My Pets</TabsTrigger>
+              <TabsTrigger value="appointments" className="text-sm font-medium">Appointments</TabsTrigger>
+              <TabsTrigger value="records" className="text-sm font-medium">Medical Records</TabsTrigger>
+              <TabsTrigger value="billing" className="text-sm font-medium">Billing</TabsTrigger>
             </TabsList>
 
             <TabsContent value="pets" className="space-y-4">
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                 {ownerPets.map((pet) => (
-                  <Card key={pet.id}>
+                  <Card key={pet.id} className="hover:shadow-lg transition-shadow">
                     <CardContent className="p-6">
                       <div className="flex items-center gap-4">
                         {pet.photoUrl ? (
-                          <img src={pet.photoUrl} alt={pet.name} className="w-16 h-16 rounded-full object-cover" />
+                          <img src={pet.photoUrl} alt={pet.name} className="w-20 h-20 rounded-full object-cover border-4 border-primary/20" />
                         ) : (
-                          <div className="w-16 h-16 rounded-full bg-primary/10 flex items-center justify-center">
-                            <PawPrint className="h-8 w-8 text-primary" />
+                          <div className="w-20 h-20 rounded-full bg-gradient-to-br from-primary/20 to-primary/10 flex items-center justify-center border-4 border-primary/20">
+                            <PawPrint className="h-10 w-10 text-primary" />
                           </div>
                         )}
-                        <div>
-                          <h3 className="font-semibold text-lg">{pet.name}</h3>
-                          <p className="text-muted-foreground capitalize">{pet.species} • {pet.breed}</p>
+                        <div className="flex-1">
+                          <h3 className="font-bold text-xl text-primary">{pet.name}</h3>
+                          <p className="text-muted-foreground capitalize text-lg">{pet.species} • {pet.breed}</p>
                           <p className="text-sm text-muted-foreground">{pet.age} years old • {pet.weight}kg</p>
                         </div>
                       </div>
                       {pet.conditions.length > 0 && (
                         <div className="mt-4">
-                          <p className="text-sm font-medium mb-2">Conditions:</p>
-                          <div className="flex flex-wrap gap-1">
+                          <p className="text-sm font-medium mb-2">Health Conditions:</p>
+                          <div className="flex flex-wrap gap-2">
                             {pet.conditions.map((condition, index) => (
-                              <Badge key={index} variant="outline" className="text-xs">
+                              <Badge key={index} variant="secondary" className="text-xs px-3 py-1">
                                 {condition}
                               </Badge>
                             ))}
@@ -268,5 +263,6 @@ export default function PortalPage() {
         </div>
       </LoadingWrapper>
     </div>
+    </ProtectedRoute>
   );
 }

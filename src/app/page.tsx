@@ -1,10 +1,33 @@
-import Dashboard from '@/pages/Dashboard';
+'use client';
+
+import { lazy, Suspense } from 'react';
 import { ProtectedRoute } from '@/components/auth/ProtectedRoute';
+import { PageSkeleton } from '@/components/ui/page-skeleton';
+import { useAuth } from '@/contexts/AuthContext';
+import { useRouter } from 'next/navigation';
+import { useEffect } from 'react';
+
+const Dashboard = lazy(() => import('@/pages/Dashboard'));
 
 export default function Home() {
+  const { user } = useAuth();
+  const router = useRouter();
+
+  useEffect(() => {
+    if (user?.role === 'pet-owner') {
+      router.replace('/portal');
+    }
+  }, [user, router]);
+
+  if (user?.role === 'pet-owner') {
+    return null;
+  }
+
   return (
     <ProtectedRoute>
-      <Dashboard />
+      <Suspense fallback={<PageSkeleton />}>
+        <Dashboard />
+      </Suspense>
     </ProtectedRoute>
   );
 }

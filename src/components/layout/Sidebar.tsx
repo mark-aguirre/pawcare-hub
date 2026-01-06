@@ -5,6 +5,7 @@ import { usePathname } from 'next/navigation';
 import { cn } from '@/lib/utils';
 import { useAppSettings } from '@/contexts/AppSettingsContext';
 import { useAuth } from '@/contexts/AuthContext';
+import { useRoutePreload } from '@/lib/preload';
 import {
   LayoutDashboard,
   PawPrint,
@@ -24,28 +25,29 @@ import {
 } from 'lucide-react';
 
 const navigation = [
-  { name: 'Dashboard', href: '/', icon: LayoutDashboard },
-  { name: 'Pets', href: '/pets', icon: PawPrint },
-  { name: 'Owners', href: '/owners', icon: Users },
-  { name: 'Appointments', href: '/appointments', icon: Calendar },
-  { name: 'Medical Records', href: '/records', icon: FileText },
-  { name: 'Vaccinations', href: '/vaccinations', icon: Syringe },
-  { name: 'Prescriptions', href: '/prescriptions', icon: Pill },
-  { name: 'Lab Tests', href: '/lab-tests', icon: TestTube },
-  { name: 'Inventory', href: '/inventory', icon: Package },
-  { name: 'Billing', href: '/billing', icon: Receipt },
-  { name: 'Reports', href: '/reports', icon: BarChart3 },
-  { name: 'Pet Portal', href: '/portal', icon: Globe },
+  { name: 'Dashboard', href: '/', icon: LayoutDashboard, permissions: [] },
+  { name: 'Pets', href: '/pets', icon: PawPrint, permissions: ['pets'] },
+  { name: 'Owners', href: '/owners', icon: Users, permissions: ['owners'] },
+  { name: 'Appointments', href: '/appointments', icon: Calendar, permissions: ['appointments'] },
+  { name: 'Medical Records', href: '/records', icon: FileText, permissions: ['records'] },
+  { name: 'Vaccinations', href: '/vaccinations', icon: Syringe, permissions: ['vaccinations'] },
+  { name: 'Prescriptions', href: '/prescriptions', icon: Pill, permissions: ['prescriptions'] },
+  { name: 'Lab Tests', href: '/lab-tests', icon: TestTube, permissions: ['lab-tests'] },
+  { name: 'Inventory', href: '/inventory', icon: Package, permissions: ['inventory'] },
+  { name: 'Billing', href: '/billing', icon: Receipt, permissions: ['billing'] },
+  { name: 'Reports', href: '/reports', icon: BarChart3, permissions: ['reports'] },
+  { name: 'Pet Portal', href: '/portal', icon: Globe, permissions: ['portal'] },
 ];
 
 const bottomNavigation = [
-  { name: 'Settings', href: '/settings', icon: Settings },
+  { name: 'Settings', href: '/settings', icon: Settings, permissions: ['settings'] },
 ];
 
 export function Sidebar() {
   const pathname = usePathname();
   const { settings } = useAppSettings();
   const { user, logout } = useAuth();
+  const { preloadOnHover } = useRoutePreload();
 
   return (
     <aside className="fixed left-0 top-0 z-40 h-screen w-64 bg-sidebar border-r border-sidebar-border overflow-hidden">
@@ -77,59 +79,75 @@ export function Sidebar() {
 
         {/* Navigation */}
         <nav className="flex-1 space-y-1.5 px-3 py-6 overflow-y-auto">
-          {navigation.map((item, index) => {
-            const isActive = pathname === item.href;
-            return (
-              <Link
-                key={item.name}
-                href={item.href}
-                className={cn(
-                  'group relative flex items-center gap-3 rounded-xl px-4 py-3 text-sm font-medium transition-all duration-300',
-                  isActive
-                    ? 'bg-gradient-primary text-primary-foreground shadow-glow'
-                    : 'text-sidebar-foreground/70 hover:bg-sidebar-accent hover:text-sidebar-foreground'
-                )}
-                style={{ animationDelay: `${index * 50}ms` }}
-              >
-                <item.icon
+          {navigation
+            .filter(item => {
+              if (!user) return false;
+              if (user.permissions.includes('all')) return true;
+              if (user.role === 'pet-owner') return item.href === '/portal';
+              return item.permissions.length === 0 || item.permissions.some(permission => user.permissions.includes(permission));
+            })
+            .map((item, index) => {
+              const isActive = pathname === item.href;
+              return (
+                <Link
+                  key={item.name}
+                  href={item.href}
                   className={cn(
-                    'h-5 w-5 transition-all duration-300',
-                    isActive 
-                      ? 'text-primary-foreground' 
-                      : 'text-sidebar-foreground/50 group-hover:text-sidebar-foreground group-hover:scale-110'
+                    'group relative flex items-center gap-3 rounded-xl px-4 py-3 text-sm font-medium transition-all duration-300',
+                    isActive
+                      ? 'bg-gradient-primary text-primary-foreground shadow-glow'
+                      : 'text-sidebar-foreground/70 hover:bg-sidebar-accent hover:text-sidebar-foreground'
                   )}
-                />
-                <span className="tracking-wide">{item.name}</span>
-                
-                {/* Active indicator */}
-                {isActive && (
-                  <div className="absolute right-3 h-2 w-2 rounded-full bg-primary-foreground/80 animate-pulse-soft" />
-                )}
-              </Link>
-            );
-          })}
+                  style={{ animationDelay: `${index * 50}ms` }}
+                  {...preloadOnHover(item.href)}
+                >
+                  <item.icon
+                    className={cn(
+                      'h-5 w-5 transition-all duration-300',
+                      isActive 
+                        ? 'text-primary-foreground' 
+                        : 'text-sidebar-foreground/50 group-hover:text-sidebar-foreground group-hover:scale-110'
+                    )}
+                  />
+                  <span className="tracking-wide">{item.name}</span>
+                  
+                  {/* Active indicator */}
+                  {isActive && (
+                    <div className="absolute right-3 h-2 w-2 rounded-full bg-primary-foreground/80 animate-pulse-soft" />
+                  )}
+                </Link>
+              );
+            })}
         </nav>
 
         {/* Bottom Navigation */}
         <div className="border-t border-sidebar-border px-3 py-4 space-y-1.5">
-          {bottomNavigation.map((item) => {
-            const isActive = pathname === item.href;
-            return (
-              <Link
-                key={item.name}
-                href={item.href}
-                className={cn(
-                  'group flex items-center gap-3 rounded-xl px-4 py-3 text-sm font-medium transition-all duration-300',
-                  isActive
-                    ? 'bg-gradient-primary text-primary-foreground'
-                    : 'text-sidebar-foreground/70 hover:bg-sidebar-accent hover:text-sidebar-foreground'
-                )}
-              >
-                <item.icon className="h-5 w-5 text-sidebar-foreground/50 group-hover:text-sidebar-foreground" />
-                {item.name}
-              </Link>
-            );
-          })}
+          {bottomNavigation
+            .filter(item => {
+              if (!user) return false;
+              if (user.permissions.includes('all')) return true;
+              if (user.role === 'pet-owner') return false;
+              return item.permissions.length === 0 || item.permissions.some(permission => user.permissions.includes(permission));
+            })
+            .map((item) => {
+              const isActive = pathname === item.href;
+              return (
+                <Link
+                  key={item.name}
+                  href={item.href}
+                  className={cn(
+                    'group flex items-center gap-3 rounded-xl px-4 py-3 text-sm font-medium transition-all duration-300',
+                    isActive
+                      ? 'bg-gradient-primary text-primary-foreground'
+                      : 'text-sidebar-foreground/70 hover:bg-sidebar-accent hover:text-sidebar-foreground'
+                  )}
+                  {...preloadOnHover(item.href)}
+                >
+                  <item.icon className="h-5 w-5 text-sidebar-foreground/50 group-hover:text-sidebar-foreground" />
+                  {item.name}
+                </Link>
+              );
+            })}
           
           <button 
             className="group flex w-full items-center gap-3 rounded-xl px-4 py-3 text-sm font-medium text-sidebar-foreground/70 transition-all duration-300 hover:bg-destructive/20 hover:text-destructive"

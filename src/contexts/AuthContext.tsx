@@ -32,7 +32,7 @@ const mockUsers: User[] = [
     name: 'Dr. Michael Torres',
     email: 'vet@pawcare.com',
     role: 'veterinarian',
-    permissions: ['appointments', 'pets', 'owners', 'records', 'prescriptions']
+    permissions: ['appointments', 'pets', 'owners', 'records', 'prescriptions', 'vaccinations', 'lab-tests']
   },
   {
     id: '3',
