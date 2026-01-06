@@ -4,6 +4,7 @@ import { useState } from 'react';
 import { MainLayout } from '@/components/layout/MainLayout';
 import { RecordCard } from '@/components/records/RecordCard';
 import { RecordDetailModal } from '@/components/records/RecordDetailModal';
+import { NewRecordPanel } from '@/components/dashboard/panels/NewRecordPanel';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -24,17 +25,20 @@ import {
 import { mockMedicalRecords, mockPets, mockVeterinarians } from '@/data/mockData';
 import { MedicalRecord } from '@/types';
 import { cn } from '@/lib/utils';
+import { useToast } from '@/components/ui/use-toast';
 
 const statusFilters = ['all', 'pending', 'completed', 'archived'] as const;
 const typeFilters = ['all', 'checkup', 'vaccination', 'surgery', 'treatment', 'lab-result', 'emergency', 'follow-up'] as const;
 
 export default function Records() {
+  const { toast } = useToast();
   const [search, setSearch] = useState('');
   const [selectedStatus, setSelectedStatus] = useState<typeof statusFilters[number]>('all');
   const [selectedType, setSelectedType] = useState<typeof typeFilters[number]>('all');
   const [selectedPet, setSelectedPet] = useState<string>('all');
   const [selectedRecord, setSelectedRecord] = useState<MedicalRecord | null>(null);
-  const [isModalOpen, setIsModalOpen] = useState(false);
+  const [isDetailModalOpen, setIsDetailModalOpen] = useState(false);
+  const [isRecordPanelOpen, setIsRecordPanelOpen] = useState(false);
 
   const filteredRecords = mockMedicalRecords.filter((record) => {
     const matchesSearch =
@@ -62,14 +66,53 @@ export default function Records() {
 
   const handleRecordClick = (record: MedicalRecord) => {
     setSelectedRecord(record);
-    setIsModalOpen(true);
+    setIsDetailModalOpen(true);
+  };
+
+  const handleNewRecord = () => {
+    setIsRecordPanelOpen(true);
+  };
+
+  const handleEditRecord = (record: MedicalRecord) => {
+    // Edit functionality can be added later
+    console.log('Edit record:', record);
+  };
+
+  const handleArchiveRecords = () => {
+    const selectedRecords = filteredRecords.filter(r => r.status !== 'archived');
+    if (selectedRecords.length === 0) {
+      toast({
+        title: "No Records to Archive",
+        description: "All visible records are already archived or no records are selected.",
+        variant: "default",
+      });
+      return;
+    }
+    
+    // Here you would typically update the records in your API
+    console.log('Archiving records:', selectedRecords.map(r => r.id));
+    
+    toast({
+      title: "Records Archived",
+      description: `${selectedRecords.length} record(s) have been archived successfully.`,
+      variant: "default",
+    });
+  };
+
+  const handleScheduleFollowUp = () => {
+    // This would typically open an appointment scheduling modal
+    toast({
+      title: "Schedule Follow-up",
+      description: "Follow-up appointment scheduling feature coming soon.",
+      variant: "default",
+    });
   };
 
   return (
     <MainLayout
       title="Medical Records"
       subtitle={`${totalRecords} total records • ${pendingRecords} pending review`}
-      action={{ label: 'New Record', onClick: () => {} }}
+      action={{ label: 'New Record', onClick: handleNewRecord }}
     >
       <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
         {/* Main Content */}
@@ -253,15 +296,11 @@ export default function Records() {
               </CardTitle>
             </CardHeader>
             <CardContent className="space-y-3">
-              <Button className="w-full justify-start" variant="outline">
-                <FileText className="h-4 w-4 mr-2" />
-                New Record
-              </Button>
-              <Button className="w-full justify-start" variant="outline">
+              <Button className="w-full justify-start" variant="outline" onClick={handleScheduleFollowUp}>
                 <Calendar className="h-4 w-4 mr-2" />
                 Schedule Follow-up
               </Button>
-              <Button className="w-full justify-start" variant="outline">
+              <Button className="w-full justify-start" variant="outline" onClick={handleArchiveRecords}>
                 <Archive className="h-4 w-4 mr-2" />
                 Archive Records
               </Button>
@@ -333,8 +372,15 @@ export default function Records() {
       {/* Record Detail Modal */}
       <RecordDetailModal
         record={selectedRecord}
-        open={isModalOpen}
-        onOpenChange={setIsModalOpen}
+        open={isDetailModalOpen}
+        onOpenChange={setIsDetailModalOpen}
+        onEdit={handleEditRecord}
+      />
+
+      {/* New Record Panel */}
+      <NewRecordPanel
+        open={isRecordPanelOpen}
+        onOpenChange={setIsRecordPanelOpen}
       />
     </MainLayout>
   );

@@ -4,7 +4,7 @@ import { useState } from 'react';
 import { MainLayout } from '@/components/layout/MainLayout';
 import { OwnerCard } from '@/components/owners/OwnerCard';
 import { OwnerDetailModal } from '@/components/owners/OwnerDetailModal';
-import { NewOwnerModal } from '@/components/dashboard/modals/NewOwnerModal';
+import { NewOwnerPanel } from '@/components/dashboard/panels/NewOwnerPanel';
 import { Input } from '@/components/ui/input';
 import { Search, Users } from 'lucide-react';
 import { mockOwners } from '@/data/mockData';
@@ -77,7 +77,7 @@ export default function Owners() {
         open={showOwnerDetail}
         onOpenChange={setShowOwnerDetail}
       />
-      <NewOwnerModal 
+      <NewOwnerPanel 
         open={showNewOwnerModal}
         onOpenChange={setShowNewOwnerModal}
       />

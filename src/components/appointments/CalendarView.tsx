@@ -136,12 +136,6 @@ export function CalendarView({ appointments, selectedStatus, onNewAppointment }:
             </Button>
           </div>
         </div>
-        {onNewAppointment && (
-          <Button onClick={onNewAppointment} size="sm">
-            <Plus className="h-4 w-4 mr-2" />
-            New Appointment
-          </Button>
-        )}
       </div>
 
       {/* Week Days Header */}
@@ -202,7 +196,7 @@ export function CalendarView({ appointments, selectedStatus, onNewAppointment }:
             </div>
 
             {/* Add appointment button on hover */}
-            {calendarDay.isCurrentMonth && (
+            {calendarDay.isCurrentMonth && onNewAppointment && (
               <button
                 onClick={onNewAppointment}
                 className="absolute top-1 right-1 opacity-0 hover:opacity-100 transition-opacity p-1 rounded hover:bg-muted"

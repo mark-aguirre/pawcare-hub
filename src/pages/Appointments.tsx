@@ -4,6 +4,7 @@ import { useState } from 'react';
 import { MainLayout } from '@/components/layout/MainLayout';
 import { AppointmentCard } from '@/components/dashboard/AppointmentCard';
 import { CalendarView } from '@/components/appointments/CalendarView';
+import { NewAppointmentPanel } from '@/components/dashboard/panels/NewAppointmentPanel';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -18,6 +19,7 @@ export default function Appointments() {
   const [selectedDate, setSelectedDate] = useState<Date>(new Date());
   const [selectedStatus, setSelectedStatus] = useState<typeof statusFilters[number]>('all');
   const [viewMode, setViewMode] = useState<'list' | 'calendar'>('calendar');
+  const [showNewAppointmentPanel, setShowNewAppointmentPanel] = useState(false);
 
   const navigateDate = (days: number) => {
     const newDate = new Date(selectedDate);
@@ -34,11 +36,12 @@ export default function Appointments() {
   const isToday = selectedDate.toDateString() === new Date().toDateString();
 
   return (
-    <MainLayout
-      title="Appointments"
-      subtitle={`Schedule and manage patient visits`}
-      action={{ label: 'New Appointment', onClick: () => {} }}
-    >
+    <>
+      <MainLayout
+        title="Appointments"
+        subtitle={`Schedule and manage patient visits`}
+        action={{ label: 'New Appointment', onClick: () => setShowNewAppointmentPanel(true) }}
+      >
       {/* View Toggle and Filters */}
       <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 mb-6">
         <Tabs value={viewMode} onValueChange={(value) => setViewMode(value as 'list' | 'calendar')}>
@@ -74,7 +77,6 @@ export default function Appointments() {
           <CalendarView 
             appointments={mockAppointments}
             selectedStatus={selectedStatus}
-            onNewAppointment={() => {}}
           />
         </TabsContent>
 
@@ -145,6 +147,12 @@ export default function Appointments() {
           </div>
         </TabsContent>
       </Tabs>
-    </MainLayout>
+      </MainLayout>
+      
+      <NewAppointmentPanel 
+        open={showNewAppointmentPanel} 
+        onOpenChange={setShowNewAppointmentPanel} 
+      />
+    </>
   );
 }

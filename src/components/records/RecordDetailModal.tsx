@@ -26,6 +26,7 @@ interface RecordDetailModalProps {
   record: MedicalRecord | null;
   open: boolean;
   onOpenChange: (open: boolean) => void;
+  onEdit?: (record: MedicalRecord) => void;
 }
 
 const statusStyles = {
@@ -53,7 +54,7 @@ const speciesEmoji = {
   other: '🐾',
 };
 
-export function RecordDetailModal({ record, open, onOpenChange }: RecordDetailModalProps) {
+export function RecordDetailModal({ record, open, onOpenChange, onEdit }: RecordDetailModalProps) {
   if (!record) return null;
 
   const formatDate = (date: Date) => {
@@ -198,7 +199,7 @@ export function RecordDetailModal({ record, open, onOpenChange }: RecordDetailMo
 
           {/* Actions */}
           <div className="flex flex-wrap gap-3">
-            <Button className="flex items-center gap-2">
+            <Button className="flex items-center gap-2" onClick={() => onEdit && record && onEdit(record)}>
               <Edit className="h-4 w-4" />
               Edit Record
             </Button>
@@ -210,7 +211,7 @@ export function RecordDetailModal({ record, open, onOpenChange }: RecordDetailMo
               <Share className="h-4 w-4" />
               Share
             </Button>
-            {record.status !== 'archived' && (
+            {record && record.status !== 'archived' && (
               <Button variant="outline" className="flex items-center gap-2">
                 <Archive className="h-4 w-4" />
                 Archive

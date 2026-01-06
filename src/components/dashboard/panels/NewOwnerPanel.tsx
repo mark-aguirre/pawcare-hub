@@ -51,7 +51,7 @@ export function NewOwnerPanel({ open, onOpenChange }: NewOwnerPanelProps) {
 
   return (
     <Sheet open={open} onOpenChange={onOpenChange}>
-      <SheetContent className="w-[700px] sm:w-[800px] overflow-y-auto">
+      <SheetContent className="w-[40vw] min-w-[600px] overflow-y-auto">
         <SheetHeader className="pb-6">
           <div className="flex items-center gap-3">
             <div className="rounded-xl bg-gradient-primary p-2.5 shadow-glow">

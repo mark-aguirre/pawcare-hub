@@ -9,7 +9,8 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Textarea } from '@/components/ui/textarea';
 import { Calendar } from '@/components/ui/calendar';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
-import { CalendarIcon, Clock, X } from 'lucide-react';
+import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from '@/components/ui/command';
+import { CalendarIcon, Clock, X, Check, ChevronsUpDown } from 'lucide-react';
 import { format } from 'date-fns';
 import { cn } from '@/lib/utils';
 import { mockPets, mockVeterinarians } from '@/data/mockData';
@@ -22,6 +23,8 @@ interface NewAppointmentPanelProps {
 
 export function NewAppointmentPanel({ open, onOpenChange }: NewAppointmentPanelProps) {
   const [date, setDate] = useState<Date>();
+  const [openPetSelect, setOpenPetSelect] = useState(false);
+  const [openVetSelect, setOpenVetSelect] = useState(false);
   const [formData, setFormData] = useState({
     petId: '',
     veterinarianId: '',
@@ -71,7 +74,7 @@ export function NewAppointmentPanel({ open, onOpenChange }: NewAppointmentPanelP
 
   return (
     <Sheet open={open} onOpenChange={onOpenChange}>
-      <SheetContent className="w-[700px] sm:w-[800px] overflow-y-auto">
+      <SheetContent className="w-[40vw] min-w-[600px] overflow-y-auto">
         <SheetHeader className="pb-6">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-3">
@@ -96,41 +99,103 @@ export function NewAppointmentPanel({ open, onOpenChange }: NewAppointmentPanelP
               {/* Pet Selection */}
               <div className="space-y-2">
                 <Label htmlFor="pet">Pet *</Label>
-                <Select value={formData.petId} onValueChange={(value) => setFormData(prev => ({ ...prev, petId: value }))}>
-                  <SelectTrigger>
-                    <SelectValue placeholder="Select a pet" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {mockPets.map((pet) => (
-                      <SelectItem key={pet.id} value={pet.id}>
-                        <div className="flex items-center gap-2">
-                          <span className="text-lg">{pet.species === 'dog' ? '🐕' : pet.species === 'cat' ? '🐱' : '🐾'}</span>
-                          <span>{pet.name} ({pet.species}) - {pet.ownerName}</span>
-                        </div>
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
+                <Popover open={openPetSelect} onOpenChange={setOpenPetSelect}>
+                  <PopoverTrigger asChild>
+                    <Button
+                      variant="outline"
+                      role="combobox"
+                      aria-expanded={openPetSelect}
+                      className="w-full justify-between"
+                    >
+                      {formData.petId
+                        ? mockPets.find((pet) => pet.id === formData.petId)?.name + " (" + mockPets.find((pet) => pet.id === formData.petId)?.species + ") - " + mockPets.find((pet) => pet.id === formData.petId)?.ownerName
+                        : "Select a pet"}
+                      <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+                    </Button>
+                  </PopoverTrigger>
+                  <PopoverContent className="w-full p-0">
+                    <Command>
+                      <CommandInput placeholder="Search pets..." />
+                      <CommandList>
+                        <CommandEmpty>No pet found.</CommandEmpty>
+                        <CommandGroup>
+                          {mockPets.map((pet) => (
+                            <CommandItem
+                              key={pet.id}
+                              value={`${pet.name} ${pet.species} ${pet.ownerName}`}
+                              onSelect={() => {
+                                setFormData(prev => ({ ...prev, petId: pet.id }));
+                                setOpenPetSelect(false);
+                              }}
+                            >
+                              <Check
+                                className={cn(
+                                  "mr-2 h-4 w-4",
+                                  formData.petId === pet.id ? "opacity-100" : "opacity-0"
+                                )}
+                              />
+                              <div className="flex items-center gap-2">
+                                <span className="text-lg">{pet.species === 'dog' ? '🐕' : pet.species === 'cat' ? '🐱' : '🐾'}</span>
+                                <span>{pet.name} ({pet.species}) - {pet.ownerName}</span>
+                              </div>
+                            </CommandItem>
+                          ))}
+                        </CommandGroup>
+                      </CommandList>
+                    </Command>
+                  </PopoverContent>
+                </Popover>
               </div>
 
               {/* Veterinarian Selection */}
               <div className="space-y-2">
                 <Label htmlFor="veterinarian">Veterinarian *</Label>
-                <Select value={formData.veterinarianId} onValueChange={(value) => setFormData(prev => ({ ...prev, veterinarianId: value }))}>
-                  <SelectTrigger>
-                    <SelectValue placeholder="Select veterinarian" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {mockVeterinarians.map((vet) => (
-                      <SelectItem key={vet.id} value={vet.id}>
-                        <div>
-                          <div className="font-medium">{vet.name}</div>
-                          <div className="text-xs text-muted-foreground">{vet.specialization}</div>
-                        </div>
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
+                <Popover open={openVetSelect} onOpenChange={setOpenVetSelect}>
+                  <PopoverTrigger asChild>
+                    <Button
+                      variant="outline"
+                      role="combobox"
+                      aria-expanded={openVetSelect}
+                      className="w-full justify-between"
+                    >
+                      {formData.veterinarianId
+                        ? mockVeterinarians.find((vet) => vet.id === formData.veterinarianId)?.name + " - " + mockVeterinarians.find((vet) => vet.id === formData.veterinarianId)?.specialization
+                        : "Select veterinarian"}
+                      <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+                    </Button>
+                  </PopoverTrigger>
+                  <PopoverContent className="w-full p-0">
+                    <Command>
+                      <CommandInput placeholder="Search veterinarians..." />
+                      <CommandList>
+                        <CommandEmpty>No veterinarian found.</CommandEmpty>
+                        <CommandGroup>
+                          {mockVeterinarians.map((vet) => (
+                            <CommandItem
+                              key={vet.id}
+                              value={`${vet.name} ${vet.specialization}`}
+                              onSelect={() => {
+                                setFormData(prev => ({ ...prev, veterinarianId: vet.id }));
+                                setOpenVetSelect(false);
+                              }}
+                            >
+                              <Check
+                                className={cn(
+                                  "mr-2 h-4 w-4",
+                                  formData.veterinarianId === vet.id ? "opacity-100" : "opacity-0"
+                                )}
+                              />
+                              <div>
+                                <div className="font-medium">{vet.name}</div>
+                                <div className="text-xs text-muted-foreground">{vet.specialization}</div>
+                              </div>
+                            </CommandItem>
+                          ))}
+                        </CommandGroup>
+                      </CommandList>
+                    </Command>
+                  </PopoverContent>
+                </Popover>
               </div>
             </div>
           </div>

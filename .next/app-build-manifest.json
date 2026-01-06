@@ -16,45 +16,25 @@
       "static/chunks/main-app.js",
       "static/chunks/app/page.js"
     ],
-    "/settings/page": [
+    "/records/page": [
       "static/chunks/webpack.js",
       "static/chunks/main-app.js",
-      "static/chunks/app/settings/page.js"
-    ],
-    "/pets/page": [
-      "static/chunks/webpack.js",
-      "static/chunks/main-app.js",
-      "static/chunks/app/pets/page.js"
-    ],
-    "/billing/page": [
-      "static/chunks/webpack.js",
-      "static/chunks/main-app.js",
-      "static/chunks/app/billing/page.js"
-    ],
-    "/reports/page": [
-      "static/chunks/webpack.js",
-      "static/chunks/main-app.js",
-      "static/chunks/app/reports/page.js"
-    ],
-    "/owners/page": [
-      "static/chunks/webpack.js",
-      "static/chunks/main-app.js",
-      "static/chunks/app/owners/page.js"
+      "static/chunks/app/records/page.js"
     ],
     "/appointments/page": [
       "static/chunks/webpack.js",
       "static/chunks/main-app.js",
       "static/chunks/app/appointments/page.js"
     ],
-    "/records/page": [
+    "/pets/page": [
       "static/chunks/webpack.js",
       "static/chunks/main-app.js",
-      "static/chunks/app/records/page.js"
+      "static/chunks/app/pets/page.js"
     ],
-    "/inventory/page": [
+    "/owners/page": [
       "static/chunks/webpack.js",
       "static/chunks/main-app.js",
-      "static/chunks/app/inventory/page.js"
+      "static/chunks/app/owners/page.js"
     ]
   }
 }

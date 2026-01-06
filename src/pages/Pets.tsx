@@ -4,7 +4,7 @@ import { useState } from 'react';
 import { MainLayout } from '@/components/layout/MainLayout';
 import { PetCard } from '@/components/pets/PetCard';
 import { PetDetailModal } from '@/components/pets/PetDetailModal';
-import { NewPetModal } from '@/components/dashboard/modals/NewPetModal';
+import { NewPetPanel } from '@/components/dashboard/panels/NewPetPanel';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -97,7 +97,7 @@ export default function Pets() {
         open={showPetDetail}
         onOpenChange={setShowPetDetail}
       />
-      <NewPetModal 
+      <NewPetPanel 
         open={showNewPetModal}
         onOpenChange={setShowNewPetModal}
       />

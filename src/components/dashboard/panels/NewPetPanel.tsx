@@ -7,7 +7,10 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Textarea } from '@/components/ui/textarea';
-import { PawPrint, Upload } from 'lucide-react';
+import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from '@/components/ui/command';
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
+import { PawPrint, Upload, Check, ChevronsUpDown } from 'lucide-react';
+import { cn } from '@/lib/utils';
 import { mockOwners } from '@/data/mockData';
 import { useToast } from '@/components/ui/use-toast';
 
@@ -17,6 +20,7 @@ interface NewPetPanelProps {
 }
 
 export function NewPetPanel({ open, onOpenChange }: NewPetPanelProps) {
+  const [openOwnerSelect, setOpenOwnerSelect] = useState(false);
   const [formData, setFormData] = useState({
     name: '',
     species: '',
@@ -78,7 +82,7 @@ export function NewPetPanel({ open, onOpenChange }: NewPetPanelProps) {
 
   return (
     <Sheet open={open} onOpenChange={onOpenChange}>
-      <SheetContent className="w-[700px] sm:w-[800px] overflow-y-auto">
+      <SheetContent className="w-[40vw] min-w-[600px] overflow-y-auto">
         <SheetHeader className="pb-6">
           <div className="flex items-center gap-3">
             <div className="rounded-xl bg-gradient-primary p-2.5 shadow-glow">
@@ -113,21 +117,52 @@ export function NewPetPanel({ open, onOpenChange }: NewPetPanelProps) {
               {/* Owner Selection */}
               <div className="space-y-2">
                 <Label htmlFor="owner">Owner *</Label>
-                <Select value={formData.ownerId} onValueChange={(value) => setFormData(prev => ({ ...prev, ownerId: value }))}>
-                  <SelectTrigger>
-                    <SelectValue placeholder="Select owner" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {mockOwners.map((owner) => (
-                      <SelectItem key={owner.id} value={owner.id}>
-                        <div>
-                          <div className="font-medium">{owner.name}</div>
-                          <div className="text-xs text-muted-foreground">{owner.email}</div>
-                        </div>
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
+                <Popover open={openOwnerSelect} onOpenChange={setOpenOwnerSelect}>
+                  <PopoverTrigger asChild>
+                    <Button
+                      variant="outline"
+                      role="combobox"
+                      aria-expanded={openOwnerSelect}
+                      className="w-full justify-between"
+                    >
+                      {formData.ownerId
+                        ? mockOwners.find((owner) => owner.id === formData.ownerId)?.name
+                        : "Select owner"}
+                      <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+                    </Button>
+                  </PopoverTrigger>
+                  <PopoverContent className="w-full p-0">
+                    <Command>
+                      <CommandInput placeholder="Search owners..." />
+                      <CommandList>
+                        <CommandEmpty>No owner found.</CommandEmpty>
+                        <CommandGroup>
+                          {mockOwners.map((owner) => (
+                            <CommandItem
+                              key={owner.id}
+                              value={`${owner.name} ${owner.email}`}
+                              onSelect={() => {
+                                setFormData(prev => ({ ...prev, ownerId: owner.id }));
+                                setOpenOwnerSelect(false);
+                              }}
+                            >
+                              <Check
+                                className={cn(
+                                  "mr-2 h-4 w-4",
+                                  formData.ownerId === owner.id ? "opacity-100" : "opacity-0"
+                                )}
+                              />
+                              <div>
+                                <div className="font-medium">{owner.name}</div>
+                                <div className="text-xs text-muted-foreground">{owner.email}</div>
+                              </div>
+                            </CommandItem>
+                          ))}
+                        </CommandGroup>
+                      </CommandList>
+                    </Command>
+                  </PopoverContent>
+                </Popover>
               </div>
 
               {/* Species and Breed */}

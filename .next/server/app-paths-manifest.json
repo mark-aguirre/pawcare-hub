@@ -1,7 +1,6 @@
 {
-  "/owners/page": "app/owners/page.js",
-  "/pets/page": "app/pets/page.js",
-  "/appointments/page": "app/appointments/page.js",
   "/page": "app/page.js",
-  "/settings/page": "app/settings/page.js"
+  "/appointments/page": "app/appointments/page.js",
+  "/records/page": "app/records/page.js",
+  "/pets/page": "app/pets/page.js"
 }
