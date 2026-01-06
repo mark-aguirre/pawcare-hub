@@ -7,6 +7,8 @@ import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { ReactQueryProvider } from "./providers";
 import { AppSettingsProvider } from "@/contexts/AppSettingsContext";
+import { AuthProvider } from "@/contexts/AuthContext";
+import { NotificationProvider } from "@/contexts/NotificationContext";
 
 const inter = Inter({ subsets: ["latin"] });
 
@@ -24,13 +26,17 @@ export default function RootLayout({
     <html lang="en">
       <body className={inter.className}>
         <ReactQueryProvider>
-          <AppSettingsProvider>
-            <TooltipProvider>
-              <Toaster />
-              <Sonner />
-              {children}
-            </TooltipProvider>
-          </AppSettingsProvider>
+          <AuthProvider>
+            <NotificationProvider>
+              <AppSettingsProvider>
+                <TooltipProvider>
+                  <Toaster />
+                  <Sonner />
+                  {children}
+                </TooltipProvider>
+              </AppSettingsProvider>
+            </NotificationProvider>
+          </AuthProvider>
         </ReactQueryProvider>
       </body>
     </html>

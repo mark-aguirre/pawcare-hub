@@ -4,6 +4,7 @@ import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { cn } from '@/lib/utils';
 import { useAppSettings } from '@/contexts/AppSettingsContext';
+import { useAuth } from '@/contexts/AuthContext';
 import {
   LayoutDashboard,
   PawPrint,
@@ -16,6 +17,10 @@ import {
   Settings,
   LogOut,
   Sparkles,
+  Syringe,
+  Pill,
+  TestTube,
+  Globe,
 } from 'lucide-react';
 
 const navigation = [
@@ -24,9 +29,13 @@ const navigation = [
   { name: 'Owners', href: '/owners', icon: Users },
   { name: 'Appointments', href: '/appointments', icon: Calendar },
   { name: 'Medical Records', href: '/records', icon: FileText },
+  { name: 'Vaccinations', href: '/vaccinations', icon: Syringe },
+  { name: 'Prescriptions', href: '/prescriptions', icon: Pill },
+  { name: 'Lab Tests', href: '/lab-tests', icon: TestTube },
   { name: 'Inventory', href: '/inventory', icon: Package },
   { name: 'Billing', href: '/billing', icon: Receipt },
   { name: 'Reports', href: '/reports', icon: BarChart3 },
+  { name: 'Pet Portal', href: '/portal', icon: Globe },
 ];
 
 const bottomNavigation = [
@@ -36,6 +45,7 @@ const bottomNavigation = [
 export function Sidebar() {
   const pathname = usePathname();
   const { settings } = useAppSettings();
+  const { user, logout } = useAuth();
 
   return (
     <aside className="fixed left-0 top-0 z-40 h-screen w-64 bg-sidebar border-r border-sidebar-border overflow-hidden">
@@ -121,7 +131,10 @@ export function Sidebar() {
             );
           })}
           
-          <button className="group flex w-full items-center gap-3 rounded-xl px-4 py-3 text-sm font-medium text-sidebar-foreground/70 transition-all duration-300 hover:bg-destructive/20 hover:text-destructive">
+          <button 
+            className="group flex w-full items-center gap-3 rounded-xl px-4 py-3 text-sm font-medium text-sidebar-foreground/70 transition-all duration-300 hover:bg-destructive/20 hover:text-destructive"
+            onClick={logout}
+          >
             <LogOut className="h-5 w-5 transition-transform group-hover:-translate-x-1" />
             Logout
           </button>

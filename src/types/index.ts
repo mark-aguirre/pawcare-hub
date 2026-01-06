@@ -153,6 +153,61 @@ export interface MedicalRecord {
   createdAt: Date;
 }
 
+export interface Vaccination {
+  id: string;
+  petId: string;
+  petName: string;
+  vaccineType: string;
+  administeredDate: Date;
+  nextDueDate: Date;
+  veterinarianId: string;
+  veterinarianName: string;
+  batchNumber?: string;
+  notes?: string;
+  status: 'scheduled' | 'administered' | 'overdue';
+  createdAt: Date;
+}
+
+export interface VaccinationSchedule {
+  id: string;
+  petId: string;
+  vaccineType: string;
+  dueDate: Date;
+  status: 'upcoming' | 'due' | 'overdue';
+  reminderSent: boolean;
+}
+
+export interface Prescription {
+  id: string;
+  petId: string;
+  petName: string;
+  veterinarianId: string;
+  veterinarianName: string;
+  medicationName: string;
+  dosage: string;
+  frequency: string;
+  duration: string;
+  instructions: string;
+  prescribedDate: Date;
+  status: 'active' | 'completed' | 'cancelled';
+  refillsRemaining: number;
+  notes?: string;
+}
+
+export interface LabTest {
+  id: string;
+  petId: string;
+  petName: string;
+  testType: string;
+  requestedDate: Date;
+  completedDate?: Date;
+  results?: string;
+  status: 'requested' | 'in-progress' | 'completed' | 'cancelled';
+  veterinarianId: string;
+  veterinarianName: string;
+  notes?: string;
+}
+
 export interface DashboardStats {
   todayAppointments: number;
   pendingPayments: number;

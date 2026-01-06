@@ -1,4 +1,4 @@
-import { Owner, Pet, Appointment, Veterinarian, DashboardStats, MedicalRecord, InventoryItem, Invoice, PaymentRecord, BillingSettings } from '@/types';
+import { Owner, Pet, Appointment, Veterinarian, DashboardStats, MedicalRecord, InventoryItem, Invoice, PaymentRecord, BillingSettings, Vaccination, Prescription, LabTest } from '@/types';
 
 export const mockVeterinarians: Veterinarian[] = [
   {
@@ -1012,3 +1012,54 @@ export const mockDashboardStats: DashboardStats = {
   revenueToday: 1250,
   completedToday: 1,
 };
+
+export const mockVaccinations: Vaccination[] = [
+  {
+    id: 'vacc-1',
+    petId: 'pet-1',
+    petName: 'Max',
+    vaccineType: 'Rabies',
+    administeredDate: new Date('2024-01-15'),
+    nextDueDate: new Date('2025-01-15'),
+    veterinarianId: 'vet-1',
+    veterinarianName: 'Dr. Sarah Chen',
+    batchNumber: 'RB2024-001',
+    status: 'administered',
+    createdAt: new Date('2024-01-15')
+  }
+];
+
+export const mockPrescriptions: Prescription[] = [
+  {
+    id: 'rx-1',
+    petId: 'pet-1',
+    petName: 'Max',
+    veterinarianId: 'vet-1',
+    veterinarianName: 'Dr. Sarah Chen',
+    medicationName: 'Amoxicillin',
+    dosage: '250mg',
+    frequency: 'Twice daily',
+    duration: '10 days',
+    instructions: 'Give with food. Complete full course.',
+    prescribedDate: new Date('2024-12-15'),
+    status: 'active',
+    refillsRemaining: 2,
+    notes: 'Monitor for allergic reactions'
+  }
+];
+
+export const mockLabTests: LabTest[] = [
+  {
+    id: 'lab-1',
+    petId: 'pet-1',
+    petName: 'Max',
+    testType: 'Complete Blood Count (CBC)',
+    requestedDate: new Date('2024-12-20'),
+    completedDate: new Date('2024-12-22'),
+    results: 'All values within normal limits. WBC: 7.2, RBC: 6.8, Platelets: 350',
+    status: 'completed',
+    veterinarianId: 'vet-1',
+    veterinarianName: 'Dr. Sarah Chen',
+    notes: 'Annual health screening'
+  }
+];

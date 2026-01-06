@@ -2,6 +2,8 @@ import { Bell, Search, Plus, Sparkles } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
+import { useAuth } from '@/contexts/AuthContext';
+import { NotificationBell } from '@/components/notifications/NotificationBell';
 
 interface HeaderProps {
   title: string;
@@ -13,6 +15,7 @@ interface HeaderProps {
 }
 
 export function Header({ title, subtitle, action }: HeaderProps) {
+  const { user } = useAuth();
   return (
     <header className="sticky top-0 z-30 flex h-20 items-center justify-between border-b border-border bg-background/80 backdrop-blur-xl px-6">
       <div className="animate-slide-in-left">
@@ -45,26 +48,16 @@ export function Header({ title, subtitle, action }: HeaderProps) {
         )}
 
         {/* Notifications */}
-        <Button 
-          variant="ghost" 
-          size="icon" 
-          className="relative h-11 w-11 rounded-xl hover:bg-secondary/80 transition-all"
-        >
-          <Bell className="h-5 w-5 text-muted-foreground" />
-          <span className="absolute right-2 top-2 flex h-5 w-5 items-center justify-center">
-            <span className="absolute inline-flex h-full w-full rounded-full bg-accent opacity-75 animate-ping" />
-            <span className="relative inline-flex h-4 w-4 items-center justify-center rounded-full bg-accent text-[10px] font-bold text-accent-foreground">
-              3
-            </span>
-          </span>
-        </Button>
+        <NotificationBell />
 
         {/* User Avatar */}
         <div className="relative group cursor-pointer">
           <div className="absolute -inset-1 rounded-2xl bg-gradient-primary opacity-0 group-hover:opacity-100 blur transition-all duration-300" />
           <Avatar className="relative h-11 w-11 border-2 border-primary/20 ring-2 ring-transparent group-hover:ring-primary/20 transition-all">
             <AvatarImage src="https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?w=44&h=44&fit=crop&crop=face" />
-            <AvatarFallback className="bg-gradient-primary text-primary-foreground font-semibold">AD</AvatarFallback>
+            <AvatarFallback className="bg-gradient-primary text-primary-foreground font-semibold">
+              {user?.name?.split(' ').map(n => n[0]).join('') || 'U'}
+            </AvatarFallback>
           </Avatar>
         </div>
       </div>
