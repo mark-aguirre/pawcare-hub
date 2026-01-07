@@ -1,39 +1,27 @@
 "use client";
 
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import { MainLayout } from '@/components/layout/MainLayout';
 import { PetCard } from '@/components/pets/PetCard';
 import { PetDetailModal } from '@/components/pets/PetDetailModal';
 import { NewPetPanel } from '@/components/dashboard/panels/NewPetPanel';
-import { LoadingWrapper } from '@/components/ui/loading-wrapper';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
-import { Badge } from '@/components/ui/badge';
-import { Search, Filter, PawPrint } from 'lucide-react';
-import { mockPets } from '@/data/mockData';
+import { Search, PawPrint } from 'lucide-react';
+import { useCachedPets } from '@/hooks/use-cached-data';
 import { Pet } from '@/types';
-import { cn } from '@/lib/utils';
 
 const speciesFilters = ['all', 'dog', 'cat', 'bird', 'rabbit', 'hamster', 'other'] as const;
 
 export default function Pets() {
-  const [isLoading, setIsLoading] = useState(true);
+  const pets = useCachedPets();
   const [search, setSearch] = useState('');
   const [selectedSpecies, setSelectedSpecies] = useState<typeof speciesFilters[number]>('all');
   const [selectedPet, setSelectedPet] = useState<Pet | null>(null);
   const [showPetDetail, setShowPetDetail] = useState(false);
   const [showNewPetModal, setShowNewPetModal] = useState(false);
 
-  useEffect(() => {
-    // Simulate loading time
-    const timer = setTimeout(() => {
-      setIsLoading(false);
-    }, 1000);
-
-    return () => clearTimeout(timer);
-  }, []);
-
-  const filteredPets = mockPets.filter((pet) => {
+  const filteredPets = pets.filter((pet) => {
     const matchesSearch =
       pet.name.toLowerCase().includes(search.toLowerCase()) ||
       pet.breed.toLowerCase().includes(search.toLowerCase()) ||
@@ -51,10 +39,9 @@ export default function Pets() {
     <>
       <MainLayout
         title="Pets"
-        subtitle={`${mockPets.length} registered pets`}
+        subtitle={`${pets.length} registered pets`}
         action={{ label: 'Add Pet', onClick: () => setShowNewPetModal(true) }}
       >
-      <LoadingWrapper isLoading={isLoading} variant="grid">
       {/* Filters */}
       <div className="flex flex-col sm:flex-row gap-4 mb-6">
         <div className="relative flex-1 max-w-md">
@@ -101,7 +88,6 @@ export default function Pets() {
             <p>Try adjusting your search or filter criteria</p>
           </div>
         )}
-      </LoadingWrapper>
       </MainLayout>
 
       {/* Modals */}

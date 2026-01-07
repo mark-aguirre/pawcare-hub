@@ -1,33 +1,23 @@
 "use client";
 
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import { MainLayout } from '@/components/layout/MainLayout';
 import { OwnerCard } from '@/components/owners/OwnerCard';
 import { OwnerDetailModal } from '@/components/owners/OwnerDetailModal';
 import { NewOwnerPanel } from '@/components/dashboard/panels/NewOwnerPanel';
-import { LoadingWrapper } from '@/components/ui/loading-wrapper';
 import { Input } from '@/components/ui/input';
 import { Search, Users } from 'lucide-react';
-import { mockOwners } from '@/data/mockData';
+import { useCachedOwners } from '@/hooks/use-cached-data';
 import { Owner } from '@/types';
 
 export default function Owners() {
-  const [isLoading, setIsLoading] = useState(true);
+  const owners = useCachedOwners();
   const [search, setSearch] = useState('');
   const [selectedOwner, setSelectedOwner] = useState<Owner | null>(null);
   const [showOwnerDetail, setShowOwnerDetail] = useState(false);
   const [showNewOwnerModal, setShowNewOwnerModal] = useState(false);
 
-  useEffect(() => {
-    // Simulate loading time
-    const timer = setTimeout(() => {
-      setIsLoading(false);
-    }, 900);
-
-    return () => clearTimeout(timer);
-  }, []);
-
-  const filteredOwners = mockOwners.filter((owner) => {
+  const filteredOwners = owners.filter((owner) => {
     return (
       owner.name.toLowerCase().includes(search.toLowerCase()) ||
       owner.email.toLowerCase().includes(search.toLowerCase()) ||
@@ -44,10 +34,9 @@ export default function Owners() {
     <>
       <MainLayout
         title="Pet Owners"
-        subtitle={`${mockOwners.length} registered owners`}
+        subtitle={`${owners.length} registered owners`}
         action={{ label: 'Add Owner', onClick: () => setShowNewOwnerModal(true) }}
       >
-      <LoadingWrapper isLoading={isLoading} variant="grid">
       {/* Search */}
       <div className="mb-6">
         <div className="relative max-w-md">
@@ -81,7 +70,6 @@ export default function Owners() {
             <p>Try adjusting your search criteria</p>
           </div>
         )}
-      </LoadingWrapper>
       </MainLayout>
 
       {/* Modals */}

@@ -7,13 +7,14 @@ import { LoadingWrapper } from '@/components/ui/loading-wrapper';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { Badge } from '@/components/ui/badge';
-import { Textarea } from '@/components/ui/textarea';
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
-import { Search, TestTube, Clock, CheckCircle, AlertCircle, Upload } from 'lucide-react';
+import { LabTestCard } from '@/components/lab-tests/LabTestCard';
+import { LabTestFormModal } from '@/components/lab-tests/LabTestFormModal';
+import { LabTestResultsModal } from '@/components/lab-tests/LabTestResultsModal';
+import { Search, TestTube, Clock, CheckCircle, AlertCircle, Plus } from 'lucide-react';
 import { LabTest } from '@/types';
+import { toast } from '@/components/ui/use-toast';
 
-const mockLabTests: LabTest[] = [
+const initialLabTests: LabTest[] = [
   {
     id: 'lab-1',
     petId: 'pet-1',
@@ -21,7 +22,7 @@ const mockLabTests: LabTest[] = [
     testType: 'Complete Blood Count (CBC)',
     requestedDate: new Date('2024-12-20'),
     completedDate: new Date('2024-12-22'),
-    results: 'All values within normal limits. WBC: 7.2, RBC: 6.8, Platelets: 350',
+    results: 'All values within normal limits.\nWBC: 7.2 (normal: 6.0-17.0)\nRBC: 6.8 (normal: 5.5-8.5)\nPlatelets: 350 (normal: 200-500)\nHematocrit: 42% (normal: 37-55%)\nHemoglobin: 14.2 g/dL (normal: 12-18)',
     status: 'completed',
     veterinarianId: 'vet-1',
     veterinarianName: 'Dr. Sarah Chen',
@@ -36,7 +37,7 @@ const mockLabTests: LabTest[] = [
     status: 'in-progress',
     veterinarianId: 'vet-1',
     veterinarianName: 'Dr. Sarah Chen',
-    notes: 'Diabetes monitoring'
+    notes: 'Diabetes monitoring - fasting glucose'
   },
   {
     id: 'lab-3',
@@ -46,7 +47,32 @@ const mockLabTests: LabTest[] = [
     requestedDate: new Date('2024-12-25'),
     status: 'requested',
     veterinarianId: 'vet-1',
-    veterinarianName: 'Dr. Sarah Chen'
+    veterinarianName: 'Dr. Sarah Chen',
+    notes: 'Check for urinary tract infection'
+  },
+  {
+    id: 'lab-4',
+    petId: 'pet-5',
+    petName: 'Bella',
+    testType: 'X-Ray',
+    requestedDate: new Date('2024-12-15'),
+    completedDate: new Date('2024-12-16'),
+    results: 'Chest X-ray shows mild bronchial pattern consistent with respiratory condition. No signs of pneumonia or foreign objects. Heart size within normal limits.',
+    status: 'completed',
+    veterinarianId: 'vet-3',
+    veterinarianName: 'Dr. Emily Watson',
+    notes: 'Breathing issues follow-up'
+  },
+  {
+    id: 'lab-5',
+    petId: 'pet-3',
+    petName: 'Buddy',
+    testType: 'Blood Chemistry Panel',
+    requestedDate: new Date('2024-12-21'),
+    status: 'requested',
+    veterinarianId: 'vet-2',
+    veterinarianName: 'Dr. Michael Torres',
+    notes: 'Pre-surgical bloodwork'
   }
 ];
 
@@ -54,48 +80,109 @@ export default function LabTestsPage() {
   const [isLoading, setIsLoading] = useState(true);
   const [search, setSearch] = useState('');
   const [statusFilter, setStatusFilter] = useState<'all' | 'requested' | 'in-progress' | 'completed' | 'cancelled'>('all');
+  const [labTests, setLabTests] = useState<LabTest[]>(initialLabTests);
+  const [isFormModalOpen, setIsFormModalOpen] = useState(false);
+  const [isResultsModalOpen, setIsResultsModalOpen] = useState(false);
   const [selectedTest, setSelectedTest] = useState<LabTest | null>(null);
-  const [showResultsDialog, setShowResultsDialog] = useState(false);
-  const [results, setResults] = useState('');
+  const [editingTest, setEditingTest] = useState<LabTest | undefined>(undefined);
 
   useEffect(() => {
     const timer = setTimeout(() => setIsLoading(false), 1000);
     return () => clearTimeout(timer);
   }, []);
 
-  const filteredTests = mockLabTests.filter(test => {
+  const filteredTests = labTests.filter(test => {
     const matchesSearch = test.petName.toLowerCase().includes(search.toLowerCase()) ||
-      test.testType.toLowerCase().includes(search.toLowerCase());
+      test.testType.toLowerCase().includes(search.toLowerCase()) ||
+      test.veterinarianName.toLowerCase().includes(search.toLowerCase());
     const matchesStatus = statusFilter === 'all' || test.status === statusFilter;
     return matchesSearch && matchesStatus;
   });
 
-  const requestedCount = mockLabTests.filter(t => t.status === 'requested').length;
-  const inProgressCount = mockLabTests.filter(t => t.status === 'in-progress').length;
-  const completedCount = mockLabTests.filter(t => t.status === 'completed').length;
+  const requestedCount = labTests.filter(t => t.status === 'requested').length;
+  const inProgressCount = labTests.filter(t => t.status === 'in-progress').length;
+  const completedCount = labTests.filter(t => t.status === 'completed').length;
 
-  const handleUploadResults = (test: LabTest) => {
-    setSelectedTest(test);
-    setResults(test.results || '');
-    setShowResultsDialog(true);
+  const handleCreateTest = () => {
+    setEditingTest(undefined);
+    setIsFormModalOpen(true);
   };
 
-  const getStatusIcon = (status: string) => {
-    switch (status) {
-      case 'requested': return <Clock className="h-5 w-5 text-warning" />;
-      case 'in-progress': return <TestTube className="h-5 w-5 text-primary" />;
-      case 'completed': return <CheckCircle className="h-5 w-5 text-success" />;
-      case 'cancelled': return <AlertCircle className="h-5 w-5 text-destructive" />;
-      default: return <TestTube className="h-5 w-5" />;
+  const handleEditTest = (test: LabTest) => {
+    setEditingTest(test);
+    setIsFormModalOpen(true);
+  };
+
+  const handleViewResults = (test: LabTest) => {
+    setSelectedTest(test);
+    setIsResultsModalOpen(true);
+  };
+
+  const handleSaveTest = (testData: Omit<LabTest, 'id'>) => {
+    if (editingTest) {
+      setLabTests(prev => prev.map(t => 
+        t.id === editingTest.id 
+          ? { ...testData, id: editingTest.id }
+          : t
+      ));
+      toast({
+        title: "Lab Test Updated",
+        description: "The lab test has been successfully updated."
+      });
+    } else {
+      const newTest: LabTest = {
+        ...testData,
+        id: `lab-${Date.now()}`
+      };
+      setLabTests(prev => [newTest, ...prev]);
+      toast({
+        title: "Lab Test Created",
+        description: "New lab test request has been created."
+      });
     }
+  };
+
+  const handleSaveResults = (testId: string, results: string) => {
+    setLabTests(prev => prev.map(t => 
+      t.id === testId 
+        ? { 
+            ...t, 
+            results, 
+            status: 'completed' as const,
+            completedDate: new Date()
+          }
+        : t
+    ));
+    setSelectedTest(prev => prev ? {
+      ...prev,
+      results,
+      status: 'completed',
+      completedDate: new Date()
+    } : null);
+    toast({
+      title: "Results Saved",
+      description: "Lab test results have been saved successfully."
+    });
+  };
+
+  const handleStartTest = (test: LabTest) => {
+    setLabTests(prev => prev.map(t => 
+      t.id === test.id 
+        ? { ...t, status: 'in-progress' as const }
+        : t
+    ));
+    toast({
+      title: "Test Started",
+      description: `${test.testType} for ${test.petName} is now in progress.`
+    });
   };
 
   return (
     <ProtectedRoute requiredPermissions={['lab-tests', 'records']}>
       <MainLayout
         title="Laboratory Tests"
-        subtitle={`${mockLabTests.length} tests • ${requestedCount} requested • ${inProgressCount} in progress`}
-        action={{ label: 'New Test Request', onClick: () => {} }}
+        subtitle={`${labTests.length} tests • ${requestedCount} requested • ${inProgressCount} in progress`}
+        action={{ label: 'New Test Request', onClick: handleCreateTest }}
       >
         <LoadingWrapper isLoading={isLoading} variant="list">
           <div className="space-y-6">
@@ -106,7 +193,7 @@ export default function LabTestsPage() {
                   <div className="flex items-center justify-between">
                     <div>
                       <p className="text-sm font-medium text-muted-foreground">Total Tests</p>
-                      <p className="text-2xl font-bold">{mockLabTests.length}</p>
+                      <p className="text-2xl font-bold">{labTests.length}</p>
                     </div>
                     <TestTube className="h-8 w-8 text-primary" />
                   </div>
@@ -175,107 +262,55 @@ export default function LabTestsPage() {
 
             {/* Tests List */}
             <div className="space-y-4">
-              {filteredTests.map((test) => (
-                <Card key={test.id}>
-                  <CardContent className="p-6">
-                    <div className="flex items-start justify-between">
-                      <div className="flex items-start gap-4">
-                        <div className="flex items-center justify-center w-12 h-12 rounded-full bg-primary/10">
-                          {getStatusIcon(test.status)}
-                        </div>
-                        <div className="space-y-2">
-                          <div className="flex items-center gap-2">
-                            <h3 className="font-semibold text-lg">{test.testType}</h3>
-                            <Badge variant={
-                              test.status === 'completed' ? 'default' :
-                              test.status === 'in-progress' ? 'secondary' :
-                              test.status === 'requested' ? 'outline' : 'destructive'
-                            }>
-                              {test.status === 'in-progress' ? 'In Progress' : test.status}
-                            </Badge>
-                          </div>
-                          <p className="text-muted-foreground">
-                            {test.petName} • {test.veterinarianName}
-                          </p>
-                          <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
-                            <div>
-                              <span className="font-medium">Requested:</span> {test.requestedDate.toLocaleDateString()}
-                            </div>
-                            {test.completedDate && (
-                              <div>
-                                <span className="font-medium">Completed:</span> {test.completedDate.toLocaleDateString()}
-                              </div>
-                            )}
-                          </div>
-                          {test.notes && (
-                            <p className="text-sm text-muted-foreground">
-                              <span className="font-medium">Notes:</span> {test.notes}
-                            </p>
-                          )}
-                          {test.results && (
-                            <div className="mt-3 p-3 bg-muted rounded-lg">
-                              <p className="text-sm font-medium mb-1">Results:</p>
-                              <p className="text-sm">{test.results}</p>
-                            </div>
-                          )}
-                        </div>
-                      </div>
-                      <div className="flex flex-col gap-2">
-                        {test.status === 'requested' && (
-                          <Button size="sm" variant="outline">
-                            Start Test
-                          </Button>
-                        )}
-                        {(test.status === 'in-progress' || test.status === 'completed') && (
-                          <Button size="sm" onClick={() => handleUploadResults(test)}>
-                            <Upload className="h-4 w-4 mr-2" />
-                            {test.results ? 'Update Results' : 'Upload Results'}
-                          </Button>
-                        )}
-                      </div>
-                    </div>
+              {filteredTests.length === 0 ? (
+                <Card>
+                  <CardContent className="p-12 text-center">
+                    <TestTube className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
+                    <h3 className="text-lg font-semibold mb-2">No lab tests found</h3>
+                    <p className="text-muted-foreground mb-4">
+                      {search || statusFilter !== 'all' 
+                        ? 'Try adjusting your search or filters'
+                        : 'Get started by creating your first test request'
+                      }
+                    </p>
+                    {!search && statusFilter === 'all' && (
+                      <Button onClick={handleCreateTest}>
+                        <Plus className="h-4 w-4 mr-2" />
+                        Create Test Request
+                      </Button>
+                    )}
                   </CardContent>
                 </Card>
-              ))}
+              ) : (
+                filteredTests.map((test) => (
+                  <LabTestCard
+                    key={test.id}
+                    labTest={test}
+                    onView={() => handleViewResults(test)}
+                    onEdit={() => handleEditTest(test)}
+                    onUploadResults={() => handleViewResults(test)}
+                    onStartTest={() => handleStartTest(test)}
+                  />
+                ))
+              )}
             </div>
           </div>
         </LoadingWrapper>
 
-        {/* Results Upload Dialog */}
-        <Dialog open={showResultsDialog} onOpenChange={setShowResultsDialog}>
-          <DialogContent className="max-w-2xl">
-            <DialogHeader>
-              <DialogTitle>
-                {selectedTest?.results ? 'Update' : 'Upload'} Test Results
-              </DialogTitle>
-            </DialogHeader>
-            <div className="space-y-4">
-              <div>
-                <p className="text-sm text-muted-foreground mb-2">
-                  Test: {selectedTest?.testType} for {selectedTest?.petName}
-                </p>
-              </div>
-              <div>
-                <label className="text-sm font-medium">Results</label>
-                <Textarea
-                  value={results}
-                  onChange={(e) => setResults(e.target.value)}
-                  placeholder="Enter test results..."
-                  rows={6}
-                  className="mt-1"
-                />
-              </div>
-              <div className="flex justify-end gap-2">
-                <Button variant="outline" onClick={() => setShowResultsDialog(false)}>
-                  Cancel
-                </Button>
-                <Button onClick={() => setShowResultsDialog(false)}>
-                  Save Results
-                </Button>
-              </div>
-            </div>
-          </DialogContent>
-        </Dialog>
+        {/* Modals */}
+        <LabTestFormModal
+          isOpen={isFormModalOpen}
+          onClose={() => setIsFormModalOpen(false)}
+          onSave={handleSaveTest}
+          labTest={editingTest}
+        />
+
+        <LabTestResultsModal
+          isOpen={isResultsModalOpen}
+          onClose={() => setIsResultsModalOpen(false)}
+          labTest={selectedTest}
+          onSaveResults={handleSaveResults}
+        />
       </MainLayout>
     </ProtectedRoute>
   );

@@ -1,36 +1,25 @@
 "use client";
 
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import { MainLayout } from '@/components/layout/MainLayout';
 import { AppointmentCard } from '@/components/dashboard/AppointmentCard';
 import { CalendarView } from '@/components/appointments/CalendarView';
 import { NewAppointmentPanel } from '@/components/dashboard/panels/NewAppointmentPanel';
-import { LoadingWrapper } from '@/components/ui/loading-wrapper';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Calendar as CalendarIcon, ChevronLeft, ChevronRight, List, Grid3X3 } from 'lucide-react';
-import { mockAppointments, mockVeterinarians } from '@/data/mockData';
-import { cn } from '@/lib/utils';
+import { useCachedAppointments } from '@/hooks/use-cached-data';
+import { mockVeterinarians } from '@/data/mockData';
 
 const statusFilters = ['all', 'scheduled', 'checked-in', 'in-progress', 'completed', 'cancelled'] as const;
 
 export default function Appointments() {
-  const [isLoading, setIsLoading] = useState(true);
+  const appointments = useCachedAppointments();
   const [selectedDate, setSelectedDate] = useState<Date>(new Date());
   const [selectedStatus, setSelectedStatus] = useState<typeof statusFilters[number]>('all');
   const [viewMode, setViewMode] = useState<'list' | 'calendar'>('calendar');
   const [showNewAppointmentPanel, setShowNewAppointmentPanel] = useState(false);
-
-  useEffect(() => {
-    // Simulate loading time
-    const timer = setTimeout(() => {
-      setIsLoading(false);
-    }, 1200);
-
-    return () => clearTimeout(timer);
-  }, []);
 
   const navigateDate = (days: number) => {
     const newDate = new Date(selectedDate);
@@ -38,7 +27,7 @@ export default function Appointments() {
     setSelectedDate(newDate);
   };
 
-  const filteredAppointments = mockAppointments.filter((apt) => {
+  const filteredAppointments = appointments.filter((apt) => {
     const matchesDate = apt.date.toDateString() === selectedDate.toDateString();
     const matchesStatus = selectedStatus === 'all' || apt.status === selectedStatus;
     return matchesDate && matchesStatus;
@@ -53,7 +42,6 @@ export default function Appointments() {
         subtitle={`Schedule and manage patient visits`}
         action={{ label: 'New Appointment', onClick: () => setShowNewAppointmentPanel(true) }}
       >
-      <LoadingWrapper isLoading={isLoading} variant="list">
       {/* View Toggle and Filters */}
       <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 mb-6">
         <Tabs value={viewMode} onValueChange={(value) => setViewMode(value as 'list' | 'calendar')}>
@@ -87,7 +75,7 @@ export default function Appointments() {
       <Tabs value={viewMode} onValueChange={(value) => setViewMode(value as 'list' | 'calendar')}>
         <TabsContent value="calendar" className="mt-0">
           <CalendarView 
-            appointments={mockAppointments}
+            appointments={appointments}
             selectedStatus={selectedStatus}
           />
         </TabsContent>
@@ -159,7 +147,6 @@ export default function Appointments() {
           </div>
         </TabsContent>
       </Tabs>
-      </LoadingWrapper>
       </MainLayout>
       
       <NewAppointmentPanel 

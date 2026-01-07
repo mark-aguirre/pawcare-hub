@@ -86,24 +86,23 @@ export function Sidebar() {
               if (user.role === 'pet-owner') return item.href === '/portal';
               return item.permissions.length === 0 || item.permissions.some(permission => user.permissions.includes(permission));
             })
-            .map((item, index) => {
+            .map((item) => {
               const isActive = pathname === item.href;
               return (
                 <Link
                   key={item.name}
                   href={item.href}
                   className={cn(
-                    'group relative flex items-center gap-3 rounded-xl px-4 py-3 text-sm font-medium transition-all duration-300',
+                    'group relative flex items-center gap-3 rounded-xl px-4 py-3 text-sm font-medium transition-all duration-200',
                     isActive
                       ? 'bg-gradient-primary text-primary-foreground shadow-glow'
                       : 'text-sidebar-foreground/70 hover:bg-sidebar-accent hover:text-sidebar-foreground'
                   )}
-                  style={{ animationDelay: `${index * 50}ms` }}
                   {...preloadOnHover(item.href)}
                 >
                   <item.icon
                     className={cn(
-                      'h-5 w-5 transition-all duration-300',
+                      'h-5 w-5 transition-all duration-200',
                       isActive 
                         ? 'text-primary-foreground' 
                         : 'text-sidebar-foreground/50 group-hover:text-sidebar-foreground group-hover:scale-110'
@@ -136,7 +135,7 @@ export function Sidebar() {
                   key={item.name}
                   href={item.href}
                   className={cn(
-                    'group flex items-center gap-3 rounded-xl px-4 py-3 text-sm font-medium transition-all duration-300',
+                    'group flex items-center gap-3 rounded-xl px-4 py-3 text-sm font-medium transition-all duration-200',
                     isActive
                       ? 'bg-gradient-primary text-primary-foreground'
                       : 'text-sidebar-foreground/70 hover:bg-sidebar-accent hover:text-sidebar-foreground'
@@ -150,7 +149,7 @@ export function Sidebar() {
             })}
           
           <button 
-            className="group flex w-full items-center gap-3 rounded-xl px-4 py-3 text-sm font-medium text-sidebar-foreground/70 transition-all duration-300 hover:bg-destructive/20 hover:text-destructive"
+            className="group flex w-full items-center gap-3 rounded-xl px-4 py-3 text-sm font-medium text-sidebar-foreground/70 transition-all duration-200 hover:bg-destructive/20 hover:text-destructive"
             onClick={logout}
           >
             <LogOut className="h-5 w-5 transition-transform group-hover:-translate-x-1" />

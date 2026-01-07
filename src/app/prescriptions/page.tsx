@@ -4,15 +4,17 @@ import { useState, useEffect } from 'react';
 import { MainLayout } from '@/components/layout/MainLayout';
 import { ProtectedRoute } from '@/components/auth/ProtectedRoute';
 import { LoadingWrapper } from '@/components/ui/loading-wrapper';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { Badge } from '@/components/ui/badge';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Search, Pill, RefreshCw, AlertCircle, CheckCircle } from 'lucide-react';
+import { PrescriptionCard } from '@/components/prescriptions/PrescriptionCard';
+import { PrescriptionFormModal } from '@/components/prescriptions/PrescriptionFormModal';
+import { PrescriptionDetailModal } from '@/components/prescriptions/PrescriptionDetailModal';
+import { Search, Pill, RefreshCw, AlertCircle, CheckCircle, Plus } from 'lucide-react';
 import { Prescription } from '@/types';
+import { toast } from '@/components/ui/use-toast';
 
-const mockPrescriptions: Prescription[] = [
+const initialPrescriptions: Prescription[] = [
   {
     id: 'rx-1',
     petId: 'pet-1',
@@ -59,6 +61,22 @@ const mockPrescriptions: Prescription[] = [
     prescribedDate: new Date('2024-12-10'),
     status: 'completed',
     refillsRemaining: 0
+  },
+  {
+    id: 'rx-4',
+    petId: 'pet-2',
+    petName: 'Luna',
+    veterinarianId: 'vet-3',
+    veterinarianName: 'Dr. Emily Watson',
+    medicationName: 'Joint Supplement',
+    dosage: '1 tablet',
+    frequency: 'Once daily',
+    duration: '30 days',
+    instructions: 'Give with morning meal',
+    prescribedDate: new Date('2024-12-01'),
+    status: 'active',
+    refillsRemaining: 1,
+    notes: 'For arthritis management'
   }
 ];
 
@@ -66,28 +84,104 @@ export default function PrescriptionsPage() {
   const [isLoading, setIsLoading] = useState(true);
   const [search, setSearch] = useState('');
   const [statusFilter, setStatusFilter] = useState<'all' | 'active' | 'completed' | 'cancelled'>('all');
+  const [prescriptions, setPrescriptions] = useState<Prescription[]>(initialPrescriptions);
+  const [isFormModalOpen, setIsFormModalOpen] = useState(false);
+  const [isDetailModalOpen, setIsDetailModalOpen] = useState(false);
+  const [selectedPrescription, setSelectedPrescription] = useState<Prescription | null>(null);
+  const [editingPrescription, setEditingPrescription] = useState<Prescription | undefined>(undefined);
 
   useEffect(() => {
     const timer = setTimeout(() => setIsLoading(false), 1000);
     return () => clearTimeout(timer);
   }, []);
 
-  const filteredPrescriptions = mockPrescriptions.filter(p => {
+  const filteredPrescriptions = prescriptions.filter(p => {
     const matchesSearch = p.petName.toLowerCase().includes(search.toLowerCase()) ||
-      p.medicationName.toLowerCase().includes(search.toLowerCase());
+      p.medicationName.toLowerCase().includes(search.toLowerCase()) ||
+      p.veterinarianName.toLowerCase().includes(search.toLowerCase());
     const matchesStatus = statusFilter === 'all' || p.status === statusFilter;
     return matchesSearch && matchesStatus;
   });
 
-  const activeCount = mockPrescriptions.filter(p => p.status === 'active').length;
-  const needRefillCount = mockPrescriptions.filter(p => p.status === 'active' && p.refillsRemaining <= 1).length;
+  const activeCount = prescriptions.filter(p => p.status === 'active').length;
+  const needRefillCount = prescriptions.filter(p => p.status === 'active' && p.refillsRemaining <= 1).length;
+
+  const handleCreatePrescription = () => {
+    setEditingPrescription(undefined);
+    setIsFormModalOpen(true);
+  };
+
+  const handleEditPrescription = (prescription: Prescription) => {
+    setEditingPrescription(prescription);
+    setIsFormModalOpen(true);
+  };
+
+  const handleViewPrescription = (prescription: Prescription) => {
+    setSelectedPrescription(prescription);
+    setIsDetailModalOpen(true);
+  };
+
+  const handleSavePrescription = (prescriptionData: Omit<Prescription, 'id'>) => {
+    if (editingPrescription) {
+      setPrescriptions(prev => prev.map(p => 
+        p.id === editingPrescription.id 
+          ? { ...prescriptionData, id: editingPrescription.id }
+          : p
+      ));
+      toast({
+        title: "Prescription Updated",
+        description: "The prescription has been successfully updated."
+      });
+    } else {
+      const newPrescription: Prescription = {
+        ...prescriptionData,
+        id: `rx-${Date.now()}`
+      };
+      setPrescriptions(prev => [newPrescription, ...prev]);
+      toast({
+        title: "Prescription Created",
+        description: "New prescription has been successfully created."
+      });
+    }
+  };
+
+  const handleRefill = (prescription: Prescription) => {
+    if (prescription.refillsRemaining > 0) {
+      setPrescriptions(prev => prev.map(p => 
+        p.id === prescription.id 
+          ? { ...p, refillsRemaining: p.refillsRemaining - 1 }
+          : p
+      ));
+      toast({
+        title: "Refill Processed",
+        description: `Refill processed for ${prescription.medicationName}. ${prescription.refillsRemaining - 1} refills remaining.`
+      });
+    }
+  };
+
+  const handleEditFromDetail = () => {
+    if (selectedPrescription) {
+      setIsDetailModalOpen(false);
+      handleEditPrescription(selectedPrescription);
+    }
+  };
+
+  const handleRefillFromDetail = () => {
+    if (selectedPrescription) {
+      handleRefill(selectedPrescription);
+      setSelectedPrescription(prev => prev ? {
+        ...prev,
+        refillsRemaining: prev.refillsRemaining - 1
+      } : null);
+    }
+  };
 
   return (
     <ProtectedRoute requiredPermissions={['prescriptions', 'records']}>
       <MainLayout
         title="Prescription Management"
-        subtitle={`${mockPrescriptions.length} prescriptions • ${activeCount} active • ${needRefillCount} need refill`}
-        action={{ label: 'New Prescription', onClick: () => {} }}
+        subtitle={`${prescriptions.length} prescriptions • ${activeCount} active • ${needRefillCount} need refill`}
+        action={{ label: 'New Prescription', onClick: handleCreatePrescription }}
       >
         <LoadingWrapper isLoading={isLoading} variant="list">
           <div className="space-y-6">
@@ -98,7 +192,7 @@ export default function PrescriptionsPage() {
                   <div className="flex items-center justify-between">
                     <div>
                       <p className="text-sm font-medium text-muted-foreground">Total Prescriptions</p>
-                      <p className="text-2xl font-bold">{mockPrescriptions.length}</p>
+                      <p className="text-2xl font-bold">{prescriptions.length}</p>
                     </div>
                     <Pill className="h-8 w-8 text-primary" />
                   </div>
@@ -131,7 +225,7 @@ export default function PrescriptionsPage() {
                   <div className="flex items-center justify-between">
                     <div>
                       <p className="text-sm font-medium text-muted-foreground">Completed</p>
-                      <p className="text-2xl font-bold">{mockPrescriptions.filter(p => p.status === 'completed').length}</p>
+                      <p className="text-2xl font-bold">{prescriptions.filter(p => p.status === 'completed').length}</p>
                     </div>
                     <AlertCircle className="h-8 w-8 text-muted-foreground" />
                   </div>
@@ -167,68 +261,55 @@ export default function PrescriptionsPage() {
 
             {/* Prescriptions List */}
             <div className="space-y-4">
-              {filteredPrescriptions.map((prescription) => (
-                <Card key={prescription.id}>
-                  <CardContent className="p-6">
-                    <div className="flex items-start justify-between">
-                      <div className="flex items-start gap-4">
-                        <div className="flex items-center justify-center w-12 h-12 rounded-full bg-primary/10">
-                          <Pill className="h-6 w-6 text-primary" />
-                        </div>
-                        <div className="space-y-1">
-                          <div className="flex items-center gap-2">
-                            <h3 className="font-semibold text-lg">{prescription.medicationName}</h3>
-                            <Badge variant={
-                              prescription.status === 'active' ? 'default' :
-                              prescription.status === 'completed' ? 'secondary' : 'destructive'
-                            }>
-                              {prescription.status}
-                            </Badge>
-                          </div>
-                          <p className="text-muted-foreground">
-                            {prescription.petName} • {prescription.veterinarianName}
-                          </p>
-                          <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mt-3 text-sm">
-                            <div>
-                              <span className="font-medium">Dosage:</span> {prescription.dosage}
-                            </div>
-                            <div>
-                              <span className="font-medium">Frequency:</span> {prescription.frequency}
-                            </div>
-                            <div>
-                              <span className="font-medium">Duration:</span> {prescription.duration}
-                            </div>
-                            <div>
-                              <span className="font-medium">Refills:</span> {prescription.refillsRemaining}
-                            </div>
-                          </div>
-                          <p className="text-sm text-muted-foreground mt-2">
-                            <span className="font-medium">Instructions:</span> {prescription.instructions}
-                          </p>
-                          {prescription.notes && (
-                            <p className="text-sm text-muted-foreground">
-                              <span className="font-medium">Notes:</span> {prescription.notes}
-                            </p>
-                          )}
-                        </div>
-                      </div>
-                      <div className="flex flex-col gap-2">
-                        <Button size="sm" variant="outline">
-                          Edit
-                        </Button>
-                        {prescription.status === 'active' && prescription.refillsRemaining > 0 && (
-                          <Button size="sm">
-                            Refill
-                          </Button>
-                        )}
-                      </div>
-                    </div>
+              {filteredPrescriptions.length === 0 ? (
+                <Card>
+                  <CardContent className="p-12 text-center">
+                    <Pill className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
+                    <h3 className="text-lg font-semibold mb-2">No prescriptions found</h3>
+                    <p className="text-muted-foreground mb-4">
+                      {search || statusFilter !== 'all' 
+                        ? 'Try adjusting your search or filters'
+                        : 'Get started by creating your first prescription'
+                      }
+                    </p>
+                    {!search && statusFilter === 'all' && (
+                      <Button onClick={handleCreatePrescription}>
+                        <Plus className="h-4 w-4 mr-2" />
+                        Create Prescription
+                      </Button>
+                    )}
                   </CardContent>
                 </Card>
-              ))}
+              ) : (
+                filteredPrescriptions.map((prescription) => (
+                  <PrescriptionCard
+                    key={prescription.id}
+                    prescription={prescription}
+                    onView={() => handleViewPrescription(prescription)}
+                    onEdit={() => handleEditPrescription(prescription)}
+                    onRefill={() => handleRefill(prescription)}
+                  />
+                ))
+              )}
             </div>
           </div>
         </LoadingWrapper>
+
+        {/* Modals */}
+        <PrescriptionFormModal
+          isOpen={isFormModalOpen}
+          onClose={() => setIsFormModalOpen(false)}
+          onSave={handleSavePrescription}
+          prescription={editingPrescription}
+        />
+
+        <PrescriptionDetailModal
+          isOpen={isDetailModalOpen}
+          onClose={() => setIsDetailModalOpen(false)}
+          prescription={selectedPrescription}
+          onEdit={handleEditFromDetail}
+          onRefill={handleRefillFromDetail}
+        />
       </MainLayout>
     </ProtectedRoute>
   );
