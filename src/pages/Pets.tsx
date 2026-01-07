@@ -22,7 +22,9 @@ export default function Pets() {
   const [showNewPetModal, setShowNewPetModal] = useState(false);
 
   const filteredPets = pets.filter((pet) => {
-    const ownerName = pet.owner ? `${pet.owner.firstName} ${pet.owner.lastName}` : '';
+    const ownerName = pet.owner 
+      ? `${pet.owner.firstName} ${pet.owner.lastName}` 
+      : (pet as any).ownerName || '';
     const matchesSearch =
       pet.name.toLowerCase().includes(search.toLowerCase()) ||
       (pet.breed && pet.breed.toLowerCase().includes(search.toLowerCase())) ||

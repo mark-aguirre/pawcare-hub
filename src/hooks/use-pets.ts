@@ -26,23 +26,7 @@ export function usePets() {
   return useQuery({
     queryKey: petKeys.lists(),
     queryFn: async () => {
-      try {
-        return await apiClient.get<Pet[]>('/api/pets');
-      } catch (error) {
-        console.warn('Backend not available, using mock data');
-        return [
-          {
-            id: 1,
-            name: 'Buddy',
-            species: 'Dog',
-            breed: 'Golden Retriever',
-            ownerId: 1,
-            ownerName: 'John Smith',
-            createdAt: new Date().toISOString(),
-            updatedAt: new Date().toISOString()
-          }
-        ] as Pet[];
-      }
+      return await apiClient.get<Pet[]>('/api/pets');
     },
   });
 }
@@ -57,5 +41,33 @@ export function useCreatePet() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: petKeys.lists() });
     },
+  });
+}
+
+export function useUpdatePet() {
+  const queryClient = useQueryClient();
+  
+  return useMutation({
+    mutationFn: async ({ id, ...petData }: Partial<Pet> & { id: number }) => {
+      return await apiClient.put<Pet>(`/api/pets/${id}`, petData);
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: petKeys.lists() });
+    },
+  });
+}
+
+export function usePetAppointments(petId?: number) {
+  return useQuery({
+    queryKey: ['pet-appointments', petId],
+    queryFn: async () => {
+      try {
+        return await apiClient.get(`/api/appointments/pet/${petId}`);
+      } catch (error) {
+        console.warn('Backend not available, using mock data');
+        return [];
+      }
+    },
+    enabled: !!petId,
   });
 }

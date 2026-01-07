@@ -30,7 +30,9 @@ const speciesEmoji = {
 };
 
 export function PetCard({ pet, delay = 0, onClick }: PetCardProps) {
-  const ownerName = pet.owner ? `${pet.owner.firstName} ${pet.owner.lastName}` : 'Unknown Owner';
+  const ownerName = pet.owner 
+    ? `${pet.owner.firstName} ${pet.owner.lastName}` 
+    : (pet as any).ownerName || 'Unknown Owner';
   const age = pet.dateOfBirth ? new Date().getFullYear() - new Date(pet.dateOfBirth).getFullYear() : 'Unknown';
   const speciesKey = pet.species.toLowerCase() as keyof typeof speciesColors;
   const displaySpecies = speciesColors[speciesKey] ? speciesKey : 'other';

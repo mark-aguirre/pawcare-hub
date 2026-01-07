@@ -82,6 +82,17 @@ public class PetController {
         if (pet.getOwner() != null) {
             dto.setOwnerId(pet.getOwner().getId());
             dto.setOwnerName(pet.getOwner().getFirstName() + " " + pet.getOwner().getLastName());
+            
+            // Include full owner object
+            PetDTO.OwnerSummaryDTO ownerDto = new PetDTO.OwnerSummaryDTO();
+            ownerDto.setId(pet.getOwner().getId());
+            ownerDto.setFirstName(pet.getOwner().getFirstName());
+            ownerDto.setLastName(pet.getOwner().getLastName());
+            ownerDto.setEmail(pet.getOwner().getEmail());
+            ownerDto.setPhone(pet.getOwner().getPhone());
+            ownerDto.setAddress(pet.getOwner().getAddress());
+            ownerDto.setCreatedAt(pet.getOwner().getCreatedAt());
+            dto.setOwner(ownerDto);
         }
         
         return dto;

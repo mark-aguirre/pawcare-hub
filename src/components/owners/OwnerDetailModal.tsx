@@ -18,7 +18,7 @@ import {
   User
 } from 'lucide-react';
 import { Owner } from '@/types';
-import { usePets } from '@/hooks/use-pets';
+import { useOwnerAppointments, useOwnerTotalSpent } from '@/hooks/use-owners';
 import { EditOwnerModal } from './EditOwnerModal';
 
 interface OwnerDetailModalProps {
@@ -38,12 +38,12 @@ const speciesEmoji = {
 
 export function OwnerDetailModal({ owner, open, onOpenChange }: OwnerDetailModalProps) {
   const [showEditModal, setShowEditModal] = useState(false);
-  const { data: allPets = [] } = usePets();
+  const { data: ownerAppointments = [] } = useOwnerAppointments(owner?.id);
+  const { data: totalSpent = 0 } = useOwnerTotalSpent(owner?.id);
   
   if (!owner) return null;
 
-  const ownerPets = allPets.filter(pet => pet.owner?.id === owner.id);
-  const ownerAppointments: any[] = []; // TODO: Fetch from appointments API
+  const ownerPets = owner.pets || [];
   const ownerInvoices: any[] = []; // TODO: Fetch from invoices API
   const fullName = `${owner.firstName} ${owner.lastName}`;
   const initials = `${owner.firstName[0]}${owner.lastName[0]}`;
@@ -124,7 +124,7 @@ export function OwnerDetailModal({ owner, open, onOpenChange }: OwnerDetailModal
                       <Calendar className="h-5 w-5 text-accent" />
                     </div>
                     <div>
-                      <p className="text-2xl font-bold">0</p>
+                      <p className="text-2xl font-bold">{ownerAppointments.length}</p>
                       <p className="text-sm text-muted-foreground">Appointments</p>
                     </div>
                   </div>
@@ -137,7 +137,7 @@ export function OwnerDetailModal({ owner, open, onOpenChange }: OwnerDetailModal
                       <DollarSign className="h-5 w-5 text-success" />
                     </div>
                     <div>
-                      <p className="text-2xl font-bold">$0</p>
+                      <p className="text-2xl font-bold">${totalSpent.toFixed(2)}</p>
                       <p className="text-sm text-muted-foreground">Total Spent</p>
                     </div>
                   </div>

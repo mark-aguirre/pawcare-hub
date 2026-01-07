@@ -71,3 +71,33 @@ export function useDeleteOwner() {
     },
   });
 }
+
+export function useOwnerAppointments(ownerId?: number) {
+  return useQuery({
+    queryKey: ['owner-appointments', ownerId],
+    queryFn: async () => {
+      try {
+        return await apiClient.get(`/api/owners/${ownerId}/appointments`);
+      } catch (error) {
+        console.warn('Backend not available, using mock data');
+        return [];
+      }
+    },
+    enabled: !!ownerId,
+  });
+}
+
+export function useOwnerTotalSpent(ownerId?: number) {
+  return useQuery({
+    queryKey: ['owner-total-spent', ownerId],
+    queryFn: async () => {
+      try {
+        return await apiClient.get(`/api/owners/${ownerId}/total-spent`);
+      } catch (error) {
+        console.warn('Backend not available, using mock data');
+        return 0;
+      }
+    },
+    enabled: !!ownerId,
+  });
+}

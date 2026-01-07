@@ -20,7 +20,7 @@ import {
   Activity
 } from 'lucide-react';
 import { Pet } from '@/types';
-import { mockOwners, mockMedicalRecords, mockAppointments } from '@/data/mockData';
+import { usePetAppointments } from '@/hooks/use-pets';
 import { EditPetModal } from './EditPetModal';
 import { cn } from '@/lib/utils';
 
@@ -50,6 +50,7 @@ const speciesEmoji = {
 
 export function PetDetailModal({ pet, open, onOpenChange }: PetDetailModalProps) {
   const [showEditModal, setShowEditModal] = useState(false);
+  const { data: petAppointments = [] } = usePetAppointments(pet?.id);
   
   if (!pet) return null;
 
@@ -151,14 +152,41 @@ export function PetDetailModal({ pet, open, onOpenChange }: PetDetailModalProps)
           </TabsContent>
 
           <TabsContent value="appointments" className="space-y-4">
-            <div className="text-center py-8 text-muted-foreground">
-              <Activity className="h-12 w-12 mx-auto mb-3 opacity-30" />
-              <p>Appointments will be available soon</p>
+            <div className="space-y-3">
+              {petAppointments.length > 0 ? (
+                petAppointments.map((appointment: any) => (
+                  <Card key={appointment.id}>
+                    <CardContent className="pt-4">
+                      <div className="flex items-start justify-between">
+                        <div>
+                          <h4 className="font-semibold capitalize">{appointment.type?.toLowerCase() || 'Appointment'}</h4>
+                          <p className="text-sm text-muted-foreground">{appointment.veterinarianName || 'Dr. Unknown'}</p>
+                          <p className="text-xs text-muted-foreground mt-1">
+                            {new Date(appointment.date).toLocaleDateString()} at {appointment.time}
+                          </p>
+                        </div>
+                        <Badge variant={
+                          appointment.status === 'COMPLETED' ? 'default' :
+                          appointment.status === 'IN_PROGRESS' ? 'secondary' :
+                          'outline'
+                        }>
+                          {appointment.status?.toLowerCase() || 'scheduled'}
+                        </Badge>
+                      </div>
+                    </CardContent>
+                  </Card>
+                ))
+              ) : (
+                <div className="text-center py-8 text-muted-foreground">
+                  <Activity className="h-12 w-12 mx-auto mb-3 opacity-30" />
+                  <p>No appointments found</p>
+                </div>
+              )}
             </div>
           </TabsContent>
 
           <TabsContent value="owner" className="space-y-4">
-            {owner && (
+            {owner ? (
               <Card>
                 <CardHeader>
                   <CardTitle className="text-lg">Owner Information</CardTitle>
@@ -188,6 +216,10 @@ export function PetDetailModal({ pet, open, onOpenChange }: PetDetailModalProps)
                   </div>
                 </CardContent>
               </Card>
+            ) : (
+              <div className="text-center py-8 text-muted-foreground">
+                <p>Owner information not available</p>
+              </div>
             )}
           </TabsContent>
         </Tabs>

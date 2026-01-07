@@ -3,7 +3,6 @@ import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Mail, Phone, MapPin, MoreHorizontal, PawPrint, ChevronRight } from 'lucide-react';
 import { Owner } from '@/types';
-import { usePets } from '@/hooks/use-pets';
 import { cn } from '@/lib/utils';
 
 interface OwnerCardProps {
@@ -13,8 +12,7 @@ interface OwnerCardProps {
 }
 
 export function OwnerCard({ owner, delay = 0, onClick }: OwnerCardProps) {
-  const { data: allPets = [] } = usePets();
-  const ownerPets = allPets.filter(pet => pet.owner?.id === owner.id);
+  const ownerPets = owner.pets || [];
   const fullName = `${owner.firstName} ${owner.lastName}`;
   const initials = `${owner.firstName[0]}${owner.lastName[0]}`;
   const createdDate = new Date(owner.createdAt);

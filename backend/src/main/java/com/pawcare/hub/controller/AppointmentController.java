@@ -92,6 +92,13 @@ public class AppointmentController {
                 .collect(Collectors.toList());
     }
 
+    @GetMapping("/owner/{ownerId}")
+    public List<AppointmentDTO> getAppointmentsByOwner(@PathVariable Long ownerId) {
+        return appointmentService.getAppointmentsByOwner(ownerId).stream()
+                .map(AppointmentDTO::new)
+                .collect(Collectors.toList());
+    }
+
     @GetMapping("/upcoming")
     public List<AppointmentDTO> getUpcomingAppointments() {
         return appointmentService.getUpcomingAppointments().stream()

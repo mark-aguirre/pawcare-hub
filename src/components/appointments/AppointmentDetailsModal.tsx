@@ -163,7 +163,7 @@ export function AppointmentDetailsModal({ appointment, open, onOpenChange }: App
           <div className="flex gap-2 pt-4 border-t">
             <Button
               onClick={() => setIsEditing(true)}
-              className="flex-1"
+              size="sm"
               disabled={appointment.status === 'CANCELLED' || appointment.status === 'COMPLETED'}
             >
               <Edit className="h-4 w-4 mr-2" />
@@ -172,6 +172,7 @@ export function AppointmentDetailsModal({ appointment, open, onOpenChange }: App
             <Button
               variant="outline"
               onClick={handleCancel}
+              className="flex-1"
               disabled={appointment.status === 'CANCELLED' || appointment.status === 'COMPLETED'}
             >
               <X className="h-4 w-4 mr-2" />

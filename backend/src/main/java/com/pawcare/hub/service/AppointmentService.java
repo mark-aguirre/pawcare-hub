@@ -45,6 +45,10 @@ public class AppointmentService {
         return appointmentRepository.findByPetId(petId);
     }
 
+    public List<Appointment> getAppointmentsByOwner(Long ownerId) {
+        return appointmentRepository.findByPetOwnerId(ownerId);
+    }
+
     public List<Appointment> getUpcomingAppointments() {
         return appointmentRepository.findUpcomingAppointments(LocalDate.now());
     }
