@@ -1,4 +1,6 @@
 import { TrendingUp, DollarSign } from 'lucide-react';
+import { Skeleton } from '@/components/ui/skeleton';
+import { useRevenueData } from '@/hooks/use-dashboard';
 import { cn } from '@/lib/utils';
 
 interface RevenueData {
@@ -6,20 +8,61 @@ interface RevenueData {
   revenue: number;
 }
 
-const mockRevenueData: RevenueData[] = [
-  { day: 'Mon', revenue: 1200 },
-  { day: 'Tue', revenue: 1850 },
-  { day: 'Wed', revenue: 1400 },
-  { day: 'Thu', revenue: 2100 },
-  { day: 'Fri', revenue: 1750 },
-  { day: 'Sat', revenue: 2300 },
-  { day: 'Sun', revenue: 1600 },
-];
-
 export function RevenueChart() {
-  const maxRevenue = Math.max(...mockRevenueData.map(d => d.revenue));
-  const totalWeekRevenue = mockRevenueData.reduce((sum, d) => sum + d.revenue, 0);
-  const avgDailyRevenue = totalWeekRevenue / mockRevenueData.length;
+  const { revenue, loading, error } = useRevenueData();
+
+  if (loading) {
+    return (
+      <div className="rounded-2xl border border-border bg-card p-6 animate-slide-up shadow-card" style={{ animationDelay: '100ms' }}>
+        <div className="flex items-center justify-between mb-6">
+          <div>
+            <Skeleton className="h-6 w-32 mb-2" />
+            <Skeleton className="h-4 w-40" />
+          </div>
+          <div className="text-right">
+            <Skeleton className="h-5 w-16 mb-1" />
+            <Skeleton className="h-3 w-20" />
+          </div>
+        </div>
+        <div className="space-y-4">
+          <div className="flex items-end justify-between h-32 gap-2">
+            {[1, 2, 3, 4, 5, 6, 7].map((i) => (
+              <Skeleton key={i} className="flex-1 h-20" />
+            ))}
+          </div>
+          <div className="grid grid-cols-2 gap-4 pt-4 border-t border-border">
+            <Skeleton className="h-12" />
+            <Skeleton className="h-12" />
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="rounded-2xl border border-border bg-card p-6 animate-slide-up shadow-card" style={{ animationDelay: '100ms' }}>
+        <div className="text-center py-8">
+          <p className="text-muted-foreground">Failed to load revenue data</p>
+        </div>
+      </div>
+    );
+  }
+
+  const revenueData: RevenueData[] = revenue?.weeklyData || [
+    { day: 'Mon', revenue: 1200 },
+    { day: 'Tue', revenue: 1850 },
+    { day: 'Wed', revenue: 1400 },
+    { day: 'Thu', revenue: 2100 },
+    { day: 'Fri', revenue: 1750 },
+    { day: 'Sat', revenue: 2300 },
+    { day: 'Sun', revenue: 1600 },
+  ];
+
+  const maxRevenue = Math.max(...revenueData.map(d => d.revenue));
+  const totalWeekRevenue = revenueData.reduce((sum, d) => sum + d.revenue, 0);
+  const avgDailyRevenue = totalWeekRevenue / revenueData.length;
+  const weeklyChange = revenue?.weeklyChange || 12.5;
 
   return (
     <div className="rounded-2xl border border-border bg-card p-6 animate-slide-up shadow-card" style={{ animationDelay: '100ms' }}>
@@ -29,20 +72,22 @@ export function RevenueChart() {
           <p className="text-sm text-muted-foreground">Last 7 days performance</p>
         </div>
         <div className="text-right">
-          <div className="flex items-center gap-2 text-success font-semibold text-sm mb-1">
+          <div className={cn(
+            'flex items-center gap-2 font-semibold text-sm mb-1',
+            weeklyChange >= 0 ? 'text-success' : 'text-destructive'
+          )}>
             <TrendingUp className="h-4 w-4" />
-            <span>+12.5%</span>
+            <span>{weeklyChange >= 0 ? '+' : ''}{weeklyChange}%</span>
           </div>
           <p className="text-xs text-muted-foreground">vs last week</p>
         </div>
       </div>
 
-      {/* Chart */}
       <div className="space-y-4">
         <div className="flex items-end justify-between h-32 gap-2">
-          {mockRevenueData.map((data, index) => {
+          {revenueData.map((data, index) => {
             const height = (data.revenue / maxRevenue) * 100;
-            const isToday = index === 3; // Thursday is today
+            const isToday = index === 3;
             
             return (
               <div key={data.day} className="flex-1 flex flex-col items-center gap-2">
@@ -59,7 +104,6 @@ export function RevenueChart() {
                       animationDelay: `${index * 100}ms`
                     }}
                   />
-                  {/* Tooltip on hover */}
                   <div className="absolute -top-8 left-1/2 transform -translate-x-1/2 bg-foreground text-background text-xs px-2 py-1 rounded opacity-0 hover:opacity-100 transition-opacity whitespace-nowrap">
                     ${data.revenue.toLocaleString()}
                   </div>
@@ -75,7 +119,6 @@ export function RevenueChart() {
           })}
         </div>
 
-        {/* Summary Stats */}
         <div className="grid grid-cols-2 gap-4 pt-4 border-t border-border">
           <div className="text-center">
             <div className="flex items-center justify-center gap-1.5 mb-1">

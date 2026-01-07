@@ -50,13 +50,13 @@ export function AppointmentCard({ appointment, delay = 0 }: AppointmentCardProps
       
       {/* Pet Avatar */}
       <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-secondary text-3xl transition-transform duration-300 group-hover:scale-110 group-hover:rotate-3">
-        {speciesEmoji[appointment.petSpecies]}
+        {speciesEmoji[appointment.petSpecies as keyof typeof speciesEmoji] || speciesEmoji.other}
       </div>
 
       <div className="flex-1 min-w-0">
         <div className="flex items-center gap-2 mb-1">
           <h4 className="font-display font-bold text-foreground truncate">{appointment.petName}</h4>
-          <Badge variant="secondary" className={cn('text-xs border', typeStyles[appointment.type])}>
+          <Badge variant="secondary" className={cn('text-xs border', typeStyles[appointment.type.toLowerCase() as keyof typeof typeStyles] || typeStyles.checkup)}>
             {appointment.type}
           </Badge>
         </div>
@@ -73,7 +73,7 @@ export function AppointmentCard({ appointment, delay = 0 }: AppointmentCardProps
       </div>
 
       <div className="text-right flex flex-col items-end gap-1">
-        <Badge variant="secondary" className={cn('border font-medium', statusStyles[appointment.status])}>
+        <Badge variant="secondary" className={cn('border font-medium', statusStyles[appointment.status.toLowerCase().replace('_', '-') as keyof typeof statusStyles] || statusStyles.scheduled)}>
           {appointment.status.replace('-', ' ')}
         </Badge>
         <p className="text-xs text-muted-foreground">{appointment.veterinarianName}</p>

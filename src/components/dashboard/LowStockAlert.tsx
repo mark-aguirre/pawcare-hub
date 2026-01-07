@@ -1,6 +1,7 @@
 import { AlertTriangle, Package, ChevronRight } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
-import { mockInventoryItems } from '@/data/mockData';
+import { Skeleton } from '@/components/ui/skeleton';
+import { useInventoryAlerts } from '@/hooks/use-dashboard';
 import { cn } from '@/lib/utils';
 
 const categoryColors = {
@@ -13,19 +14,51 @@ const categoryColors = {
 };
 
 export function LowStockAlert() {
-  const lowStockItems = mockInventoryItems
-    .filter(item => item.status === 'low-stock' || item.status === 'out-of-stock')
-    .sort((a, b) => {
-      // Prioritize out-of-stock items
-      if (a.status === 'out-of-stock' && b.status !== 'out-of-stock') return -1;
-      if (b.status === 'out-of-stock' && a.status !== 'out-of-stock') return 1;
-      // Then sort by stock percentage
-      const aPercentage = a.currentStock / a.minStock;
-      const bPercentage = b.currentStock / b.minStock;
-      return aPercentage - bPercentage;
-    })
-    .slice(0, 5);
+  const { alerts, loading, error } = useInventoryAlerts();
 
+  if (loading) {
+    return (
+      <div className="rounded-2xl border border-border bg-card p-6 animate-slide-up shadow-card" style={{ animationDelay: '200ms' }}>
+        <div className="flex items-center justify-between mb-4">
+          <div className="flex items-center gap-3">
+            <Skeleton className="h-9 w-9 rounded-xl" />
+            <div>
+              <Skeleton className="h-5 w-32 mb-1" />
+              <Skeleton className="h-4 w-24" />
+            </div>
+          </div>
+          <Skeleton className="h-4 w-20" />
+        </div>
+        <div className="space-y-3">
+          {[1, 2, 3, 4].map((i) => (
+            <div key={i} className="flex items-center gap-4 p-3">
+              <Skeleton className="w-3 h-3 rounded-full" />
+              <div className="flex-1">
+                <Skeleton className="h-4 w-32 mb-2" />
+                <Skeleton className="h-3 w-40" />
+              </div>
+              <div className="text-right">
+                <Skeleton className="h-4 w-16 mb-1" />
+                <Skeleton className="h-1.5 w-16" />
+              </div>
+            </div>
+          ))}
+        </div>
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="rounded-2xl border border-border bg-card p-6 animate-slide-up shadow-card" style={{ animationDelay: '200ms' }}>
+        <div className="text-center py-8">
+          <p className="text-muted-foreground">Failed to load inventory alerts</p>
+        </div>
+      </div>
+    );
+  }
+
+  const lowStockItems = alerts.slice(0, 5);
   const criticalCount = lowStockItems.filter(item => item.status === 'out-of-stock').length;
 
   return (
@@ -69,17 +102,15 @@ export function LowStockAlert() {
                 className="group flex items-center gap-4 p-3 rounded-xl hover:bg-secondary/50 transition-all duration-200 cursor-pointer"
                 style={{ animationDelay: `${200 + index * 50}ms` }}
               >
-                {/* Status indicator */}
                 <div className={cn(
                   'w-3 h-3 rounded-full',
                   isOutOfStock ? 'bg-destructive animate-pulse' : 'bg-warning'
                 )} />
 
-                {/* Item info */}
                 <div className="flex-1 min-w-0">
                   <div className="flex items-center gap-2 mb-1">
                     <h4 className="font-semibold text-foreground truncate">{item.name}</h4>
-                    <Badge variant="secondary" className={cn('text-xs border', categoryColors[item.category])}>
+                    <Badge variant="secondary" className={cn('text-xs border', categoryColors[item.category] || categoryColors.other)}>
                       {item.category}
                     </Badge>
                   </div>
@@ -89,7 +120,6 @@ export function LowStockAlert() {
                   </div>
                 </div>
 
-                {/* Stock info */}
                 <div className="text-right">
                   <div className="flex items-center gap-2 mb-1">
                     <Package className="h-4 w-4 text-muted-foreground" />

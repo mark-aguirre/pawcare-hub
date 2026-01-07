@@ -6,8 +6,9 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
-import { UserPlus, Mail, Phone, MapPin } from 'lucide-react';
+import { UserPlus, Mail, Phone, MapPin, Loader2 } from 'lucide-react';
 import { useToast } from '@/components/ui/use-toast';
+import { useCreateOwner } from '@/hooks/use-owners';
 
 interface NewOwnerPanelProps {
   open: boolean;
@@ -16,37 +17,47 @@ interface NewOwnerPanelProps {
 
 export function NewOwnerPanel({ open, onOpenChange }: NewOwnerPanelProps) {
   const [formData, setFormData] = useState({
-    name: '',
+    firstName: '',
+    lastName: '',
     email: '',
     phone: '',
     address: '',
-    emergencyContact: '',
-    emergencyPhone: '',
-    notes: '',
+    city: '',
+    state: '',
+    zipCode: '',
   });
   const { toast } = useToast();
+  const createOwner = useCreateOwner();
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
-    console.log('New owner:', formData);
-    
-    toast({
-      title: "Owner Registered",
-      description: `${formData.name} has been successfully added as a new client.`,
-      variant: "default",
-    });
-    
-    setFormData({
-      name: '',
-      email: '',
-      phone: '',
-      address: '',
-      emergencyContact: '',
-      emergencyPhone: '',
-      notes: '',
-    });
-    onOpenChange(false);
+    try {
+      await createOwner.mutateAsync(formData);
+      
+      toast({
+        title: "Owner Registered",
+        description: `${formData.firstName} ${formData.lastName} has been successfully added.`,
+      });
+      
+      setFormData({
+        firstName: '',
+        lastName: '',
+        email: '',
+        phone: '',
+        address: '',
+        city: '',
+        state: '',
+        zipCode: '',
+      });
+      onOpenChange(false);
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: "Failed to create owner. Please try again.",
+        variant: "destructive",
+      });
+    }
   };
 
   return (
@@ -71,33 +82,45 @@ export function NewOwnerPanel({ open, onOpenChange }: NewOwnerPanelProps) {
             </h4>
             
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              {/* Full Name */}
+              {/* First Name */}
               <div className="space-y-2">
-                <Label htmlFor="name">Full Name *</Label>
+                <Label htmlFor="firstName">First Name *</Label>
                 <Input
-                  id="name"
-                  placeholder="Enter full name"
-                  value={formData.name}
-                  onChange={(e) => setFormData(prev => ({ ...prev, name: e.target.value }))}
+                  id="firstName"
+                  placeholder="Enter first name"
+                  value={formData.firstName}
+                  onChange={(e) => setFormData(prev => ({ ...prev, firstName: e.target.value }))}
                   required
                 />
               </div>
 
-              {/* Email */}
+              {/* Last Name */}
               <div className="space-y-2">
-                <Label htmlFor="email">Email Address *</Label>
-                <div className="relative">
-                  <Mail className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
-                  <Input
-                    id="email"
-                    type="email"
-                    placeholder="email@example.com"
-                    className="pl-10"
-                    value={formData.email}
-                    onChange={(e) => setFormData(prev => ({ ...prev, email: e.target.value }))}
-                    required
-                  />
-                </div>
+                <Label htmlFor="lastName">Last Name *</Label>
+                <Input
+                  id="lastName"
+                  placeholder="Enter last name"
+                  value={formData.lastName}
+                  onChange={(e) => setFormData(prev => ({ ...prev, lastName: e.target.value }))}
+                  required
+                />
+              </div>
+            </div>
+
+            {/* Email */}
+            <div className="space-y-2">
+              <Label htmlFor="email">Email Address *</Label>
+              <div className="relative">
+                <Mail className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
+                <Input
+                  id="email"
+                  type="email"
+                  placeholder="email@example.com"
+                  className="pl-10"
+                  value={formData.email}
+                  onChange={(e) => setFormData(prev => ({ ...prev, email: e.target.value }))}
+                  required
+                />
               </div>
             </div>
 
@@ -120,76 +143,69 @@ export function NewOwnerPanel({ open, onOpenChange }: NewOwnerPanelProps) {
 
             {/* Address */}
             <div className="space-y-2">
-              <Label htmlFor="address">Address</Label>
+              <Label htmlFor="address">Street Address</Label>
               <div className="relative">
                 <MapPin className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
-                <Textarea
+                <Input
                   id="address"
-                  placeholder="Street address, city, state, zip code"
-                  className="pl-10 min-h-[80px]"
+                  placeholder="123 Main Street"
+                  className="pl-10"
                   value={formData.address}
                   onChange={(e) => setFormData(prev => ({ ...prev, address: e.target.value }))}
-                  rows={3}
                 />
               </div>
             </div>
-          </div>
 
-          <div className="space-y-4">
-            <h4 className="text-sm font-semibold text-foreground border-b border-border pb-2">
-              Emergency Contact (Optional)
-            </h4>
-            
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              {/* Emergency Contact Name */}
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+              {/* City */}
               <div className="space-y-2">
-                <Label htmlFor="emergencyContact">Emergency Contact Name</Label>
+                <Label htmlFor="city">City</Label>
                 <Input
-                  id="emergencyContact"
-                  placeholder="Contact person name"
-                  value={formData.emergencyContact}
-                  onChange={(e) => setFormData(prev => ({ ...prev, emergencyContact: e.target.value }))}
+                  id="city"
+                  placeholder="City"
+                  value={formData.city}
+                  onChange={(e) => setFormData(prev => ({ ...prev, city: e.target.value }))}
                 />
               </div>
 
-              {/* Emergency Phone */}
+              {/* State */}
               <div className="space-y-2">
-                <Label htmlFor="emergencyPhone">Emergency Phone</Label>
-                <div className="relative">
-                  <Phone className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
-                  <Input
-                    id="emergencyPhone"
-                    type="tel"
-                    placeholder="+1 (555) 987-6543"
-                    className="pl-10"
-                    value={formData.emergencyPhone}
-                    onChange={(e) => setFormData(prev => ({ ...prev, emergencyPhone: e.target.value }))}
-                  />
-                </div>
+                <Label htmlFor="state">State</Label>
+                <Input
+                  id="state"
+                  placeholder="State"
+                  value={formData.state}
+                  onChange={(e) => setFormData(prev => ({ ...prev, state: e.target.value }))}
+                />
+              </div>
+
+              {/* Zip Code */}
+              <div className="space-y-2">
+                <Label htmlFor="zipCode">Zip Code</Label>
+                <Input
+                  id="zipCode"
+                  placeholder="12345"
+                  value={formData.zipCode}
+                  onChange={(e) => setFormData(prev => ({ ...prev, zipCode: e.target.value }))}
+                />
               </div>
             </div>
           </div>
 
-          {/* Additional Notes */}
-          <div className="space-y-2">
-            <Label htmlFor="notes">Additional Notes</Label>
-            <Textarea
-              id="notes"
-              placeholder="Any additional information about the owner..."
-              value={formData.notes}
-              onChange={(e) => setFormData(prev => ({ ...prev, notes: e.target.value }))}
-              rows={4}
-            />
-          </div>
+
 
           <div className="flex gap-3 pt-6 border-t border-border">
             <Button 
               type="submit" 
               className="bg-gradient-primary hover:shadow-glow flex-1"
-              disabled={!formData.name || !formData.email || !formData.phone}
+              disabled={!formData.firstName || !formData.lastName || !formData.email || createOwner.isPending}
             >
-              <UserPlus className="mr-2 h-4 w-4" />
-              Add Owner
+              {createOwner.isPending ? (
+                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+              ) : (
+                <UserPlus className="mr-2 h-4 w-4" />
+              )}
+              {createOwner.isPending ? 'Adding...' : 'Add Owner'}
             </Button>
             <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>
               Cancel

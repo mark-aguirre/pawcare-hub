@@ -30,7 +30,10 @@ const speciesEmoji = {
 };
 
 export function PetCard({ pet, delay = 0, onClick }: PetCardProps) {
-  const hasConditions = pet.conditions.length > 0 || pet.allergies.length > 0;
+  const ownerName = pet.owner ? `${pet.owner.firstName} ${pet.owner.lastName}` : 'Unknown Owner';
+  const age = pet.dateOfBirth ? new Date().getFullYear() - new Date(pet.dateOfBirth).getFullYear() : 'Unknown';
+  const speciesKey = pet.species.toLowerCase() as keyof typeof speciesColors;
+  const displaySpecies = speciesColors[speciesKey] ? speciesKey : 'other';
 
   return (
     <div
@@ -46,8 +49,7 @@ export function PetCard({ pet, delay = 0, onClick }: PetCardProps) {
           <div className="flex items-center gap-4">
             <div className="relative">
               <Avatar className="h-16 w-16 border-3 border-border group-hover:border-primary/30 transition-colors ring-4 ring-secondary/50">
-                <AvatarImage src={pet.photoUrl} alt={pet.name} className="object-cover" />
-                <AvatarFallback className="text-2xl bg-secondary">{speciesEmoji[pet.species]}</AvatarFallback>
+                <AvatarFallback className="text-2xl bg-secondary">{speciesEmoji[displaySpecies]}</AvatarFallback>
               </Avatar>
               {/* Online indicator */}
               <div className="absolute -bottom-1 -right-1 h-5 w-5 rounded-full bg-success border-2 border-card flex items-center justify-center">
@@ -56,7 +58,7 @@ export function PetCard({ pet, delay = 0, onClick }: PetCardProps) {
             </div>
             <div>
               <h3 className="text-xl font-display font-bold text-foreground group-hover:text-primary transition-colors">{pet.name}</h3>
-              <p className="text-sm text-muted-foreground">{pet.breed}</p>
+              <p className="text-sm text-muted-foreground">{pet.breed || 'Mixed breed'}</p>
             </div>
           </div>
           <Button variant="ghost" size="icon" className="opacity-0 group-hover:opacity-100 transition-opacity -mt-1 -mr-2 hover:bg-secondary">
@@ -65,16 +67,12 @@ export function PetCard({ pet, delay = 0, onClick }: PetCardProps) {
         </div>
 
         <div className="flex flex-wrap gap-2 mb-4">
-          <Badge variant="secondary" className={cn('border font-semibold', speciesColors[pet.species])}>
+          <Badge variant="secondary" className={cn('border font-semibold', speciesColors[displaySpecies])}>
             {pet.species}
           </Badge>
-          <Badge variant="secondary" className="bg-secondary/80 text-secondary-foreground border-border font-medium">
-            {pet.gender === 'male' ? '♂ Male' : '♀ Female'}
-          </Badge>
-          {hasConditions && (
-            <Badge variant="secondary" className="bg-warning/10 text-warning border-warning/20 font-medium">
-              <AlertCircle className="h-3 w-3 mr-1" />
-              Medical Notes
+          {pet.gender && (
+            <Badge variant="secondary" className="bg-secondary/80 text-secondary-foreground border-border font-medium">
+              {pet.gender === 'Male' ? '♂ Male' : '♀ Female'}
             </Badge>
           )}
         </div>
@@ -82,17 +80,19 @@ export function PetCard({ pet, delay = 0, onClick }: PetCardProps) {
         <div className="grid grid-cols-2 gap-4 mb-4">
           <div className="flex items-center gap-2.5 text-sm text-muted-foreground bg-secondary/50 rounded-lg px-3 py-2">
             <Calendar className="h-4 w-4 text-primary" />
-            <span className="font-medium">{pet.age} years</span>
+            <span className="font-medium">{age} years</span>
           </div>
-          <div className="flex items-center gap-2.5 text-sm text-muted-foreground bg-secondary/50 rounded-lg px-3 py-2">
-            <Weight className="h-4 w-4 text-primary" />
-            <span className="font-medium">{pet.weight} kg</span>
-          </div>
+          {pet.weight && (
+            <div className="flex items-center gap-2.5 text-sm text-muted-foreground bg-secondary/50 rounded-lg px-3 py-2">
+              <Weight className="h-4 w-4 text-primary" />
+              <span className="font-medium">{pet.weight} kg</span>
+            </div>
+          )}
         </div>
 
         <div className="pt-4 border-t border-border">
           <p className="text-xs text-muted-foreground uppercase tracking-wider mb-1">Owner</p>
-          <p className="text-sm font-semibold text-foreground">{pet.ownerName}</p>
+          <p className="text-sm font-semibold text-foreground">{ownerName}</p>
         </div>
       </div>
     </div>

@@ -7,7 +7,8 @@ import { RevenueStatCard } from '@/components/dashboard/RevenueStatCard';
 import { AppointmentCard } from '@/components/dashboard/AppointmentCard';
 import { QuickActions } from '@/components/dashboard/QuickActions';
 import { Skeleton } from '@/components/ui/skeleton';
-import { mockAppointments, mockDashboardStats } from '@/data/mockData';
+import { useDashboardStats } from '@/hooks/use-dashboard';
+import { useAppointments } from '@/hooks/use-appointments';
 import { Calendar, CheckCircle, Package } from 'lucide-react';
 
 // Lazy load only heavy components
@@ -27,12 +28,19 @@ const ComponentSkeleton = ({ className }: { className?: string }) => (
 );
 
 export default function Dashboard() {
+  const { stats, loading: statsLoading, error: statsError } = useDashboardStats();
+  const { appointments, loading: appointmentsLoading } = useAppointments();
+  
   const today = new Date();
-  const todayAppointments = mockAppointments.filter(
-    (apt) => apt.date.toDateString() === today.toDateString()
-  );
+  const todayAppointments = appointments?.filter(
+    (apt) => new Date(apt.date).toDateString() === today.toDateString()
+  ) || [];
 
   const isFirstTime = false;
+
+  if (statsError) {
+    console.error('Dashboard stats error:', statsError);
+  }
 
   return (
     <MainLayout
@@ -48,7 +56,7 @@ export default function Dashboard() {
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
         <StatCard
           title="Today's Appointments"
-          value={mockDashboardStats.todayAppointments}
+          value={statsLoading ? '...' : (stats?.todayAppointments || 0)}
           icon={Calendar}
           variant="primary"
           trend={{ value: 12, isPositive: true }}
@@ -56,19 +64,19 @@ export default function Dashboard() {
         />
         <StatCard
           title="Completed Today"
-          value={mockDashboardStats.completedToday}
+          value={statsLoading ? '...' : (stats?.completedToday || 0)}
           icon={CheckCircle}
           variant="success"
           delay={100}
         />
         <RevenueStatCard
-          value={`$${mockDashboardStats.revenueToday.toLocaleString()}`}
+          value={statsLoading ? '...' : `$${(stats?.revenueToday || 0).toLocaleString()}`}
           trend={{ value: 8, isPositive: true }}
           delay={200}
         />
         <StatCard
           title="Low Stock Items"
-          value={mockDashboardStats.lowStockItems}
+          value={statsLoading ? '...' : (stats?.lowStockItems || 0)}
           icon={Package}
           variant="warning"
           delay={300}
@@ -82,10 +90,18 @@ export default function Dashboard() {
           <div className="rounded-xl border border-border bg-card p-5 animate-slide-up">
             <div className="flex items-center justify-between mb-4">
               <h3 className="text-lg font-semibold text-foreground">Today's Appointments</h3>
-              <span className="text-sm text-muted-foreground">{todayAppointments.length} scheduled</span>
+              <span className="text-sm text-muted-foreground">
+                {appointmentsLoading ? '...' : `${todayAppointments.length} scheduled`}
+              </span>
             </div>
             <div className="space-y-3">
-              {todayAppointments.length > 0 ? (
+              {appointmentsLoading ? (
+                <div className="space-y-3">
+                  {[1, 2, 3].map((i) => (
+                    <Skeleton key={i} className="h-16 w-full" />
+                  ))}
+                </div>
+              ) : todayAppointments.length > 0 ? (
                 todayAppointments.map((appointment, index) => (
                   <AppointmentCard
                     key={appointment.id}

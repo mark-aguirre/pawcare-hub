@@ -1,5 +1,7 @@
 import { TrendingUp, TrendingDown, Target, Award, Users, Calendar } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { Skeleton } from '@/components/ui/skeleton';
+import { usePerformanceData } from '@/hooks/use-dashboard';
 import { MonthlyRevenueMetric } from './MonthlyRevenueMetric';
 
 interface MetricProps {
@@ -56,27 +58,60 @@ function Metric({ label, value, change, target, icon: Icon, color }: MetricProps
 }
 
 export function PerformanceSummary() {
+  const { performance, loading, error } = usePerformanceData();
+
+  if (loading) {
+    return (
+      <div className="rounded-2xl border border-border bg-card p-6 animate-slide-up shadow-card" style={{ animationDelay: '300ms' }}>
+        <div className="flex items-center justify-between mb-6">
+          <div className="flex items-center gap-3">
+            <Skeleton className="h-10 w-10 rounded-xl" />
+            <div>
+              <Skeleton className="h-5 w-40 mb-2" />
+              <Skeleton className="h-4 w-32" />
+            </div>
+          </div>
+        </div>
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+          {[1, 2, 3, 4].map((i) => (
+            <Skeleton key={i} className="h-32 rounded-xl" />
+          ))}
+        </div>
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="rounded-2xl border border-border bg-card p-6 animate-slide-up shadow-card" style={{ animationDelay: '300ms' }}>
+        <div className="text-center py-8">
+          <p className="text-muted-foreground">Failed to load performance data</p>
+        </div>
+      </div>
+    );
+  }
+
   const metrics = [
     {
       label: 'Patient Satisfaction',
-      value: '4.8/5',
-      change: 2.1,
+      value: performance?.patientSatisfaction || '4.8/5',
+      change: performance?.satisfactionChange || 2.1,
       target: 5,
       icon: Award,
       color: 'bg-success',
     },
     {
       label: 'Active Clients',
-      value: '1,247',
-      change: 8.7,
+      value: performance?.activeClients || '1,247',
+      change: performance?.clientsChange || 8.7,
       target: 1500,
       icon: Users,
       color: 'bg-accent',
     },
     {
       label: 'Appointment Rate',
-      value: '94%',
-      change: -1.2,
+      value: performance?.appointmentRate || '94%',
+      change: performance?.appointmentRateChange || -1.2,
       target: 95,
       icon: Calendar,
       color: 'bg-warning',
@@ -99,8 +134,8 @@ export function PerformanceSummary() {
 
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
         <MonthlyRevenueMetric
-          value="$24,500"
-          change={15.2}
+          value={performance?.monthlyRevenue || '$24,500'}
+          change={performance?.revenueChange || 15.2}
           target={30000}
           delay={300}
         />
@@ -115,16 +150,15 @@ export function PerformanceSummary() {
         ))}
       </div>
 
-      {/* Summary insights */}
       <div className="mt-6 pt-6 border-t border-border">
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
           <div className="flex items-center gap-2 text-success">
             <div className="w-2 h-2 rounded-full bg-success" />
-            <span>Revenue is trending 15% above target</span>
+            <span>{performance?.insights?.[0] || 'Revenue is trending 15% above target'}</span>
           </div>
           <div className="flex items-center gap-2 text-primary">
             <div className="w-2 h-2 rounded-full bg-primary" />
-            <span>Client base growing steadily</span>
+            <span>{performance?.insights?.[1] || 'Client base growing steadily'}</span>
           </div>
         </div>
       </div>

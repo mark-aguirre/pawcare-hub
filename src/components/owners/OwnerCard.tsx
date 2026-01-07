@@ -3,7 +3,7 @@ import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Mail, Phone, MapPin, MoreHorizontal, PawPrint, ChevronRight } from 'lucide-react';
 import { Owner } from '@/types';
-import { mockPets } from '@/data/mockData';
+import { usePets } from '@/hooks/use-pets';
 import { cn } from '@/lib/utils';
 
 interface OwnerCardProps {
@@ -13,8 +13,11 @@ interface OwnerCardProps {
 }
 
 export function OwnerCard({ owner, delay = 0, onClick }: OwnerCardProps) {
-  const ownerPets = mockPets.filter((pet) => pet.ownerId === owner.id);
-  const initials = owner.name.split(' ').map((n) => n[0]).join('');
+  const { data: allPets = [] } = usePets();
+  const ownerPets = allPets.filter(pet => pet.owner?.id === owner.id);
+  const fullName = `${owner.firstName} ${owner.lastName}`;
+  const initials = `${owner.firstName[0]}${owner.lastName[0]}`;
+  const createdDate = new Date(owner.createdAt);
 
   return (
     <div
@@ -38,9 +41,9 @@ export function OwnerCard({ owner, delay = 0, onClick }: OwnerCardProps) {
               </div>
             </div>
             <div>
-              <h3 className="text-xl font-display font-bold text-foreground group-hover:text-primary transition-colors">{owner.name}</h3>
+              <h3 className="text-xl font-display font-bold text-foreground group-hover:text-primary transition-colors">{fullName}</h3>
               <p className="text-xs text-muted-foreground">
-                Customer since {owner.createdAt.toLocaleDateString('en-US', { month: 'short', year: 'numeric' })}
+                Customer since {createdDate.toLocaleDateString('en-US', { month: 'short', year: 'numeric' })}
               </p>
             </div>
           </div>
@@ -56,18 +59,22 @@ export function OwnerCard({ owner, delay = 0, onClick }: OwnerCardProps) {
             </div>
             <span className="truncate">{owner.email}</span>
           </div>
-          <div className="flex items-center gap-3 text-sm text-muted-foreground group/item hover:text-foreground transition-colors cursor-pointer">
-            <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-secondary/80">
-              <Phone className="h-4 w-4" />
+          {owner.phone && (
+            <div className="flex items-center gap-3 text-sm text-muted-foreground group/item hover:text-foreground transition-colors cursor-pointer">
+              <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-secondary/80">
+                <Phone className="h-4 w-4" />
+              </div>
+              <span>{owner.phone}</span>
             </div>
-            <span>{owner.phone}</span>
-          </div>
-          <div className="flex items-center gap-3 text-sm text-muted-foreground">
-            <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-secondary/80">
-              <MapPin className="h-4 w-4" />
+          )}
+          {owner.address && (
+            <div className="flex items-center gap-3 text-sm text-muted-foreground">
+              <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-secondary/80">
+                <MapPin className="h-4 w-4" />
+              </div>
+              <span className="truncate">{owner.address}</span>
             </div>
-            <span className="truncate">{owner.address}</span>
-          </div>
+          )}
         </div>
 
         <div className="pt-4 border-t border-border">

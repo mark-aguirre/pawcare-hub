@@ -9,13 +9,14 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Calendar as CalendarIcon, ChevronLeft, ChevronRight, List, Grid3X3 } from 'lucide-react';
-import { useCachedAppointments } from '@/hooks/use-cached-data';
-import { mockVeterinarians } from '@/data/mockData';
+import { useAppointments } from '@/hooks/use-appointments';
+import { useVeterinarians } from '@/hooks/use-veterinarians';
 
 const statusFilters = ['all', 'scheduled', 'checked-in', 'in-progress', 'completed', 'cancelled'] as const;
 
 export default function Appointments() {
-  const appointments = useCachedAppointments();
+  const { data: appointments = [], isLoading } = useAppointments();
+  const { data: veterinarians = [] } = useVeterinarians();
   const [selectedDate, setSelectedDate] = useState<Date>(new Date());
   const [selectedStatus, setSelectedStatus] = useState<typeof statusFilters[number]>('all');
   const [viewMode, setViewMode] = useState<'list' | 'calendar'>('calendar');
@@ -28,8 +29,9 @@ export default function Appointments() {
   };
 
   const filteredAppointments = appointments.filter((apt) => {
-    const matchesDate = apt.date.toDateString() === selectedDate.toDateString();
-    const matchesStatus = selectedStatus === 'all' || apt.status === selectedStatus;
+    const appointmentDate = new Date(apt.date);
+    const matchesDate = appointmentDate.toDateString() === selectedDate.toDateString();
+    const matchesStatus = selectedStatus === 'all' || apt.status.toLowerCase() === selectedStatus.replace('-', '_');
     return matchesDate && matchesStatus;
   });
 
@@ -110,7 +112,11 @@ export default function Appointments() {
           {/* Appointments List */}
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
             <div className="lg:col-span-2">
-              {filteredAppointments.length > 0 ? (
+              {isLoading ? (
+                <div className="text-center py-16 text-muted-foreground">
+                  Loading appointments...
+                </div>
+              ) : filteredAppointments.length > 0 ? (
                 <div className="space-y-3">
                   {filteredAppointments.map((appointment, index) => (
                     <AppointmentCard key={appointment.id} appointment={appointment} delay={0} />
@@ -129,10 +135,10 @@ export default function Appointments() {
             <div className="rounded-xl border border-border bg-card p-5 h-fit">
               <h3 className="text-sm font-semibold text-foreground mb-4">Veterinarians</h3>
               <div className="space-y-3">
-                {mockVeterinarians.map((vet) => (
+                {veterinarians.map((vet) => (
                   <div key={vet.id} className="flex items-center gap-3 p-2 rounded-lg hover:bg-secondary/50 transition-colors cursor-pointer">
                     <img
-                      src={vet.photoUrl}
+                      src={vet.photoUrl || 'https://images.unsplash.com/photo-1559839734-2b71ea197ec2?w=150&h=150&fit=crop&crop=face'}
                       alt={vet.name}
                       className="h-10 w-10 rounded-full object-cover border border-border"
                     />

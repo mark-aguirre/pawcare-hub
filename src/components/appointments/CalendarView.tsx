@@ -6,6 +6,7 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { cn } from '@/lib/utils';
 import { Appointment } from '@/types';
+import { AppointmentDetailsModal } from './AppointmentDetailsModal';
 
 interface CalendarViewProps {
   appointments: Appointment[];
@@ -15,7 +16,8 @@ interface CalendarViewProps {
 
 export function CalendarView({ appointments, selectedStatus, onNewAppointment }: CalendarViewProps) {
   const [currentDate, setCurrentDate] = useState(new Date());
-
+  const [selectedAppointment, setSelectedAppointment] = useState<Appointment | null>(null);
+  const [showDetailsModal, setShowDetailsModal] = useState(false);
   const today = new Date();
   const year = currentDate.getFullYear();
   const month = currentDate.getMonth();
@@ -43,8 +45,9 @@ export function CalendarView({ appointments, selectedStatus, onNewAppointment }:
 
   // Group appointments by date
   const appointmentsByDate = monthAppointments.reduce((acc, apt) => {
-    if (selectedStatus === 'all' || apt.status === selectedStatus) {
-      const dateKey = apt.date.getDate();
+    if (selectedStatus === 'all' || apt.status.toLowerCase() === selectedStatus.replace('-', '_')) {
+      const aptDate = new Date(apt.date);
+      const dateKey = aptDate.getDate();
       if (!acc[dateKey]) {
         acc[dateKey] = [];
       }
@@ -102,11 +105,11 @@ export function CalendarView({ appointments, selectedStatus, onNewAppointment }:
 
   const getStatusColor = (status: string) => {
     switch (status) {
-      case 'scheduled': return 'bg-blue-500 text-white';
-      case 'checked-in': return 'bg-yellow-500 text-white';
-      case 'in-progress': return 'bg-orange-500 text-white';
-      case 'completed': return 'bg-green-500 text-white';
-      case 'cancelled': return 'bg-red-500 text-white';
+      case 'SCHEDULED': return 'bg-blue-500 text-white';
+      case 'CHECKED_IN': return 'bg-yellow-500 text-white';
+      case 'IN_PROGRESS': return 'bg-orange-500 text-white';
+      case 'COMPLETED': return 'bg-green-500 text-white';
+      case 'CANCELLED': return 'bg-red-500 text-white';
       default: return 'bg-gray-500 text-white';
     }
   };
@@ -177,6 +180,10 @@ export function CalendarView({ appointments, selectedStatus, onNewAppointment }:
                     getStatusColor(appointment.status)
                   )}
                   title={`${appointment.time} - ${appointment.petName} (${appointment.ownerName})`}
+                  onClick={() => {
+                    setSelectedAppointment(appointment);
+                    setShowDetailsModal(true);
+                  }}
                 >
                   <div className="font-medium truncate">
                     {appointment.time} {appointment.petName}
@@ -208,6 +215,12 @@ export function CalendarView({ appointments, selectedStatus, onNewAppointment }:
           </div>
         ))}
       </div>
+      
+      <AppointmentDetailsModal
+        appointment={selectedAppointment}
+        open={showDetailsModal}
+        onOpenChange={setShowDetailsModal}
+      />
     </div>
   );
 }

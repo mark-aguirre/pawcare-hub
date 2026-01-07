@@ -6,22 +6,23 @@ import { OwnerCard } from '@/components/owners/OwnerCard';
 import { OwnerDetailModal } from '@/components/owners/OwnerDetailModal';
 import { NewOwnerPanel } from '@/components/dashboard/panels/NewOwnerPanel';
 import { Input } from '@/components/ui/input';
-import { Search, Users } from 'lucide-react';
-import { useCachedOwners } from '@/hooks/use-cached-data';
+import { Search, Users, Loader2 } from 'lucide-react';
+import { useOwners } from '@/hooks/use-owners';
 import { Owner } from '@/types';
 
 export default function Owners() {
-  const owners = useCachedOwners();
+  const { data: owners = [], isLoading, error } = useOwners();
   const [search, setSearch] = useState('');
   const [selectedOwner, setSelectedOwner] = useState<Owner | null>(null);
   const [showOwnerDetail, setShowOwnerDetail] = useState(false);
   const [showNewOwnerModal, setShowNewOwnerModal] = useState(false);
 
   const filteredOwners = owners.filter((owner) => {
+    const fullName = `${owner.firstName} ${owner.lastName}`;
     return (
-      owner.name.toLowerCase().includes(search.toLowerCase()) ||
+      fullName.toLowerCase().includes(search.toLowerCase()) ||
       owner.email.toLowerCase().includes(search.toLowerCase()) ||
-      owner.phone.includes(search)
+      (owner.phone && owner.phone.includes(search))
     );
   });
 
@@ -29,6 +30,26 @@ export default function Owners() {
     setSelectedOwner(owner);
     setShowOwnerDetail(true);
   };
+
+  if (isLoading) {
+    return (
+      <MainLayout title="Pet Owners" subtitle="Loading owners...">
+        <div className="flex items-center justify-center py-16">
+          <Loader2 className="h-8 w-8 animate-spin" />
+        </div>
+      </MainLayout>
+    );
+  }
+
+  if (error) {
+    return (
+      <MainLayout title="Pet Owners" subtitle="Error loading owners">
+        <div className="text-center py-16 text-destructive">
+          <p>Failed to load owners. Please try again later.</p>
+        </div>
+      </MainLayout>
+    );
+  }
 
   return (
     <>

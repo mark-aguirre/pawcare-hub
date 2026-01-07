@@ -1,5 +1,6 @@
 'use client';
 
+import { useState } from 'react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -17,7 +18,8 @@ import {
   User
 } from 'lucide-react';
 import { Owner } from '@/types';
-import { mockPets, mockAppointments, mockInvoices } from '@/data/mockData';
+import { usePets } from '@/hooks/use-pets';
+import { EditOwnerModal } from './EditOwnerModal';
 
 interface OwnerDetailModalProps {
   owner: Owner | null;
@@ -35,12 +37,17 @@ const speciesEmoji = {
 };
 
 export function OwnerDetailModal({ owner, open, onOpenChange }: OwnerDetailModalProps) {
+  const [showEditModal, setShowEditModal] = useState(false);
+  const { data: allPets = [] } = usePets();
+  
   if (!owner) return null;
 
-  const ownerPets = mockPets.filter(p => p.ownerId === owner.id);
-  const ownerAppointments = mockAppointments.filter(a => a.ownerId === owner.id);
-  const ownerInvoices = mockInvoices.filter(i => i.ownerId === owner.id);
-  const initials = owner.name.split(' ').map((n) => n[0]).join('');
+  const ownerPets = allPets.filter(pet => pet.owner?.id === owner.id);
+  const ownerAppointments: any[] = []; // TODO: Fetch from appointments API
+  const ownerInvoices: any[] = []; // TODO: Fetch from invoices API
+  const fullName = `${owner.firstName} ${owner.lastName}`;
+  const initials = `${owner.firstName[0]}${owner.lastName[0]}`;
+  const createdDate = new Date(owner.createdAt);
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -52,11 +59,11 @@ export function OwnerDetailModal({ owner, open, onOpenChange }: OwnerDetailModal
                 <AvatarFallback className="text-lg font-bold text-primary-foreground bg-transparent">{initials}</AvatarFallback>
               </Avatar>
               <div>
-                <h2 className="text-2xl font-bold">{owner.name}</h2>
-                <p className="text-muted-foreground">Customer since {owner.createdAt.toLocaleDateString()}</p>
+                <h2 className="text-2xl font-bold">{fullName}</h2>
+                <p className="text-muted-foreground">Customer since {createdDate.toLocaleDateString()}</p>
               </div>
             </div>
-            <Button variant="outline" size="sm">
+            <Button variant="outline" size="sm" onClick={() => setShowEditModal(true)}>
               <Edit className="h-4 w-4 mr-2" />
               Edit
             </Button>
@@ -81,14 +88,18 @@ export function OwnerDetailModal({ owner, open, onOpenChange }: OwnerDetailModal
                   <Mail className="h-4 w-4 text-muted-foreground" />
                   <span className="text-sm">{owner.email}</span>
                 </div>
-                <div className="flex items-center gap-3">
-                  <Phone className="h-4 w-4 text-muted-foreground" />
-                  <span className="text-sm">{owner.phone}</span>
-                </div>
-                <div className="flex items-start gap-3">
-                  <MapPin className="h-4 w-4 text-muted-foreground mt-0.5" />
-                  <span className="text-sm">{owner.address}</span>
-                </div>
+                {owner.phone && (
+                  <div className="flex items-center gap-3">
+                    <Phone className="h-4 w-4 text-muted-foreground" />
+                    <span className="text-sm">{owner.phone}</span>
+                  </div>
+                )}
+                {owner.address && (
+                  <div className="flex items-start gap-3">
+                    <MapPin className="h-4 w-4 text-muted-foreground mt-0.5" />
+                    <span className="text-sm">{owner.address}</span>
+                  </div>
+                )}
               </CardContent>
             </Card>
 
@@ -113,7 +124,7 @@ export function OwnerDetailModal({ owner, open, onOpenChange }: OwnerDetailModal
                       <Calendar className="h-5 w-5 text-accent" />
                     </div>
                     <div>
-                      <p className="text-2xl font-bold">{ownerAppointments.length}</p>
+                      <p className="text-2xl font-bold">0</p>
                       <p className="text-sm text-muted-foreground">Appointments</p>
                     </div>
                   </div>
@@ -126,7 +137,7 @@ export function OwnerDetailModal({ owner, open, onOpenChange }: OwnerDetailModal
                       <DollarSign className="h-5 w-5 text-success" />
                     </div>
                     <div>
-                      <p className="text-2xl font-bold">${ownerInvoices.reduce((sum, inv) => sum + inv.total, 0).toFixed(0)}</p>
+                      <p className="text-2xl font-bold">$0</p>
                       <p className="text-sm text-muted-foreground">Total Spent</p>
                     </div>
                   </div>
@@ -143,15 +154,18 @@ export function OwnerDetailModal({ owner, open, onOpenChange }: OwnerDetailModal
                     <CardContent className="pt-4">
                       <div className="flex items-center gap-3">
                         <Avatar className="h-12 w-12">
-                          <AvatarImage src={pet.photoUrl} alt={pet.name} />
-                          <AvatarFallback className="text-lg">{speciesEmoji[pet.species]}</AvatarFallback>
+                          <AvatarFallback className="text-lg">{speciesEmoji[pet.species.toLowerCase() as keyof typeof speciesEmoji] || '🐾'}</AvatarFallback>
                         </Avatar>
                         <div>
                           <h4 className="font-semibold">{pet.name}</h4>
-                          <p className="text-sm text-muted-foreground">{pet.breed}</p>
+                          <p className="text-sm text-muted-foreground">{pet.breed || 'Mixed breed'}</p>
                           <div className="flex gap-2 mt-1">
                             <Badge variant="secondary" className="text-xs">{pet.species}</Badge>
-                            <Badge variant="secondary" className="text-xs">{pet.age}y</Badge>
+                            {pet.dateOfBirth && (
+                              <Badge variant="secondary" className="text-xs">
+                                {new Date().getFullYear() - new Date(pet.dateOfBirth).getFullYear()}y
+                              </Badge>
+                            )}
                           </div>
                         </div>
                       </div>
@@ -238,6 +252,12 @@ export function OwnerDetailModal({ owner, open, onOpenChange }: OwnerDetailModal
             </div>
           </TabsContent>
         </Tabs>
+        
+        <EditOwnerModal 
+          owner={owner}
+          open={showEditModal}
+          onOpenChange={setShowEditModal}
+        />
       </DialogContent>
     </Dialog>
   );

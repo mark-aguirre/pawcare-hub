@@ -1,54 +1,62 @@
 export interface Owner {
-  id: string;
-  name: string;
+  id: number;
+  firstName: string;
+  lastName: string;
   email: string;
-  phone: string;
-  address: string;
-  createdAt: Date;
-  pets: Pet[];
+  phone?: string;
+  address?: string;
+  city?: string;
+  state?: string;
+  zipCode?: string;
+  pets?: Pet[];
+  createdAt: string;
+  updatedAt: string;
 }
 
 export interface Pet {
-  id: string;
+  id: number;
   name: string;
-  species: 'dog' | 'cat' | 'bird' | 'rabbit' | 'hamster' | 'other';
-  breed: string;
-  age: number;
-  gender: 'male' | 'female';
-  weight: number;
-  color: string;
-  allergies: string[];
-  conditions: string[];
-  photoUrl?: string;
-  ownerId: string;
-  ownerName: string;
-  createdAt: Date;
+  species: string;
+  breed?: string;
+  color?: string;
+  dateOfBirth?: string;
+  gender?: string;
+  weight?: number;
+  microchipId?: string;
+  owner?: Owner;
+  createdAt: string;
+  updatedAt: string;
 }
 
 export interface Appointment {
-  id: string;
-  petId: string;
-  petName: string;
-  petSpecies: Pet['species'];
-  ownerId: string;
-  ownerName: string;
-  veterinarianId: string;
-  veterinarianName: string;
-  date: Date;
+  id: number;
+  date: string;
   time: string;
-  duration: number;
-  type: 'checkup' | 'vaccination' | 'surgery' | 'grooming' | 'emergency' | 'follow-up';
-  status: 'scheduled' | 'checked-in' | 'in-progress' | 'completed' | 'cancelled';
+  duration?: number;
+  type: 'CHECKUP' | 'VACCINATION' | 'SURGERY' | 'GROOMING' | 'EMERGENCY' | 'FOLLOW_UP';
+  status: 'SCHEDULED' | 'CHECKED_IN' | 'IN_PROGRESS' | 'COMPLETED' | 'CANCELLED';
   notes?: string;
+  petId?: number;
+  petName?: string;
+  petSpecies?: string;
+  ownerId?: number;
+  ownerName?: string;
+  veterinarianId?: number;
+  veterinarianName?: string;
+  createdAt: string;
+  updatedAt: string;
 }
 
 export interface Veterinarian {
-  id: string;
-  name: string;
-  specialization: string;
+  id: number;
+  firstName: string;
+  lastName: string;
+  specialization?: string;
   email: string;
-  phone: string;
-  photoUrl?: string;
+  phone?: string;
+  licenseNumber?: string;
+  createdAt: string;
+  updatedAt: string;
 }
 
 export interface Invoice {

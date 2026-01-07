@@ -6,13 +6,13 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Textarea } from '@/components/ui/textarea';
 import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from '@/components/ui/command';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
-import { PawPrint, Upload, Check, ChevronsUpDown } from 'lucide-react';
+import { PawPrint, Check, ChevronsUpDown, Loader2 } from 'lucide-react';
 import { cn } from '@/lib/utils';
-import { mockOwners } from '@/data/mockData';
 import { useToast } from '@/components/ui/use-toast';
+import { useCreatePet } from '@/hooks/use-pets';
+import { useOwners } from '@/hooks/use-owners';
 
 interface NewPetPanelProps {
   open: boolean;
@@ -25,16 +25,16 @@ export function NewPetPanel({ open, onOpenChange }: NewPetPanelProps) {
     name: '',
     species: '',
     breed: '',
-    age: '',
+    dateOfBirth: '',
     gender: '',
     weight: '',
     color: '',
     ownerId: '',
-    allergies: '',
-    conditions: '',
-    photoUrl: '',
+    microchipId: '',
   });
   const { toast } = useToast();
+  const createPet = useCreatePet();
+  const { data: owners = [] } = useOwners();
 
   const species = [
     { value: 'dog', label: 'Dog 🐕' },
@@ -45,39 +45,48 @@ export function NewPetPanel({ open, onOpenChange }: NewPetPanelProps) {
     { value: 'other', label: 'Other 🐾' },
   ];
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
-    const petData = {
-      ...formData,
-      age: parseInt(formData.age),
-      weight: parseFloat(formData.weight),
-      allergies: formData.allergies.split(',').map(a => a.trim()).filter(Boolean),
-      conditions: formData.conditions.split(',').map(c => c.trim()).filter(Boolean),
-    };
+    try {
+      const petData = {
+        name: formData.name,
+        species: formData.species,
+        breed: formData.breed || null,
+        dateOfBirth: formData.dateOfBirth || null,
+        gender: formData.gender,
+        weight: formData.weight ? parseFloat(formData.weight) : null,
+        color: formData.color || null,
+        microchipId: formData.microchipId || null,
+        owner: { id: parseInt(formData.ownerId) }
+      };
 
-    console.log('New pet:', petData);
-    
-    toast({
-      title: "Pet Registered",
-      description: `${formData.name} has been successfully registered in the system.`,
-      variant: "default",
-    });
-    
-    setFormData({
-      name: '',
-      species: '',
-      breed: '',
-      age: '',
-      gender: '',
-      weight: '',
-      color: '',
-      ownerId: '',
-      allergies: '',
-      conditions: '',
-      photoUrl: '',
-    });
-    onOpenChange(false);
+      await createPet.mutateAsync(petData);
+      
+      toast({
+        title: "Pet Registered",
+        description: `${formData.name} has been successfully registered.`,
+      });
+      
+      setFormData({
+        name: '',
+        species: '',
+        breed: '',
+        dateOfBirth: '',
+        gender: '',
+        weight: '',
+        color: '',
+        ownerId: '',
+        microchipId: '',
+      });
+      onOpenChange(false);
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: "Failed to register pet. Please try again.",
+        variant: "destructive",
+      });
+    }
   };
 
   return (
@@ -126,7 +135,7 @@ export function NewPetPanel({ open, onOpenChange }: NewPetPanelProps) {
                       className="w-full justify-between"
                     >
                       {formData.ownerId
-                        ? mockOwners.find((owner) => owner.id === formData.ownerId)?.name
+                        ? owners.find((owner) => owner.id.toString() === formData.ownerId)?.firstName + ' ' + owners.find((owner) => owner.id.toString() === formData.ownerId)?.lastName
                         : "Select owner"}
                       <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
                     </Button>
@@ -137,23 +146,23 @@ export function NewPetPanel({ open, onOpenChange }: NewPetPanelProps) {
                       <CommandList>
                         <CommandEmpty>No owner found.</CommandEmpty>
                         <CommandGroup>
-                          {mockOwners.map((owner) => (
+                          {owners.map((owner) => (
                             <CommandItem
                               key={owner.id}
-                              value={`${owner.name} ${owner.email}`}
+                              value={`${owner.firstName} ${owner.lastName} ${owner.email}`}
                               onSelect={() => {
-                                setFormData(prev => ({ ...prev, ownerId: owner.id }));
+                                setFormData(prev => ({ ...prev, ownerId: owner.id.toString() }));
                                 setOpenOwnerSelect(false);
                               }}
                             >
                               <Check
                                 className={cn(
                                   "mr-2 h-4 w-4",
-                                  formData.ownerId === owner.id ? "opacity-100" : "opacity-0"
+                                  formData.ownerId === owner.id.toString() ? "opacity-100" : "opacity-0"
                                 )}
                               />
                               <div>
-                                <div className="font-medium">{owner.name}</div>
+                                <div className="font-medium">{owner.firstName} {owner.lastName}</div>
                                 <div className="text-xs text-muted-foreground">{owner.email}</div>
                               </div>
                             </CommandItem>
@@ -202,18 +211,14 @@ export function NewPetPanel({ open, onOpenChange }: NewPetPanelProps) {
             </h4>
             
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-              {/* Age */}
+              {/* Date of Birth */}
               <div className="space-y-2">
-                <Label htmlFor="age">Age (years) *</Label>
+                <Label htmlFor="dateOfBirth">Date of Birth</Label>
                 <Input
-                  id="age"
-                  type="number"
-                  min="0"
-                  max="30"
-                  placeholder="Age"
-                  value={formData.age}
-                  onChange={(e) => setFormData(prev => ({ ...prev, age: e.target.value }))}
-                  required
+                  id="dateOfBirth"
+                  type="date"
+                  value={formData.dateOfBirth}
+                  onChange={(e) => setFormData(prev => ({ ...prev, dateOfBirth: e.target.value }))}
                 />
               </div>
 
@@ -246,73 +251,44 @@ export function NewPetPanel({ open, onOpenChange }: NewPetPanelProps) {
               </div>
             </div>
 
-            {/* Color */}
-            <div className="space-y-2">
-              <Label htmlFor="color">Color/Markings</Label>
-              <Input
-                id="color"
-                placeholder="Describe pet's color and markings"
-                value={formData.color}
-                onChange={(e) => setFormData(prev => ({ ...prev, color: e.target.value }))}
-              />
+            {/* Color and Microchip */}
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label htmlFor="color">Color/Markings</Label>
+                <Input
+                  id="color"
+                  placeholder="Describe pet's color"
+                  value={formData.color}
+                  onChange={(e) => setFormData(prev => ({ ...prev, color: e.target.value }))}
+                />
+              </div>
+              
+              <div className="space-y-2">
+                <Label htmlFor="microchipId">Microchip ID</Label>
+                <Input
+                  id="microchipId"
+                  placeholder="Microchip number"
+                  value={formData.microchipId}
+                  onChange={(e) => setFormData(prev => ({ ...prev, microchipId: e.target.value }))}
+                />
+              </div>
             </div>
           </div>
 
-          <div className="space-y-4">
-            <h4 className="text-sm font-semibold text-foreground border-b border-border pb-2">
-              Medical Information
-            </h4>
-            
-            {/* Allergies */}
-            <div className="space-y-2">
-              <Label htmlFor="allergies">Known Allergies</Label>
-              <Input
-                id="allergies"
-                placeholder="Separate multiple allergies with commas"
-                value={formData.allergies}
-                onChange={(e) => setFormData(prev => ({ ...prev, allergies: e.target.value }))}
-              />
-            </div>
 
-            {/* Medical Conditions */}
-            <div className="space-y-2">
-              <Label htmlFor="conditions">Medical Conditions</Label>
-              <Textarea
-                id="conditions"
-                placeholder="List any existing medical conditions (separate with commas)"
-                value={formData.conditions}
-                onChange={(e) => setFormData(prev => ({ ...prev, conditions: e.target.value }))}
-                rows={3}
-              />
-            </div>
-          </div>
-
-          {/* Photo Upload */}
-          <div className="space-y-2">
-            <Label htmlFor="photo">Photo</Label>
-            <div className="flex gap-3">
-              <Input
-                id="photo"
-                placeholder="Photo URL (optional)"
-                value={formData.photoUrl}
-                onChange={(e) => setFormData(prev => ({ ...prev, photoUrl: e.target.value }))}
-                className="flex-1"
-              />
-              <Button type="button" variant="outline" size="sm">
-                <Upload className="h-4 w-4 mr-2" />
-                Upload
-              </Button>
-            </div>
-          </div>
 
           <div className="flex gap-3 pt-6 border-t border-border">
             <Button 
               type="submit" 
               className="bg-gradient-primary hover:shadow-glow flex-1"
-              disabled={!formData.name || !formData.species || !formData.age || !formData.gender || !formData.ownerId}
+              disabled={!formData.name || !formData.species || !formData.gender || !formData.ownerId || createPet.isPending}
             >
-              <PawPrint className="mr-2 h-4 w-4" />
-              Register Pet
+              {createPet.isPending ? (
+                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+              ) : (
+                <PawPrint className="mr-2 h-4 w-4" />
+              )}
+              {createPet.isPending ? 'Registering...' : 'Register Pet'}
             </Button>
             <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>
               Cancel

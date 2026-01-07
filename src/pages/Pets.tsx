@@ -7,14 +7,14 @@ import { PetDetailModal } from '@/components/pets/PetDetailModal';
 import { NewPetPanel } from '@/components/dashboard/panels/NewPetPanel';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
-import { Search, PawPrint } from 'lucide-react';
-import { useCachedPets } from '@/hooks/use-cached-data';
+import { Search, PawPrint, Loader2 } from 'lucide-react';
+import { usePets } from '@/hooks/use-pets';
 import { Pet } from '@/types';
 
 const speciesFilters = ['all', 'dog', 'cat', 'bird', 'rabbit', 'hamster', 'other'] as const;
 
 export default function Pets() {
-  const pets = useCachedPets();
+  const { data: pets = [], isLoading, error } = usePets();
   const [search, setSearch] = useState('');
   const [selectedSpecies, setSelectedSpecies] = useState<typeof speciesFilters[number]>('all');
   const [selectedPet, setSelectedPet] = useState<Pet | null>(null);
@@ -22,11 +22,12 @@ export default function Pets() {
   const [showNewPetModal, setShowNewPetModal] = useState(false);
 
   const filteredPets = pets.filter((pet) => {
+    const ownerName = pet.owner ? `${pet.owner.firstName} ${pet.owner.lastName}` : '';
     const matchesSearch =
       pet.name.toLowerCase().includes(search.toLowerCase()) ||
-      pet.breed.toLowerCase().includes(search.toLowerCase()) ||
-      pet.ownerName.toLowerCase().includes(search.toLowerCase());
-    const matchesSpecies = selectedSpecies === 'all' || pet.species === selectedSpecies;
+      (pet.breed && pet.breed.toLowerCase().includes(search.toLowerCase())) ||
+      ownerName.toLowerCase().includes(search.toLowerCase());
+    const matchesSpecies = selectedSpecies === 'all' || pet.species.toLowerCase() === selectedSpecies;
     return matchesSearch && matchesSpecies;
   });
 
@@ -34,6 +35,26 @@ export default function Pets() {
     setSelectedPet(pet);
     setShowPetDetail(true);
   };
+
+  if (isLoading) {
+    return (
+      <MainLayout title="Pets" subtitle="Loading pets...">
+        <div className="flex items-center justify-center py-16">
+          <Loader2 className="h-8 w-8 animate-spin" />
+        </div>
+      </MainLayout>
+    );
+  }
+
+  if (error) {
+    return (
+      <MainLayout title="Pets" subtitle="Error loading pets">
+        <div className="text-center py-16 text-destructive">
+          <p>Failed to load pets. Please try again later.</p>
+        </div>
+      </MainLayout>
+    );
+  }
 
   return (
     <>

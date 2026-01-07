@@ -13,7 +13,9 @@ import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, Command
 import { CalendarIcon, Clock, X, Check, ChevronsUpDown } from 'lucide-react';
 import { format } from 'date-fns';
 import { cn } from '@/lib/utils';
-import { mockPets, mockVeterinarians } from '@/data/mockData';
+import { usePets } from '@/hooks/use-pets';
+import { useVeterinarians } from '@/hooks/use-veterinarians';
+import { useCreateAppointment } from '@/hooks/use-appointments';
 import { useToast } from '@/components/ui/use-toast';
 
 interface NewAppointmentPanelProps {
@@ -22,6 +24,9 @@ interface NewAppointmentPanelProps {
 }
 
 export function NewAppointmentPanel({ open, onOpenChange }: NewAppointmentPanelProps) {
+  const { data: pets = [] } = usePets();
+  const { data: veterinarians = [] } = useVeterinarians();
+  const createAppointment = useCreateAppointment();
   const [date, setDate] = useState<Date>();
   const [openPetSelect, setOpenPetSelect] = useState(false);
   const [openVetSelect, setOpenVetSelect] = useState(false);
@@ -50,26 +55,44 @@ export function NewAppointmentPanel({ open, onOpenChange }: NewAppointmentPanelP
     '15:00', '15:30', '16:00', '16:30', '17:00', '17:30',
   ];
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    console.log('New appointment:', { ...formData, date });
     
-    toast({
-      title: "Appointment Scheduled",
-      description: `Appointment for ${mockPets.find(p => p.id === formData.petId)?.name} has been scheduled successfully.`,
-      variant: "default",
-    });
-    
-    setFormData({
-      petId: '',
-      veterinarianId: '',
-      time: '',
-      duration: '30',
-      type: '',
-      notes: '',
-    });
-    setDate(undefined);
-    onOpenChange(false);
+    try {
+      await createAppointment.mutateAsync({
+        petId: parseInt(formData.petId),
+        veterinarianId: parseInt(formData.veterinarianId),
+        date: date!.toISOString().split('T')[0],
+        time: formData.time,
+        duration: parseInt(formData.duration),
+        type: formData.type.toUpperCase() as any,
+        status: 'SCHEDULED' as any,
+        notes: formData.notes,
+      });
+      
+      toast({
+        title: "Appointment Scheduled",
+        description: `Appointment for ${pets.find(p => p.id.toString() === formData.petId)?.name} has been scheduled successfully.`,
+        variant: "default",
+      });
+      
+      setFormData({
+        petId: '',
+        veterinarianId: '',
+        time: '',
+        duration: '30',
+        type: '',
+        notes: '',
+      });
+      setDate(undefined);
+      onOpenChange(false);
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: "Failed to schedule appointment. Please try again.",
+        variant: "destructive",
+      });
+    }
   };
 
   return (
@@ -108,7 +131,7 @@ export function NewAppointmentPanel({ open, onOpenChange }: NewAppointmentPanelP
                       className="w-full justify-between"
                     >
                       {formData.petId
-                        ? mockPets.find((pet) => pet.id === formData.petId)?.name + " (" + mockPets.find((pet) => pet.id === formData.petId)?.species + ") - " + mockPets.find((pet) => pet.id === formData.petId)?.ownerName
+                        ? pets.find((pet) => pet.id.toString() === formData.petId)?.name + " (" + pets.find((pet) => pet.id.toString() === formData.petId)?.species + ") - " + pets.find((pet) => pet.id.toString() === formData.petId)?.ownerName
                         : "Select a pet"}
                       <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
                     </Button>
@@ -119,23 +142,23 @@ export function NewAppointmentPanel({ open, onOpenChange }: NewAppointmentPanelP
                       <CommandList>
                         <CommandEmpty>No pet found.</CommandEmpty>
                         <CommandGroup>
-                          {mockPets.map((pet) => (
+                          {pets.map((pet) => (
                             <CommandItem
                               key={pet.id}
                               value={`${pet.name} ${pet.species} ${pet.ownerName}`}
                               onSelect={() => {
-                                setFormData(prev => ({ ...prev, petId: pet.id }));
+                                setFormData(prev => ({ ...prev, petId: pet.id.toString() }));
                                 setOpenPetSelect(false);
                               }}
                             >
                               <Check
                                 className={cn(
                                   "mr-2 h-4 w-4",
-                                  formData.petId === pet.id ? "opacity-100" : "opacity-0"
+                                  formData.petId === pet.id.toString() ? "opacity-100" : "opacity-0"
                                 )}
                               />
                               <div className="flex items-center gap-2">
-                                <span className="text-lg">{pet.species === 'dog' ? '🐕' : pet.species === 'cat' ? '🐱' : '🐾'}</span>
+                                <span className="text-lg">{pet.species === 'Dog' ? '🐕' : pet.species === 'Cat' ? '🐱' : '🐾'}</span>
                                 <span>{pet.name} ({pet.species}) - {pet.ownerName}</span>
                               </div>
                             </CommandItem>
@@ -159,7 +182,7 @@ export function NewAppointmentPanel({ open, onOpenChange }: NewAppointmentPanelP
                       className="w-full justify-between"
                     >
                       {formData.veterinarianId
-                        ? mockVeterinarians.find((vet) => vet.id === formData.veterinarianId)?.name + " - " + mockVeterinarians.find((vet) => vet.id === formData.veterinarianId)?.specialization
+                        ? veterinarians.find((vet) => vet.id.toString() === formData.veterinarianId)?.name + " - " + veterinarians.find((vet) => vet.id.toString() === formData.veterinarianId)?.specialization
                         : "Select veterinarian"}
                       <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
                     </Button>
@@ -170,19 +193,19 @@ export function NewAppointmentPanel({ open, onOpenChange }: NewAppointmentPanelP
                       <CommandList>
                         <CommandEmpty>No veterinarian found.</CommandEmpty>
                         <CommandGroup>
-                          {mockVeterinarians.map((vet) => (
+                          {veterinarians.map((vet) => (
                             <CommandItem
                               key={vet.id}
                               value={`${vet.name} ${vet.specialization}`}
                               onSelect={() => {
-                                setFormData(prev => ({ ...prev, veterinarianId: vet.id }));
+                                setFormData(prev => ({ ...prev, veterinarianId: vet.id.toString() }));
                                 setOpenVetSelect(false);
                               }}
                             >
                               <Check
                                 className={cn(
                                   "mr-2 h-4 w-4",
-                                  formData.veterinarianId === vet.id ? "opacity-100" : "opacity-0"
+                                  formData.veterinarianId === vet.id.toString() ? "opacity-100" : "opacity-0"
                                 )}
                               />
                               <div>
@@ -308,10 +331,10 @@ export function NewAppointmentPanel({ open, onOpenChange }: NewAppointmentPanelP
             <Button 
               type="submit" 
               className="bg-gradient-primary hover:shadow-glow flex-1"
-              disabled={!formData.petId || !formData.veterinarianId || !date || !formData.time || !formData.type}
+              disabled={!formData.petId || !formData.veterinarianId || !date || !formData.time || !formData.type || createAppointment.isPending}
             >
               <CalendarIcon className="mr-2 h-4 w-4" />
-              Schedule Appointment
+              {createAppointment.isPending ? 'Scheduling...' : 'Schedule Appointment'}
             </Button>
             <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>
               Cancel
