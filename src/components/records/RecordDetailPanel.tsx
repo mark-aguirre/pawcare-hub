@@ -205,27 +205,47 @@ export function RecordDetailPanel({ record, open, onOpenChange, onEdit, onRecord
           )}
 
           {/* Attachments */}
-          {record.attachments && record.attachments.length > 0 && (
+          {record.attachments && (
             <>
               <Separator />
               <div className="space-y-3">
                 <h3 className="text-lg font-semibold">Attachments</h3>
                 <div className="grid grid-cols-1 gap-3">
-                  {record.attachments.map((attachment, index) => (
-                    <div
-                      key={index}
-                      className="flex items-center gap-3 p-3 border border-border rounded-lg hover:bg-secondary/50 transition-colors cursor-pointer"
-                    >
-                      <FileText className="h-8 w-8 text-primary" />
-                      <div className="flex-1 min-w-0">
-                        <p className="text-sm font-medium truncate">{attachment}</p>
-                        <p className="text-xs text-muted-foreground">PDF Document</p>
-                      </div>
-                      <Button size="sm" variant="ghost">
-                        <Download className="h-4 w-4" />
-                      </Button>
-                    </div>
-                  ))}
+                  {(() => {
+                    try {
+                      const attachments = typeof record.attachments === 'string' 
+                        ? JSON.parse(record.attachments) 
+                        : record.attachments;
+                      return Array.isArray(attachments) ? attachments.map((attachment, index) => (
+                        <div
+                          key={index}
+                          className="flex items-center gap-3 p-3 border border-border rounded-lg hover:bg-secondary/50 transition-colors cursor-pointer"
+                          onClick={() => window.open(attachment, '_blank')}
+                        >
+                          <FileText className="h-8 w-8 text-primary" />
+                          <div className="flex-1 min-w-0">
+                            <p className="text-sm font-medium truncate">{attachment.split('/').pop()?.replace(/^\d+-/, '') || 'file'}</p>
+                            <p className="text-xs text-muted-foreground">File</p>
+                          </div>
+                          <Button 
+                            size="sm" 
+                            variant="ghost"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              const link = document.createElement('a');
+                              link.href = attachment;
+                              link.download = attachment.split('/').pop() || 'file';
+                              link.click();
+                            }}
+                          >
+                            <Download className="h-4 w-4" />
+                          </Button>
+                        </div>
+                      )) : null;
+                    } catch (e) {
+                      return null;
+                    }
+                  })()}
                 </div>
               </div>
             </>

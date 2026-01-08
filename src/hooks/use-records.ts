@@ -60,6 +60,7 @@ export function useRecords(options: UseRecordsOptions = {}): UseRecordsReturn {
 
   const createRecord = async (record: Partial<MedicalRecord>): Promise<MedicalRecord> => {
     try {
+      console.log('Creating record with data:', record);
       const BACKEND_URL = process.env.NEXT_PUBLIC_BACKEND_URL || 'http://localhost:8082';
       const response = await fetch(`${BACKEND_URL}/api/medical-records`, {
         method: 'POST',
@@ -76,6 +77,7 @@ export function useRecords(options: UseRecordsOptions = {}): UseRecordsReturn {
       }
 
       const data = await response.json();
+      console.log('Backend response:', data);
       
       const newRecord = {
         ...data,
@@ -92,7 +94,8 @@ export function useRecords(options: UseRecordsOptions = {}): UseRecordsReturn {
 
   const updateRecord = async (id: string, record: Partial<MedicalRecord>): Promise<MedicalRecord> => {
     try {
-      const response = await fetch(`/api/records/${id}`, {
+      const BACKEND_URL = process.env.NEXT_PUBLIC_BACKEND_URL || 'http://localhost:8082';
+      const response = await fetch(`${BACKEND_URL}/api/medical-records/${id}`, {
         method: 'PUT',
         headers: {
           'Content-Type': 'application/json',
@@ -107,15 +110,11 @@ export function useRecords(options: UseRecordsOptions = {}): UseRecordsReturn {
       }
 
       const data = await response.json();
-
-      if (!data.success) {
-        throw new Error(data.error || 'Failed to update record');
-      }
-
+      
       const updatedRecord = {
-        ...data.data,
-        date: new Date(data.data.date),
-        createdAt: new Date(data.data.createdAt),
+        ...data,
+        date: new Date(data.date),
+        createdAt: new Date(data.createdAt),
       };
 
       setRecords(prev => prev.map(r => r.id === id ? updatedRecord : r));

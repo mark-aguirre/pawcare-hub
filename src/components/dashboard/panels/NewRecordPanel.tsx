@@ -39,6 +39,7 @@ export function NewRecordPanel({ open, onOpenChange, onRecordCreated, editRecord
     notes: '',
     attachments: '',
   });
+  const [uploadedFiles, setUploadedFiles] = useState<{originalName: string, filename: string, path: string, size: number}[]>([]);
   const { data: petsData, isLoading: petsLoading } = usePets();
   const { data: vetsData, isLoading: vetsLoading } = useVeterinarians();
   const pets = petsData || [];
@@ -56,6 +57,41 @@ export function NewRecordPanel({ open, onOpenChange, onRecordCreated, editRecord
     { value: 'follow-up', label: 'Follow-up', color: 'bg-secondary/10 text-secondary-foreground' },
   ];
 
+  const handleFileUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
+    const files = Array.from(event.target.files || []);
+    if (files.length === 0) return;
+
+    const formData = new FormData();
+    files.forEach(file => formData.append('files', file));
+
+    try {
+      const response = await fetch('/api/upload', {
+        method: 'POST',
+        body: formData
+      });
+      
+      const result = await response.json();
+      if (result.success) {
+        setUploadedFiles(prev => [...prev, ...result.files]);
+        toast({
+          title: "Files Uploaded",
+          description: `${files.length} file(s) uploaded successfully.`,
+          variant: "default",
+        });
+      }
+    } catch (error) {
+      toast({
+        title: "Upload Error",
+        description: "Failed to upload files.",
+        variant: "destructive",
+      });
+    }
+  };
+
+  const removeFile = (index: number) => {
+    setUploadedFiles(prev => prev.filter((_, i) => i !== index));
+  };
+
   // Initialize form with edit data if provided
   useEffect(() => {
     if (editRecord) {
@@ -70,8 +106,39 @@ export function NewRecordPanel({ open, onOpenChange, onRecordCreated, editRecord
         title: editRecord.title,
         description: editRecord.description,
         notes: editRecord.notes || '',
-        attachments: editRecord.attachments?.join(', ') || '',
+        attachments: (() => {
+          try {
+            if (typeof editRecord.attachments === 'string') {
+              const parsed = JSON.parse(editRecord.attachments);
+              return Array.isArray(parsed) ? parsed.join(', ') : '';
+            }
+            return Array.isArray(editRecord.attachments) ? editRecord.attachments.join(', ') : '';
+          } catch (e) {
+            return '';
+          }
+        })(),
       });
+      
+      // Set existing attachments as uploaded files for display
+      try {
+        if (editRecord.attachments) {
+          const attachments = typeof editRecord.attachments === 'string' 
+            ? JSON.parse(editRecord.attachments) 
+            : editRecord.attachments;
+          if (Array.isArray(attachments)) {
+            const existingFiles = attachments.map((path, index) => ({
+              originalName: path.split('/').pop()?.replace(/^\d+-/, '') || `file-${index}`,
+              filename: path.split('/').pop() || `file-${index}`,
+              path: path,
+              size: 0
+            }));
+            setUploadedFiles(existingFiles);
+          }
+        }
+      } catch (e) {
+        console.error('Error parsing existing attachments:', e);
+      }
+      
       setDate(new Date(editRecord.date));
     } else {
       setFormData({
@@ -83,6 +150,7 @@ export function NewRecordPanel({ open, onOpenChange, onRecordCreated, editRecord
         notes: '',
         attachments: '',
       });
+      setUploadedFiles([]);
       setDate(new Date());
     }
   }, [editRecord, open]);
@@ -103,8 +171,10 @@ export function NewRecordPanel({ open, onOpenChange, onRecordCreated, editRecord
           title: formData.title,
           description: formData.description,
           notes: formData.notes || null,
+          attachments: uploadedFiles.length > 0 ? JSON.stringify(uploadedFiles.map(f => f.path)) : editRecord.attachments,
         };
 
+        console.log('Updating record with data:', updateData);
         await updateRecord(editRecord.id, updateData);
         
         toast({
@@ -139,9 +209,10 @@ export function NewRecordPanel({ open, onOpenChange, onRecordCreated, editRecord
           description: formData.description,
           notes: formData.notes || null,
           status: 'PENDING',
-          attachments: formData.attachments ? formData.attachments.split(',').map(a => a.trim()).filter(Boolean) : null,
+          attachments: uploadedFiles.length > 0 ? JSON.stringify(uploadedFiles.map(f => f.path)) : null,
         };
 
+        console.log('Sending record data:', recordData);
         await createRecord(recordData);
         
         toast({
@@ -161,6 +232,7 @@ export function NewRecordPanel({ open, onOpenChange, onRecordCreated, editRecord
         notes: '',
         attachments: '',
       });
+      setUploadedFiles([]);
       setDate(new Date());
       onOpenChange(false);
       onRecordCreated?.();
@@ -426,22 +498,47 @@ export function NewRecordPanel({ open, onOpenChange, onRecordCreated, editRecord
             </h4>
             
             <div className="space-y-3">
-              <Input
-                id="attachments"
-                placeholder="File URLs or names (separate multiple with commas)"
-                value={formData.attachments}
-                onChange={(e) => setFormData(prev => ({ ...prev, attachments: e.target.value }))}
-              />
               <div className="flex gap-2">
-                <Button type="button" variant="outline" size="sm" className="flex-1">
+                <input
+                  type="file"
+                  multiple
+                  accept=".pdf,.jpg,.jpeg,.png,.doc,.docx"
+                  onChange={handleFileUpload}
+                  className="hidden"
+                  id="file-upload"
+                />
+                <Button 
+                  type="button" 
+                  variant="outline" 
+                  size="sm" 
+                  className="w-full"
+                  onClick={() => document.getElementById('file-upload')?.click()}
+                >
                   <Upload className="h-4 w-4 mr-2" />
                   Upload Files
                 </Button>
-                <Button type="button" variant="outline" size="sm" className="flex-1">
-                  <Paperclip className="h-4 w-4 mr-2" />
-                  Attach Images
-                </Button>
               </div>
+              
+              {uploadedFiles.length > 0 && (
+                <div className="space-y-2">
+                  <Label>Uploaded Files:</Label>
+                  <div className="space-y-1">
+                    {uploadedFiles.map((file, index) => (
+                      <div key={index} className="flex items-center justify-between p-2 bg-secondary/50 rounded">
+                        <span className="text-sm truncate">{file.originalName}</span>
+                        <Button
+                          type="button"
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => removeFile(index)}
+                        >
+                          ×
+                        </Button>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
             </div>
           </div>
 

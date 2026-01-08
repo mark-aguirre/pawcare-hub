@@ -39,6 +39,7 @@ public class MedicalRecord {
     @Column(columnDefinition = "TEXT")
     private String notes;
     
+    @Column(columnDefinition = "TEXT")
     private String attachments; // JSON array of file paths
 
     @Enumerated(EnumType.STRING)
