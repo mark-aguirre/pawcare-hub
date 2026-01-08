@@ -1,11 +1,15 @@
 import { useState, useEffect } from 'react';
 import { apiClient } from '@/lib/api';
+import { useRecords } from '@/hooks/use-records';
 
 export default function ApiTest() {
   const [healthStatus, setHealthStatus] = useState<any>(null);
   const [appointments, setAppointments] = useState<any[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  
+  // Test records API
+  const { records, loading: recordsLoading, error: recordsError, createRecord } = useRecords();
 
   const testHealthCheck = async () => {
     setLoading(true);
@@ -17,6 +21,31 @@ export default function ApiTest() {
       setError('Failed to connect to backend: ' + (err as Error).message);
     } finally {
       setLoading(false);
+    }
+  };
+
+  const testCreateRecord = async () => {
+    try {
+      const newRecord = {
+        petId: 'pet-1',
+        petName: 'Max',
+        petSpecies: 'dog',
+        ownerId: 'owner-1',
+        ownerName: 'John Smith',
+        veterinarianId: 'vet-1',
+        veterinarianName: 'Dr. Sarah Chen',
+        date: new Date(),
+        type: 'checkup' as const,
+        title: 'Test Record from API',
+        description: 'This is a test record created via the API',
+        notes: 'Test notes',
+        status: 'pending' as const,
+      };
+      
+      await createRecord(newRecord);
+      alert('Record created successfully!');
+    } catch (err) {
+      alert('Failed to create record: ' + (err as Error).message);
     }
   };
 
@@ -56,6 +85,41 @@ export default function ApiTest() {
           {healthStatus && (
             <div className="mt-4 p-3 bg-green-50 border border-green-200 rounded">
               <pre className="text-sm">{JSON.stringify(healthStatus, null, 2)}</pre>
+            </div>
+          )}
+        </div>
+
+        {/* Records API Test */}
+        <div className="border rounded-lg p-4">
+          <h2 className="text-lg font-semibold mb-2">Medical Records API</h2>
+          <div className="space-x-2 mb-4">
+            <button 
+              onClick={testCreateRecord}
+              disabled={recordsLoading}
+              className="bg-purple-500 text-white px-4 py-2 rounded hover:bg-purple-600 disabled:opacity-50"
+            >
+              {recordsLoading ? 'Creating...' : 'Create Test Record'}
+            </button>
+          </div>
+          
+          {recordsError && (
+            <div className="mb-4 p-3 bg-red-50 border border-red-200 rounded">
+              <p className="text-red-700">Records Error: {recordsError}</p>
+            </div>
+          )}
+          
+          {records.length > 0 && (
+            <div className="mt-4 p-3 bg-purple-50 border border-purple-200 rounded">
+              <h3 className="font-medium mb-2">Medical Records ({records.length})</h3>
+              <div className="space-y-2 max-h-64 overflow-auto">
+                {records.map((record) => (
+                  <div key={record.id} className="p-2 bg-white border rounded text-sm">
+                    <div className="font-medium">{record.title}</div>
+                    <div className="text-gray-600">{record.petName} • {record.type} • {record.status}</div>
+                    <div className="text-xs text-gray-500">{new Date(record.date).toLocaleDateString()}</div>
+                  </div>
+                ))}
+              </div>
             </div>
           )}
         </div>

@@ -48,68 +48,62 @@ export function RecordCard({ record, delay = 0, onClick }: RecordCardProps) {
   return (
     <Card
       className={cn(
-        'group cursor-pointer transition-all duration-300 hover:shadow-card-hover hover:scale-[1.02] animate-slide-up',
-        onClick && 'hover:border-primary/40'
+        'group cursor-pointer transition-all duration-200 hover:shadow-sm hover:border-primary/40 animate-slide-up',
+        onClick && 'hover:bg-accent/5'
       )}
       style={{ animationDelay: `${delay}ms` }}
       onClick={onClick}
     >
-      <CardContent className="p-6">
-        <div className="flex items-start justify-between mb-4">
-          <div className="flex items-center gap-3">
-            <div className="flex items-center justify-center w-10 h-10 rounded-full bg-primary/10 text-primary">
-              <span className="text-lg">{speciesEmoji[record.petSpecies]}</span>
-            </div>
-            <div>
-              <h3 className="font-semibold text-foreground group-hover:text-primary transition-colors">
-                {record.title}
-              </h3>
-              <p className="text-sm text-muted-foreground">
-                {record.petName} • {record.ownerName}
-              </p>
-            </div>
-          </div>
-          <div className="flex items-center gap-2">
-            <Badge className={cn('text-xs', statusStyles[record.status])}>
-              {record.status}
-            </Badge>
-            {onClick && (
-              <ChevronRight className="h-4 w-4 text-muted-foreground group-hover:text-primary transition-colors" />
-            )}
-          </div>
-        </div>
-
-        <div className="space-y-3">
-          <p className="text-sm text-muted-foreground line-clamp-2">
-            {record.description}
-          </p>
-
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-4 text-xs text-muted-foreground">
-              <div className="flex items-center gap-1">
-                <Badge className={cn('text-xs', typeStyles[record.type])}>
-                  {record.type.replace('-', ' ')}
+      <CardContent className="p-3">
+        <div className="flex items-center justify-between gap-3">
+          <div className="flex items-center gap-2 flex-1 min-w-0">
+            <span className="text-sm">{speciesEmoji[record.petSpecies]}</span>
+            <div className="flex-1 min-w-0">
+              <div className="flex items-center gap-2 mb-1">
+                <h3 className="font-medium text-sm text-foreground truncate">
+                  {record.title}
+                </h3>
+                <Badge className={cn('text-xs px-1.5 py-0.5', statusStyles[record.status])}>
+                  {record.status}
                 </Badge>
               </div>
-              <div className="flex items-center gap-1">
-                <Calendar className="h-3 w-3" />
-                {formatDate(record.date)}
+              <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                <span className="truncate">{record.petName} • {record.ownerName}</span>
               </div>
             </div>
-            <div className="flex items-center gap-1 text-xs text-muted-foreground">
-              <Stethoscope className="h-3 w-3" />
-              {record.veterinarianName}
-            </div>
           </div>
-
-          {record.notes && (
-            <div className="pt-2 border-t border-border">
-              <p className="text-xs text-muted-foreground line-clamp-2">
-                <span className="font-medium">Notes:</span> {record.notes}
-              </p>
-            </div>
+          {onClick && (
+            <ChevronRight className="h-4 w-4 text-muted-foreground group-hover:text-primary transition-colors flex-shrink-0" />
           )}
         </div>
+        
+        {record.description && (
+          <p className="text-xs text-muted-foreground mt-2 line-clamp-1">
+            {record.description}
+          </p>
+        )}
+        
+        <div className="flex items-center justify-between mt-2 text-xs text-muted-foreground">
+          <div className="flex items-center gap-3">
+            <Badge className={cn('text-xs px-1.5 py-0.5', typeStyles[record.type])}>
+              {record.type.replace('-', ' ')}
+            </Badge>
+            <span className="flex items-center gap-1">
+              <Calendar className="h-3 w-3" />
+              {formatDate(record.date)}
+            </span>
+          </div>
+          <span className="flex items-center gap-1 truncate">
+            <Stethoscope className="h-3 w-3" />
+            {record.veterinarianName}
+          </span>
+        </div>
+        
+        {record.notes && (
+          <p className="text-xs text-muted-foreground mt-2 line-clamp-1">
+            <span className="font-medium">Notes:</span> {record.notes}
+          </p>
+        )}
       </CardContent>
     </Card>
   );

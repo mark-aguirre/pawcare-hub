@@ -12,6 +12,7 @@ import { Badge } from '@/components/ui/badge';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Skeleton } from '@/components/ui/skeleton';
+import { Pagination, PaginationContent, PaginationItem, PaginationLink, PaginationNext, PaginationPrevious } from '@/components/ui/pagination';
 import { 
   Search, 
   Filter, 
@@ -24,19 +25,22 @@ import {
   Archive,
   Plus
 } from 'lucide-react';
-import { mockMedicalRecords, mockPets, mockVeterinarians } from '@/data/mockData';
 import { MedicalRecord } from '@/types';
 import { cn } from '@/lib/utils';
 import { useToast } from '@/components/ui/use-toast';
-import { useMedicalRecordActivities } from '@/hooks/use-medical-record-activities';
+import { useRecords } from '@/hooks/use-records';
+import { useVeterinarians } from '@/hooks/use-veterinarians';
+import { usePets } from '@/hooks/use-pets';
 
 const statusFilters = ['all', 'pending', 'completed', 'archived'] as const;
 const typeFilters = ['all', 'checkup', 'vaccination', 'surgery', 'treatment', 'lab-result', 'emergency', 'follow-up'] as const;
 
 export default function Records() {
   const { toast } = useToast();
-  const { activities: medicalActivities, loading: activitiesLoading } = useMedicalRecordActivities(5);
-  const [isLoading, setIsLoading] = useState(true);
+  const { data: vetsData } = useVeterinarians();
+  const { data: petsData } = usePets();
+  const allVeterinarians = vetsData || [];
+  const allPets = petsData || [];
   const [search, setSearch] = useState('');
   const [selectedStatus, setSelectedStatus] = useState<typeof statusFilters[number]>('all');
   const [selectedType, setSelectedType] = useState<typeof typeFilters[number]>('all');
@@ -44,36 +48,86 @@ export default function Records() {
   const [selectedRecord, setSelectedRecord] = useState<MedicalRecord | null>(null);
   const [isDetailModalOpen, setIsDetailModalOpen] = useState(false);
   const [isRecordPanelOpen, setIsRecordPanelOpen] = useState(false);
+  const [currentPage, setCurrentPage] = useState(1);
+  const recordsPerPage = 10;
 
-  useEffect(() => {
-    // Simulate loading time
-    const timer = setTimeout(() => {
-      setIsLoading(false);
-    }, 1100);
-
-    return () => clearTimeout(timer);
-  }, []);
-
-  const filteredRecords = mockMedicalRecords.filter((record) => {
-    const matchesSearch =
-      record.title.toLowerCase().includes(search.toLowerCase()) ||
-      record.petName.toLowerCase().includes(search.toLowerCase()) ||
-      record.ownerName.toLowerCase().includes(search.toLowerCase()) ||
-      record.veterinarianName.toLowerCase().includes(search.toLowerCase()) ||
-      record.description.toLowerCase().includes(search.toLowerCase());
-    
-    const matchesStatus = selectedStatus === 'all' || record.status === selectedStatus;
-    const matchesType = selectedType === 'all' || record.type === selectedType;
-    const matchesPet = selectedPet === 'all' || record.petId === selectedPet;
-    
-    return matchesSearch && matchesStatus && matchesType && matchesPet;
+  // Use the records API hook
+  const { 
+    records: allRecords, 
+    loading: isLoading, 
+    error, 
+    refetch,
+    updateRecord,
+    deleteRecord 
+  } = useRecords({
+    search: search || undefined,
+    status: selectedStatus !== 'all' ? selectedStatus.toUpperCase() : undefined,
+    type: selectedType !== 'all' ? selectedType.toUpperCase().replace('-', '_') : undefined,
+    petId: selectedPet !== 'all' ? selectedPet : undefined,
   });
 
-  // Calculate stats
-  const totalRecords = mockMedicalRecords.length;
-  const pendingRecords = mockMedicalRecords.filter(r => r.status === 'pending').length;
-  const completedRecords = mockMedicalRecords.filter(r => r.status === 'completed').length;
-  const recentRecords = mockMedicalRecords.filter(r => {
+  // Transform backend data to match frontend expectations
+  const transformedRecords = allRecords.map(record => {
+    // Find pet and vet data from APIs since backend doesn't include them
+    const pet = allPets.find(p => p.id === 1) || allPets[0]; // Fallback to first pet
+    const vet = allVeterinarians.find(v => v.id === 1) || allVeterinarians[0]; // Fallback to first vet
+    
+    return {
+      ...record,
+      petName: pet?.name || 'Unknown Pet',
+      petSpecies: pet?.species || 'unknown',
+      ownerName: pet?.ownerName || 'Unknown Owner',
+      veterinarianName: vet?.name || 'Unknown Vet',
+      status: record.status.toLowerCase(),
+      type: record.type.toLowerCase().replace('_', '-'),
+      date: new Date(record.date),
+      createdAt: new Date(record.createdAt)
+    };
+  });
+
+  // Create recent activities from records
+  const recentActivities = transformedRecords
+    .slice(0, 5)
+    .map(record => ({
+      id: record.id,
+      description: `${record.type.replace('-', ' ')} for ${record.petName}`,
+      action: 'Created',
+      userName: record.veterinarianName,
+      timestamp: record.createdAt
+    }));
+
+  // Extract unique pets from records data
+  const uniquePets = transformedRecords.reduce((pets, record) => {
+    if (record.pet && !pets.find(p => p.id === record.pet.id)) {
+      pets.push({
+        id: record.pet.id.toString(),
+        name: record.pet.name,
+        species: record.pet.species
+      });
+    }
+    return pets;
+  }, [] as Array<{id: string, name: string, species: string}>);
+
+  // Get veterinarians from API
+  const uniqueVeterinarians = allVeterinarians.map(vet => ({
+    id: vet.id.toString(),
+    uniqueKey: vet.id.toString(),
+    name: vet.name,
+    specialization: vet.specialization || 'General Practice'
+  }));
+
+  const filteredRecords = transformedRecords;
+  const totalPages = Math.ceil(filteredRecords.length / recordsPerPage);
+  const paginatedRecords = filteredRecords.slice(
+    (currentPage - 1) * recordsPerPage,
+    currentPage * recordsPerPage
+  );
+
+  // Calculate stats from API data
+  const totalRecords = transformedRecords.length;
+  const pendingRecords = transformedRecords.filter(r => r.status === 'pending').length;
+  const completedRecords = transformedRecords.filter(r => r.status === 'completed').length;
+  const recentRecords = transformedRecords.filter(r => {
     const daysDiff = (new Date().getTime() - r.date.getTime()) / (1000 * 3600 * 24);
     return daysDiff <= 7;
   }).length;
@@ -87,12 +141,24 @@ export default function Records() {
     setIsRecordPanelOpen(true);
   };
 
-  const handleEditRecord = (record: MedicalRecord) => {
-    // Edit functionality can be added later
-    console.log('Edit record:', record);
+  const handleEditRecord = async (record: MedicalRecord) => {
+    try {
+      console.log('Edit record:', record);
+      toast({
+        title: "Edit Record",
+        description: "Edit functionality will be implemented soon.",
+        variant: "default",
+      });
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: "Failed to edit record.",
+        variant: "destructive",
+      });
+    }
   };
 
-  const handleArchiveRecords = () => {
+  const handleArchiveRecords = async () => {
     const selectedRecords = filteredRecords.filter(r => r.status !== 'archived');
     if (selectedRecords.length === 0) {
       toast({
@@ -103,18 +169,28 @@ export default function Records() {
       return;
     }
     
-    // Here you would typically update the records in your API
-    console.log('Archiving records:', selectedRecords.map(r => r.id));
-    
-    toast({
-      title: "Records Archived",
-      description: `${selectedRecords.length} record(s) have been archived successfully.`,
-      variant: "default",
-    });
+    try {
+      await Promise.all(
+        selectedRecords.map(record => 
+          updateRecord(record.id, { status: 'archived' })
+        )
+      );
+      
+      toast({
+        title: "Records Archived",
+        description: `${selectedRecords.length} record(s) have been archived successfully.`,
+        variant: "default",
+      });
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: "Failed to archive records.",
+        variant: "destructive",
+      });
+    }
   };
 
   const handleScheduleFollowUp = () => {
-    // This would typically open an appointment scheduling modal
     toast({
       title: "Schedule Follow-up",
       description: "Follow-up appointment scheduling feature coming soon.",
@@ -125,10 +201,26 @@ export default function Records() {
   return (
     <MainLayout
       title="Medical Records"
-      subtitle={`${totalRecords} total records • ${pendingRecords} pending review`}
+      subtitle={`${totalRecords} total records • ${pendingRecords} pending review • Page ${currentPage} of ${totalPages}`}
       action={{ label: 'New Record', onClick: handleNewRecord }}
     >
       <LoadingWrapper isLoading={isLoading} variant="records">
+      {error && (
+        <Card className="p-6 mb-6 border-destructive/20 bg-destructive/5">
+          <div className="flex items-center gap-2 text-destructive">
+            <FileText className="h-5 w-5" />
+            <p className="font-medium">Error loading records: {error}</p>
+          </div>
+          <Button 
+            variant="outline" 
+            size="sm" 
+            className="mt-3"
+            onClick={refetch}
+          >
+            Try Again
+          </Button>
+        </Card>
+      )}
       <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
         {/* Main Content */}
         <div className="lg:col-span-3 space-y-6">
@@ -183,118 +275,57 @@ export default function Records() {
             </Card>
           </div>
 
-          {/* Filters */}
-          <Card>
-            <CardContent className="p-6">
-              <div className="space-y-4">
-                {/* Search */}
-                <div className="relative">
-                  <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-                  <Input
-                    type="search"
-                    placeholder="Search records by title, pet, owner, or veterinarian..."
-                    value={search}
-                    onChange={(e) => setSearch(e.target.value)}
-                    className="pl-10"
-                  />
-                </div>
-
-                {/* Filter Tabs */}
-                <Tabs defaultValue="status" className="w-full">
-                  <TabsList className="grid w-full grid-cols-3">
-                    <TabsTrigger value="status">Status</TabsTrigger>
-                    <TabsTrigger value="type">Type</TabsTrigger>
-                    <TabsTrigger value="pet">Pet</TabsTrigger>
-                  </TabsList>
-                  
-                  <TabsContent value="status" className="mt-4">
-                    <div className="flex flex-wrap gap-2">
-                      {statusFilters.map((status) => (
-                        <Button
-                          key={status}
-                          variant={selectedStatus === status ? 'default' : 'outline'}
-                          size="sm"
-                          onClick={() => setSelectedStatus(status)}
-                          className="capitalize"
-                        >
-                          {status === 'all' ? 'All Status' : status}
-                        </Button>
-                      ))}
-                    </div>
-                  </TabsContent>
-                  
-                  <TabsContent value="type" className="mt-4">
-                    <div className="flex flex-wrap gap-2">
-                      {typeFilters.map((type) => (
-                        <Button
-                          key={type}
-                          variant={selectedType === type ? 'default' : 'outline'}
-                          size="sm"
-                          onClick={() => setSelectedType(type)}
-                          className="capitalize"
-                        >
-                          {type === 'all' ? 'All Types' : type.replace('-', ' ')}
-                        </Button>
-                      ))}
-                    </div>
-                  </TabsContent>
-                  
-                  <TabsContent value="pet" className="mt-4">
-                    <div className="flex flex-wrap gap-2">
-                      <Button
-                        variant={selectedPet === 'all' ? 'default' : 'outline'}
-                        size="sm"
-                        onClick={() => setSelectedPet('all')}
-                      >
-                        All Pets
-                      </Button>
-                      {mockPets.map((pet) => (
-                        <Button
-                          key={pet.id}
-                          variant={selectedPet === pet.id ? 'default' : 'outline'}
-                          size="sm"
-                          onClick={() => setSelectedPet(pet.id)}
-                        >
-                          {pet.name}
-                        </Button>
-                      ))}
-                    </div>
-                  </TabsContent>
-                </Tabs>
-              </div>
-            </CardContent>
-          </Card>
-
           {/* Records List */}
           <div className="space-y-4">
-            {filteredRecords.length > 0 ? (
-              <div className="grid grid-cols-1 gap-4">
-                {filteredRecords.map((record, index) => (
-                  <RecordCard
-                    key={record.id}
-                    record={record}
-                    delay={index * 50}
-                    onClick={() => handleRecordClick(record)}
-                  />
-                ))}
-              </div>
+            {paginatedRecords.length > 0 ? (
+              <>
+                <div className="grid grid-cols-1 gap-4">
+                  {paginatedRecords.map((record, index) => (
+                    <RecordCard
+                      key={record.id}
+                      record={record}
+                      delay={index * 50}
+                      onClick={() => handleRecordClick(record)}
+                    />
+                  ))}
+                </div>
+                {totalPages > 1 && (
+                  <Pagination className="mt-6">
+                    <PaginationContent>
+                      <PaginationItem>
+                        <PaginationPrevious 
+                          onClick={() => setCurrentPage(p => Math.max(1, p - 1))}
+                          className={currentPage === 1 ? 'pointer-events-none opacity-50' : 'cursor-pointer'}
+                        />
+                      </PaginationItem>
+                      {Array.from({ length: totalPages }, (_, i) => i + 1).map((page) => (
+                        <PaginationItem key={page}>
+                          <PaginationLink
+                            onClick={() => setCurrentPage(page)}
+                            isActive={currentPage === page}
+                            className="cursor-pointer"
+                          >
+                            {page}
+                          </PaginationLink>
+                        </PaginationItem>
+                      ))}
+                      <PaginationItem>
+                        <PaginationNext 
+                          onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))}
+                          className={currentPage === totalPages ? 'pointer-events-none opacity-50' : 'cursor-pointer'}
+                        />
+                      </PaginationItem>
+                    </PaginationContent>
+                  </Pagination>
+                )}
+              </>
             ) : (
               <Card className="p-12 text-center">
                 <FileText className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
                 <h3 className="text-lg font-semibold text-foreground mb-2">No records found</h3>
                 <p className="text-muted-foreground mb-4">
-                  {search || selectedStatus !== 'all' || selectedType !== 'all' || selectedPet !== 'all'
-                    ? 'Try adjusting your filters or search terms.'
-                    : 'No medical records have been created yet.'}
+                  No medical records have been created yet.
                 </p>
-                <Button onClick={() => {
-                  setSearch('');
-                  setSelectedStatus('all');
-                  setSelectedType('all');
-                  setSelectedPet('all');
-                }}>
-                  Clear Filters
-                </Button>
               </Card>
             )}
           </div>
@@ -302,26 +333,6 @@ export default function Records() {
 
         {/* Sidebar */}
         <div className="space-y-6">
-          {/* Quick Actions */}
-          <Card>
-            <CardHeader>
-              <CardTitle className="text-lg flex items-center gap-2">
-                <Plus className="h-5 w-5" />
-                Quick Actions
-              </CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-3">
-              <Button className="w-full justify-start" variant="outline" onClick={handleScheduleFollowUp}>
-                <Calendar className="h-4 w-4 mr-2" />
-                Schedule Follow-up
-              </Button>
-              <Button className="w-full justify-start" variant="outline" onClick={handleArchiveRecords}>
-                <Archive className="h-4 w-4 mr-2" />
-                Archive Records
-              </Button>
-            </CardContent>
-          </Card>
-
           {/* Recent Activity */}
           <Card>
             <CardHeader>
@@ -331,31 +342,18 @@ export default function Records() {
               </CardTitle>
             </CardHeader>
             <CardContent className="space-y-4">
-              {activitiesLoading ? (
-                <div className="space-y-3">
-                  {[1, 2, 3].map((i) => (
-                    <div key={i} className="flex items-start gap-3 p-3 rounded-lg bg-secondary/50">
-                      <Skeleton className="w-8 h-8 rounded-full" />
-                      <div className="flex-1">
-                        <Skeleton className="h-4 w-32 mb-1" />
-                        <Skeleton className="h-3 w-24 mb-1" />
-                        <Skeleton className="h-3 w-16" />
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              ) : medicalActivities.length > 0 ? (
-                medicalActivities.map((activity) => (
+              {transformedRecords.length > 0 ? (
+                recentActivities.map((activity) => (
                   <div key={activity.id} className="flex items-start gap-3 p-3 rounded-lg bg-secondary/50">
                     <div className="flex items-center justify-center w-8 h-8 rounded-full bg-primary/10 text-primary text-sm">
                       📋
                     </div>
                     <div className="flex-1 min-w-0">
                       <p className="text-sm font-medium text-foreground truncate">
-                        {activity.description || activity.entityName}
+                        {activity.description}
                       </p>
                       <p className="text-xs text-muted-foreground">
-                        {activity.action} • {activity.userName || 'System'}
+                        {activity.action} • {activity.userName}
                       </p>
                       <p className="text-xs text-muted-foreground">
                         {new Date(activity.timestamp).toLocaleDateString()}
@@ -381,21 +379,28 @@ export default function Records() {
               </CardTitle>
             </CardHeader>
             <CardContent className="space-y-3">
-              {mockVeterinarians.map((vet) => (
-                <div key={vet.id} className="flex items-center gap-3 p-3 rounded-lg bg-secondary/50">
-                  <div className="flex items-center justify-center w-10 h-10 rounded-full bg-primary/10 text-primary font-semibold">
-                    {vet.name.split(' ').map(n => n[0]).join('')}
+              {uniqueVeterinarians.length > 0 ? (
+                uniqueVeterinarians.map((vet) => (
+                  <div key={vet.uniqueKey} className="flex items-center gap-3 p-3 rounded-lg bg-secondary/50">
+                    <div className="flex items-center justify-center w-10 h-10 rounded-full bg-primary/10 text-primary font-semibold">
+                      {vet.name.split(' ').map(n => n[0]).join('')}
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <p className="text-sm font-medium text-foreground truncate">
+                        {vet.name}
+                      </p>
+                      <p className="text-xs text-muted-foreground">
+                        {vet.specialization}
+                      </p>
+                    </div>
                   </div>
-                  <div className="flex-1 min-w-0">
-                    <p className="text-sm font-medium text-foreground truncate">
-                      {vet.name}
-                    </p>
-                    <p className="text-xs text-muted-foreground">
-                      {vet.specialization}
-                    </p>
-                  </div>
+                ))
+              ) : (
+                <div className="text-center py-4 text-muted-foreground">
+                  <Stethoscope className="h-8 w-8 mx-auto mb-2 opacity-50" />
+                  <p className="text-sm">No veterinarians found</p>
                 </div>
-              ))}
+              )}
             </CardContent>
           </Card>
         </div>
@@ -414,6 +419,7 @@ export default function Records() {
       <NewRecordPanel
         open={isRecordPanelOpen}
         onOpenChange={setIsRecordPanelOpen}
+        onRecordCreated={refetch}
       />
     </MainLayout>
   );

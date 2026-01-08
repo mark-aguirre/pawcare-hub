@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from '@/components/ui/sheet';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -13,18 +13,22 @@ import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, Command
 import { CalendarIcon, FileText, Upload, Paperclip, Check, ChevronsUpDown } from 'lucide-react';
 import { format } from 'date-fns';
 import { cn } from '@/lib/utils';
-import { mockPets, mockVeterinarians } from '@/data/mockData';
 import { useToast } from '@/components/ui/use-toast';
+import { useRecords } from '@/hooks/use-records';
+import { usePets } from '@/hooks/use-pets';
+import { useVeterinarians } from '@/hooks/use-veterinarians';
 
 interface NewRecordPanelProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
+  onRecordCreated?: () => void;
 }
 
-export function NewRecordPanel({ open, onOpenChange }: NewRecordPanelProps) {
+export function NewRecordPanel({ open, onOpenChange, onRecordCreated }: NewRecordPanelProps) {
   const [date, setDate] = useState<Date>(new Date());
   const [openPetSelect, setOpenPetSelect] = useState(false);
   const [openVetSelect, setOpenVetSelect] = useState(false);
+  const [isSubmitting, setIsSubmitting] = useState(false);
   const [formData, setFormData] = useState({
     petId: '',
     veterinarianId: '',
@@ -34,7 +38,12 @@ export function NewRecordPanel({ open, onOpenChange }: NewRecordPanelProps) {
     notes: '',
     attachments: '',
   });
+  const { data: petsData, isLoading: petsLoading } = usePets();
+  const { data: vetsData, isLoading: vetsLoading } = useVeterinarians();
+  const pets = petsData || [];
+  const veterinarians = vetsData || [];
   const { toast } = useToast();
+  const { createRecord } = useRecords();
 
   const recordTypes = [
     { value: 'vaccination', label: 'Vaccination', color: 'bg-success/10 text-success' },
@@ -46,34 +55,74 @@ export function NewRecordPanel({ open, onOpenChange }: NewRecordPanelProps) {
     { value: 'follow-up', label: 'Follow-up', color: 'bg-secondary/10 text-secondary-foreground' },
   ];
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
-    const recordData = {
-      ...formData,
-      date,
-      attachments: formData.attachments.split(',').map(a => a.trim()).filter(Boolean),
-    };
+    if (isSubmitting) return;
+    
+    setIsSubmitting(true);
+    
+    try {
+      const selectedPet = pets.find(p => p.id.toString() === formData.petId);
+      const selectedVet = veterinarians.find(v => v.id.toString() === formData.veterinarianId);
+      
+      if (!selectedPet || !selectedVet) {
+        toast({
+          title: "Error",
+          description: "Please select both a pet and veterinarian.",
+          variant: "destructive",
+        });
+        return;
+      }
 
-    console.log('New medical record:', recordData);
-    
-    toast({
-      title: "Medical Record Created",
-      description: `${formData.title} has been added to ${mockPets.find(p => p.id === formData.petId)?.name}'s medical history.`,
-      variant: "default",
-    });
-    
-    setFormData({
-      petId: '',
-      veterinarianId: '',
-      type: '',
-      title: '',
-      description: '',
-      notes: '',
-      attachments: '',
-    });
-    setDate(new Date());
-    onOpenChange(false);
+      const recordData = {
+        pet: {
+          id: parseInt(formData.petId)
+        },
+        veterinarian: {
+          id: parseInt(formData.veterinarianId)
+        },
+        date: date.toISOString().split('T')[0],
+        type: formData.type.toUpperCase().replace('-', '_'),
+        title: formData.title,
+        description: formData.description,
+        notes: formData.notes || null,
+        status: 'PENDING',
+        attachments: formData.attachments ? formData.attachments.split(',').map(a => a.trim()).filter(Boolean) : null,
+      };
+
+      console.log('Sending record data:', recordData);
+
+      await createRecord(recordData);
+      
+      toast({
+        title: "Medical Record Created",
+        description: `${formData.title} has been added to ${selectedPet.name}'s medical history.`,
+        variant: "default",
+      });
+      
+      // Reset form
+      setFormData({
+        petId: '',
+        veterinarianId: '',
+        type: '',
+        title: '',
+        description: '',
+        notes: '',
+        attachments: '',
+      });
+      setDate(new Date());
+      onOpenChange(false);
+      onRecordCreated?.();
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: error instanceof Error ? error.message : "Failed to create medical record.",
+        variant: "destructive",
+      });
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   return (
@@ -110,7 +159,10 @@ export function NewRecordPanel({ open, onOpenChange }: NewRecordPanelProps) {
                       className="w-full justify-between"
                     >
                       {formData.petId
-                        ? mockPets.find((pet) => pet.id === formData.petId)?.name + " (" + mockPets.find((pet) => pet.id === formData.petId)?.species + ") - " + mockPets.find((pet) => pet.id === formData.petId)?.ownerName
+                        ? (() => {
+                            const pet = pets.find(p => p.id.toString() === formData.petId);
+                            return pet ? `${pet.name} (${pet.species}) - ${pet.ownerName}` : "Select a pet";
+                          })()
                         : "Select a pet"}
                       <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
                     </Button>
@@ -121,30 +173,34 @@ export function NewRecordPanel({ open, onOpenChange }: NewRecordPanelProps) {
                       <CommandList>
                         <CommandEmpty>No pet found.</CommandEmpty>
                         <CommandGroup>
-                          {mockPets.map((pet) => (
-                            <CommandItem
-                              key={pet.id}
-                              value={`${pet.name} ${pet.species} ${pet.ownerName}`}
-                              onSelect={() => {
-                                setFormData(prev => ({ ...prev, petId: pet.id }));
-                                setOpenPetSelect(false);
-                              }}
-                            >
-                              <Check
-                                className={cn(
-                                  "mr-2 h-4 w-4",
-                                  formData.petId === pet.id ? "opacity-100" : "opacity-0"
-                                )}
-                              />
-                              <div className="flex items-center gap-2">
-                                <span className="text-lg">{pet.species === 'dog' ? '🐕' : pet.species === 'cat' ? '🐱' : '🐾'}</span>
-                                <div>
-                                  <div className="font-medium">{pet.name} ({pet.species})</div>
-                                  <div className="text-xs text-muted-foreground">{pet.ownerName}</div>
+                          {petsLoading ? (
+                            <CommandItem disabled>Loading pets...</CommandItem>
+                          ) : (
+                            pets.map((pet) => (
+                              <CommandItem
+                                key={pet.id}
+                                value={`${pet.name} ${pet.species} ${pet.ownerName}`}
+                                onSelect={() => {
+                                  setFormData(prev => ({ ...prev, petId: pet.id.toString() }));
+                                  setOpenPetSelect(false);
+                                }}
+                              >
+                                <Check
+                                  className={cn(
+                                    "mr-2 h-4 w-4",
+                                    formData.petId === pet.id.toString() ? "opacity-100" : "opacity-0"
+                                  )}
+                                />
+                                <div className="flex items-center gap-2">
+                                  <span className="text-lg">{pet.species === 'dog' ? '🐕' : pet.species === 'cat' ? '🐱' : '🐾'}</span>
+                                  <div>
+                                    <div className="font-medium">{pet.name} ({pet.species})</div>
+                                    <div className="text-xs text-muted-foreground">{pet.ownerName}</div>
+                                  </div>
                                 </div>
-                              </div>
-                            </CommandItem>
-                          ))}
+                              </CommandItem>
+                            ))
+                          )}
                         </CommandGroup>
                       </CommandList>
                     </Command>
@@ -164,7 +220,10 @@ export function NewRecordPanel({ open, onOpenChange }: NewRecordPanelProps) {
                       className="w-full justify-between"
                     >
                       {formData.veterinarianId
-                        ? mockVeterinarians.find((vet) => vet.id === formData.veterinarianId)?.name + " - " + mockVeterinarians.find((vet) => vet.id === formData.veterinarianId)?.specialization
+                        ? (() => {
+                            const vet = veterinarians.find(v => v.id.toString() === formData.veterinarianId);
+                            return vet ? `${vet.name} - ${vet.specialization}` : "Select veterinarian";
+                          })()
                         : "Select veterinarian"}
                       <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
                     </Button>
@@ -175,27 +234,31 @@ export function NewRecordPanel({ open, onOpenChange }: NewRecordPanelProps) {
                       <CommandList>
                         <CommandEmpty>No veterinarian found.</CommandEmpty>
                         <CommandGroup>
-                          {mockVeterinarians.map((vet) => (
-                            <CommandItem
-                              key={vet.id}
-                              value={`${vet.name} ${vet.specialization}`}
-                              onSelect={() => {
-                                setFormData(prev => ({ ...prev, veterinarianId: vet.id }));
-                                setOpenVetSelect(false);
-                              }}
-                            >
-                              <Check
-                                className={cn(
-                                  "mr-2 h-4 w-4",
-                                  formData.veterinarianId === vet.id ? "opacity-100" : "opacity-0"
-                                )}
-                              />
-                              <div>
-                                <div className="font-medium">{vet.name}</div>
-                                <div className="text-xs text-muted-foreground">{vet.specialization}</div>
-                              </div>
-                            </CommandItem>
-                          ))}
+                          {vetsLoading ? (
+                            <CommandItem disabled>Loading veterinarians...</CommandItem>
+                          ) : (
+                            veterinarians.map((vet) => (
+                              <CommandItem
+                                key={vet.id}
+                                value={`${vet.name} ${vet.specialization}`}
+                                onSelect={() => {
+                                  setFormData(prev => ({ ...prev, veterinarianId: vet.id.toString() }));
+                                  setOpenVetSelect(false);
+                                }}
+                              >
+                                <Check
+                                  className={cn(
+                                    "mr-2 h-4 w-4",
+                                    formData.veterinarianId === vet.id.toString() ? "opacity-100" : "opacity-0"
+                                  )}
+                                />
+                                <div>
+                                  <div className="font-medium">{vet.name}</div>
+                                  <div className="text-xs text-muted-foreground">{vet.specialization}</div>
+                                </div>
+                              </CommandItem>
+                            ))
+                          )}
                         </CommandGroup>
                       </CommandList>
                     </Command>
@@ -334,10 +397,10 @@ export function NewRecordPanel({ open, onOpenChange }: NewRecordPanelProps) {
             <Button 
               type="submit" 
               className="bg-gradient-primary hover:shadow-glow flex-1"
-              disabled={!formData.petId || !formData.veterinarianId || !formData.type || !formData.title || !formData.description}
+              disabled={!formData.petId || !formData.veterinarianId || !formData.type || !formData.title || !formData.description || isSubmitting}
             >
               <FileText className="mr-2 h-4 w-4" />
-              Create Record
+              {isSubmitting ? 'Creating...' : 'Create Record'}
             </Button>
             <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>
               Cancel

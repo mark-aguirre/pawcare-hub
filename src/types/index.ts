@@ -147,7 +147,7 @@ export interface MedicalRecord {
   id: string;
   petId: string;
   petName: string;
-  petSpecies: Pet['species'];
+  petSpecies: string;
   ownerId: string;
   ownerName: string;
   veterinarianId: string;
@@ -160,6 +160,7 @@ export interface MedicalRecord {
   attachments?: string[];
   status: 'pending' | 'completed' | 'archived';
   createdAt: Date;
+  updatedAt?: Date;
 }
 
 export interface Vaccination {

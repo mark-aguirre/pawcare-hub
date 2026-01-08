@@ -26,8 +26,14 @@ export function usePets() {
   return useQuery({
     queryKey: petKeys.lists(),
     queryFn: async () => {
-      return await apiClient.get<Pet[]>('/api/pets');
+      const response = await fetch('/api/pets?t=' + Date.now());
+      if (!response.ok) {
+        throw new Error('Failed to fetch pets');
+      }
+      return await response.json();
     },
+    staleTime: 0,
+    cacheTime: 0,
   });
 }
 

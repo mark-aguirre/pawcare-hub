@@ -1,6 +1,4 @@
-'use client';
-
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -14,9 +12,9 @@ import { Badge } from '@/components/ui/badge';
 import { CalendarIcon, FileText, Upload, X, Check, ChevronsUpDown } from 'lucide-react';
 import { format } from 'date-fns';
 import { cn } from '@/lib/utils';
-import { mockPets, mockVeterinarians } from '@/data/mockData';
 import { useToast } from '@/components/ui/use-toast';
 import { MedicalRecord } from '@/types';
+import { useRecords } from '@/hooks/use-records';
 
 interface RecordFormModalProps {
   open: boolean;
@@ -40,7 +38,54 @@ export function RecordFormModal({ open, onOpenChange, record, mode = 'create' }:
   const [newAttachment, setNewAttachment] = useState('');
   const [petSearchOpen, setPetSearchOpen] = useState(false);
   const [vetSearchOpen, setVetSearchOpen] = useState(false);
+  const [isSubmitting, setIsSubmitting] = useState(false);
   const { toast } = useToast();
+  const { createRecord, updateRecord } = useRecords();
+  
+  const [pets, setPets] = useState([]);
+  const [veterinarians, setVeterinarians] = useState([]);
+  const [petsLoading, setPetsLoading] = useState(false);
+  const [vetsLoading, setVetsLoading] = useState(false);
+
+  // Fetch pets and veterinarians when modal opens
+  useEffect(() => {
+    console.log('Modal open state changed:', open);
+    if (open) {
+      console.log('Fetching pets...');
+      setPetsLoading(true);
+      fetch('/api/pets')
+        .then(res => {
+          console.log('Pets response:', res);
+          return res.json();
+        })
+        .then(data => {
+          console.log('Pets data:', data);
+          setPets(data);
+          setPetsLoading(false);
+        })
+        .catch(err => {
+          console.error('Failed to fetch pets:', err);
+          setPetsLoading(false);
+        });
+
+      console.log('Fetching veterinarians...');
+      setVetsLoading(true);
+      fetch('/api/veterinarians')
+        .then(res => {
+          console.log('Vets response:', res);
+          return res.json();
+        })
+        .then(data => {
+          console.log('Vets data:', data);
+          setVeterinarians(data);
+          setVetsLoading(false);
+        })
+        .catch(err => {
+          console.error('Failed to fetch veterinarians:', err);
+          setVetsLoading(false);
+        });
+    }
+  }, [open]);
 
   const recordTypes = [
     { value: 'vaccination', label: 'Vaccination' },
@@ -69,44 +114,60 @@ export function RecordFormModal({ open, onOpenChange, record, mode = 'create' }:
     setAttachments(prev => prev.filter((_, i) => i !== index));
   };
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
-    const selectedPet = mockPets.find(p => p.id === formData.petId);
-    const selectedVet = mockVeterinarians.find(v => v.id === formData.veterinarianId);
+    if (isSubmitting) return;
     
-    if (!selectedPet || !selectedVet) {
+    setIsSubmitting(true);
+    
+    try {
+      const selectedPet = pets.find(p => p.id.toString() === formData.petId);
+      const selectedVet = veterinarians.find(v => v.id.toString() === formData.veterinarianId);
+      
+      if (!selectedPet || !selectedVet) {
+        toast({
+          title: "Error",
+          description: "Please select both a pet and veterinarian.",
+          variant: "destructive",
+        });
+        return;
+      }
+
+      const recordData = {
+        ...formData,
+        petName: selectedPet.name,
+        petSpecies: selectedPet.species,
+        ownerId: selectedPet.ownerId,
+        ownerName: selectedPet.ownerName,
+        veterinarianName: selectedVet.name,
+        date,
+        attachments: attachments.length > 0 ? attachments : undefined,
+      };
+
+      if (mode === 'create') {
+        await createRecord(recordData);
+      } else if (record) {
+        await updateRecord(record.id, recordData);
+      }
+      
+      toast({
+        title: `Medical Record ${mode === 'create' ? 'Created' : 'Updated'}`,
+        description: `${formData.title} has been ${mode === 'create' ? 'added to' : 'updated for'} ${selectedPet.name}'s medical history.`,
+        variant: "default",
+      });
+      
+      resetForm();
+      onOpenChange(false);
+    } catch (error) {
       toast({
         title: "Error",
-        description: "Please select both a pet and veterinarian.",
+        description: error instanceof Error ? error.message : `Failed to ${mode} medical record.`,
         variant: "destructive",
       });
-      return;
+    } finally {
+      setIsSubmitting(false);
     }
-
-    const recordData = {
-      id: record?.id || `record-${Date.now()}`,
-      ...formData,
-      petName: selectedPet.name,
-      petSpecies: selectedPet.species,
-      ownerId: selectedPet.ownerId,
-      ownerName: selectedPet.ownerName,
-      veterinarianName: selectedVet.name,
-      date,
-      attachments: attachments.length > 0 ? attachments : undefined,
-      createdAt: record?.createdAt || new Date(),
-    };
-
-    console.log(`${mode === 'create' ? 'Creating' : 'Updating'} medical record:`, recordData);
-    
-    toast({
-      title: `Medical Record ${mode === 'create' ? 'Created' : 'Updated'}`,
-      description: `${formData.title} has been ${mode === 'create' ? 'added to' : 'updated for'} ${selectedPet.name}'s medical history.`,
-      variant: "default",
-    });
-    
-    resetForm();
-    onOpenChange(false);
   };
 
   const resetForm = () => {
@@ -157,10 +218,27 @@ export function RecordFormModal({ open, onOpenChange, record, mode = 'create' }:
                     role="combobox"
                     aria-expanded={petSearchOpen}
                     className="w-full justify-between"
+                    onClick={() => {
+                      console.log('Pet dropdown clicked, fetching pets...');
+                      if (pets.length === 0) {
+                        setPetsLoading(true);
+                        fetch('/api/pets')
+                          .then(res => res.json())
+                          .then(data => {
+                            console.log('Pets data:', data);
+                            setPets(data);
+                            setPetsLoading(false);
+                          })
+                          .catch(err => {
+                            console.error('Failed to fetch pets:', err);
+                            setPetsLoading(false);
+                          });
+                      }
+                    }}
                   >
                     {formData.petId
                       ? (() => {
-                          const pet = mockPets.find(p => p.id === formData.petId);
+                          const pet = pets.find(p => p.id.toString() === formData.petId);
                           return pet ? `${pet.name} (${pet.species}) - ${pet.ownerName}` : "Select a pet";
                         })()
                       : "Select a pet"}
@@ -173,34 +251,38 @@ export function RecordFormModal({ open, onOpenChange, record, mode = 'create' }:
                     <CommandList>
                       <CommandEmpty>No pet found.</CommandEmpty>
                       <CommandGroup>
-                        {mockPets.map((pet) => (
-                          <CommandItem
-                            key={pet.id}
-                            value={`${pet.name} ${pet.species} ${pet.ownerName}`}
-                            onSelect={() => {
-                              setFormData(prev => ({ ...prev, petId: pet.id }));
-                              setPetSearchOpen(false);
-                            }}
-                          >
-                            <Check
-                              className={cn(
-                                "mr-2 h-4 w-4",
-                                formData.petId === pet.id ? "opacity-100" : "opacity-0"
-                              )}
-                            />
-                            <div className="flex items-center gap-2">
-                              <span className="text-lg">
-                                {pet.species === 'dog' ? '🐕' : pet.species === 'cat' ? '🐱' : pet.species === 'bird' ? '🐦' : pet.species === 'rabbit' ? '🐰' : pet.species === 'hamster' ? '🐹' : '🐾'}
-                              </span>
-                              <div>
-                                <div className="font-medium">{pet.name}</div>
-                                <div className="text-sm text-muted-foreground">
-                                  {pet.species} • {pet.breed} • {pet.ownerName}
+                        {petsLoading ? (
+                          <CommandItem disabled>Loading pets...</CommandItem>
+                        ) : (
+                          pets.map((pet) => (
+                            <CommandItem
+                              key={pet.id}
+                              value={`${pet.name} ${pet.species} ${pet.ownerName}`}
+                              onSelect={() => {
+                                setFormData(prev => ({ ...prev, petId: pet.id.toString() }));
+                                setPetSearchOpen(false);
+                              }}
+                            >
+                              <Check
+                                className={cn(
+                                  "mr-2 h-4 w-4",
+                                  formData.petId === pet.id.toString() ? "opacity-100" : "opacity-0"
+                                )}
+                              />
+                              <div className="flex items-center gap-2">
+                                <span className="text-lg">
+                                  {pet.species === 'dog' ? '🐕' : pet.species === 'cat' ? '🐱' : pet.species === 'bird' ? '🐦' : pet.species === 'rabbit' ? '🐰' : pet.species === 'hamster' ? '🐹' : '🐾'}
+                                </span>
+                                <div>
+                                  <div className="font-medium">{pet.name}</div>
+                                  <div className="text-sm text-muted-foreground">
+                                    {pet.species} • {pet.breed} • {pet.ownerName}
+                                  </div>
                                 </div>
                               </div>
-                            </div>
-                          </CommandItem>
-                        ))}
+                            </CommandItem>
+                          ))
+                        )}
                       </CommandGroup>
                     </CommandList>
                   </Command>
@@ -220,7 +302,7 @@ export function RecordFormModal({ open, onOpenChange, record, mode = 'create' }:
                   >
                     {formData.veterinarianId
                       ? (() => {
-                          const vet = mockVeterinarians.find(v => v.id === formData.veterinarianId);
+                          const vet = veterinarians.find(v => v.id.toString() === formData.veterinarianId);
                           return vet ? `${vet.name} - ${vet.specialization}` : "Select veterinarian";
                         })()
                       : "Select veterinarian"}
@@ -233,32 +315,36 @@ export function RecordFormModal({ open, onOpenChange, record, mode = 'create' }:
                     <CommandList>
                       <CommandEmpty>No veterinarian found.</CommandEmpty>
                       <CommandGroup>
-                        {mockVeterinarians.map((vet) => (
-                          <CommandItem
-                            key={vet.id}
-                            value={`${vet.name} ${vet.specialization}`}
-                            onSelect={() => {
-                              setFormData(prev => ({ ...prev, veterinarianId: vet.id }));
-                              setVetSearchOpen(false);
-                            }}
-                          >
-                            <Check
-                              className={cn(
-                                "mr-2 h-4 w-4",
-                                formData.veterinarianId === vet.id ? "opacity-100" : "opacity-0"
-                              )}
-                            />
-                            <div className="flex items-center gap-3">
-                              <div className="flex items-center justify-center w-8 h-8 rounded-full bg-primary/10 text-primary font-semibold text-sm">
-                                {vet.name.split(' ').map(n => n[0]).join('')}
+                        {vetsLoading ? (
+                          <CommandItem disabled>Loading veterinarians...</CommandItem>
+                        ) : (
+                          veterinarians.map((vet) => (
+                            <CommandItem
+                              key={vet.id}
+                              value={`${vet.name} ${vet.specialization}`}
+                              onSelect={() => {
+                                setFormData(prev => ({ ...prev, veterinarianId: vet.id.toString() }));
+                                setVetSearchOpen(false);
+                              }}
+                            >
+                              <Check
+                                className={cn(
+                                  "mr-2 h-4 w-4",
+                                  formData.veterinarianId === vet.id.toString() ? "opacity-100" : "opacity-0"
+                                )}
+                              />
+                              <div className="flex items-center gap-3">
+                                <div className="flex items-center justify-center w-8 h-8 rounded-full bg-primary/10 text-primary font-semibold text-sm">
+                                  {vet.name.split(' ').map(n => n[0]).join('')}
+                                </div>
+                                <div>
+                                  <div className="font-medium">{vet.name}</div>
+                                  <div className="text-sm text-muted-foreground">{vet.specialization}</div>
+                                </div>
                               </div>
-                              <div>
-                                <div className="font-medium">{vet.name}</div>
-                                <div className="text-sm text-muted-foreground">{vet.specialization}</div>
-                              </div>
-                            </div>
-                          </CommandItem>
-                        ))}
+                            </CommandItem>
+                          ))
+                        )}
                       </CommandGroup>
                     </CommandList>
                   </Command>
@@ -401,10 +487,10 @@ export function RecordFormModal({ open, onOpenChange, record, mode = 'create' }:
             <Button 
               type="submit" 
               className="bg-gradient-primary hover:shadow-glow"
-              disabled={!formData.petId || !formData.veterinarianId || !formData.type || !formData.title || !formData.description}
+              disabled={!formData.petId || !formData.veterinarianId || !formData.type || !formData.title || !formData.description || isSubmitting}
             >
               <FileText className="mr-2 h-4 w-4" />
-              {mode === 'create' ? 'Create Record' : 'Update Record'}
+              {isSubmitting ? (mode === 'create' ? 'Creating...' : 'Updating...') : (mode === 'create' ? 'Create Record' : 'Update Record')}
             </Button>
           </div>
         </form>
