@@ -17,7 +17,16 @@ public class MedicalRecordController {
     private MedicalRecordService medicalRecordService;
 
     @GetMapping
-    public List<MedicalRecord> getAllMedicalRecords(@RequestParam(required = false) Long ownerId) {
+    public List<MedicalRecord> getAllMedicalRecords(
+            @RequestParam(required = false) Long ownerId,
+            @RequestParam(required = false) Long petId,
+            @RequestParam(required = false) String search) {
+        if (search != null && !search.trim().isEmpty()) {
+            return medicalRecordService.searchMedicalRecords(search.trim());
+        }
+        if (petId != null) {
+            return medicalRecordService.getMedicalRecordsByPet(petId);
+        }
         if (ownerId != null) {
             return medicalRecordService.getMedicalRecordsByOwner(ownerId);
         }

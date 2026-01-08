@@ -235,54 +235,6 @@ export default function VaccinationsPage() {
       >
         <LoadingWrapper isLoading={isLoading} variant="list">
           <div className="space-y-6">
-            {/* Stats */}
-            <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-              <Card>
-                <CardContent className="p-4">
-                  <div className="flex items-center justify-between">
-                    <div>
-                      <p className="text-sm font-medium text-muted-foreground">Total Records</p>
-                      <p className="text-2xl font-bold">{vaccinations.length}</p>
-                    </div>
-                    <Syringe className="h-8 w-8 text-primary" />
-                  </div>
-                </CardContent>
-              </Card>
-              <Card>
-                <CardContent className="p-4">
-                  <div className="flex items-center justify-between">
-                    <div>
-                      <p className="text-sm font-medium text-muted-foreground">Overdue</p>
-                      <p className="text-2xl font-bold text-destructive">{overdueCount}</p>
-                    </div>
-                    <AlertTriangle className="h-8 w-8 text-destructive" />
-                  </div>
-                </CardContent>
-              </Card>
-              <Card>
-                <CardContent className="p-4">
-                  <div className="flex items-center justify-between">
-                    <div>
-                      <p className="text-sm font-medium text-muted-foreground">Due Soon</p>
-                      <p className="text-2xl font-bold text-warning">{dueCount}</p>
-                    </div>
-                    <Calendar className="h-8 w-8 text-warning" />
-                  </div>
-                </CardContent>
-              </Card>
-              <Card>
-                <CardContent className="p-4">
-                  <div className="flex items-center justify-between">
-                    <div>
-                      <p className="text-sm font-medium text-muted-foreground">Completed</p>
-                      <p className="text-2xl font-bold text-success">{vaccinations.filter(v => v.status === 'administered').length}</p>
-                    </div>
-                    <CheckCircle className="h-8 w-8 text-success" />
-                  </div>
-                </CardContent>
-              </Card>
-            </div>
-
             {/* Search */}
             <div className="relative max-w-md">
               <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />

@@ -12,9 +12,12 @@ interface RecordCardProps {
 }
 
 const statusStyles = {
-  pending: 'bg-warning/10 text-warning border-warning/20',
-  completed: 'bg-success/10 text-success border-success/20',
-  archived: 'bg-secondary text-secondary-foreground border-border',
+  PENDING: 'bg-orange-100 text-orange-800 border-orange-200',
+  COMPLETED: 'bg-green-100 text-green-800 border-green-200',
+  ARCHIVED: 'bg-gray-100 text-gray-800 border-gray-200',
+  pending: 'bg-orange-100 text-orange-800 border-orange-200',
+  completed: 'bg-green-100 text-green-800 border-green-200',
+  archived: 'bg-gray-100 text-gray-800 border-gray-200',
 };
 
 const typeStyles = {
@@ -63,8 +66,8 @@ export function RecordCard({ record, delay = 0, onClick }: RecordCardProps) {
                 <h3 className="font-medium text-sm text-foreground truncate">
                   {record.title}
                 </h3>
-                <Badge className={cn('text-xs px-1.5 py-0.5', statusStyles[record.status])}>
-                  {record.status}
+                <Badge className={cn('text-xs px-1.5 py-0.5', statusStyles[record.status.toLowerCase()])}>
+                  {record.status.toUpperCase()}
                 </Badge>
               </div>
               <div className="flex items-center gap-2 text-xs text-muted-foreground">

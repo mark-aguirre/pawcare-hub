@@ -1,10 +1,6 @@
-import { 
-  Dialog, 
-  DialogContent, 
-  DialogHeader, 
-  DialogTitle,
-  DialogDescription 
-} from '@/components/ui/dialog';
+'use client';
+
+import { Sheet, SheetContent, SheetHeader, SheetTitle } from '@/components/ui/sheet';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Separator } from '@/components/ui/separator';
@@ -18,13 +14,14 @@ import {
   Edit,
   Download,
   Share,
-  Archive
+  Archive,
+  CheckCircle
 } from 'lucide-react';
 import { MedicalRecord } from '@/types';
 import { cn } from '@/lib/utils';
 import { useRecords } from '@/hooks/use-records';
 
-interface RecordDetailModalProps {
+interface RecordDetailPanelProps {
   record: MedicalRecord | null;
   open: boolean;
   onOpenChange: (open: boolean) => void;
@@ -57,11 +54,28 @@ const speciesEmoji = {
   other: '🐾',
 };
 
-export function RecordDetailModal({ record, open, onOpenChange, onEdit, onRecordUpdated }: RecordDetailModalProps) {
+export function RecordDetailPanel({ record, open, onOpenChange, onEdit, onRecordUpdated }: RecordDetailPanelProps) {
   const { toast } = useToast();
   const { updateRecord } = useRecords();
   
   if (!record) return null;
+
+  const formatDate = (date: Date) => {
+    return new Intl.DateTimeFormat('en-US', {
+      weekday: 'long',
+      year: 'numeric',
+      month: 'long',
+      day: 'numeric',
+    }).format(date);
+  };
+
+  const formatTime = (date: Date) => {
+    return new Intl.DateTimeFormat('en-US', {
+      hour: 'numeric',
+      minute: '2-digit',
+      hour12: true,
+    }).format(date);
+  };
 
   const handleDownloadPDF = () => {
     toast({
@@ -81,7 +95,7 @@ export function RecordDetailModal({ record, open, onOpenChange, onEdit, onRecord
 
   const handleArchive = async () => {
     try {
-      await updateRecord(record.id, { status: 'archived' });
+      await updateRecord(record.id, { status: 'ARCHIVED' });
       toast({
         title: "Record Archived",
         description: "Medical record has been archived successfully.",
@@ -98,38 +112,19 @@ export function RecordDetailModal({ record, open, onOpenChange, onEdit, onRecord
     }
   };
 
-  const formatDate = (date: Date) => {
-    return new Intl.DateTimeFormat('en-US', {
-      weekday: 'long',
-      year: 'numeric',
-      month: 'long',
-      day: 'numeric',
-    }).format(date);
-  };
-
-  const formatTime = (date: Date) => {
-    return new Intl.DateTimeFormat('en-US', {
-      hour: 'numeric',
-      minute: '2-digit',
-      hour12: true,
-    }).format(date);
-  };
-
   return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
-        <DialogHeader>
-          <div className="flex items-start justify-between">
-            <div className="flex items-center gap-3">
-              <div className="flex items-center justify-center w-12 h-12 rounded-full bg-primary/10 text-primary">
-                <span className="text-xl">{speciesEmoji[record.petSpecies]}</span>
-              </div>
-              <div>
-                <DialogTitle className="text-xl">{record.title}</DialogTitle>
-                <DialogDescription className="text-base">
-                  {record.petName} • {record.ownerName}
-                </DialogDescription>
-              </div>
+    <Sheet open={open} onOpenChange={onOpenChange}>
+      <SheetContent className="w-[40vw] min-w-[600px] overflow-y-auto">
+        <SheetHeader className="pb-6">
+          <div className="flex items-center gap-3">
+            <div className="flex items-center justify-center w-12 h-12 rounded-full bg-primary/10 text-primary">
+              <span className="text-xl">{speciesEmoji[record.petSpecies]}</span>
+            </div>
+            <div className="flex-1">
+              <SheetTitle className="text-xl font-display">{record.title}</SheetTitle>
+              <p className="text-sm text-muted-foreground mt-1">
+                {record.petName} • {record.ownerName}
+              </p>
             </div>
             <div className="flex items-center gap-2">
               <Badge className={cn('text-sm', statusStyles[record.status])}>
@@ -140,7 +135,7 @@ export function RecordDetailModal({ record, open, onOpenChange, onEdit, onRecord
               </Badge>
             </div>
           </div>
-        </DialogHeader>
+        </SheetHeader>
 
         <div className="space-y-6">
           {/* Key Information */}
@@ -215,7 +210,7 @@ export function RecordDetailModal({ record, open, onOpenChange, onEdit, onRecord
               <Separator />
               <div className="space-y-3">
                 <h3 className="text-lg font-semibold">Attachments</h3>
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <div className="grid grid-cols-1 gap-3">
                   {record.attachments.map((attachment, index) => (
                     <div
                       key={index}
@@ -244,6 +239,28 @@ export function RecordDetailModal({ record, open, onOpenChange, onEdit, onRecord
               <Edit className="h-4 w-4" />
               Edit Record
             </Button>
+            {record && record.status === 'pending' && (
+              <Button variant="default" className="flex items-center gap-2 bg-success hover:bg-success/90" onClick={async () => {
+                try {
+                  await updateRecord(record.id, { status: 'COMPLETED' });
+                  toast({
+                    title: "Record Completed",
+                    description: "Medical record has been marked as completed.",
+                    variant: "default",
+                  });
+                  onRecordUpdated?.();
+                } catch (error) {
+                  toast({
+                    title: "Error",
+                    description: "Failed to complete record.",
+                    variant: "destructive",
+                  });
+                }
+              }}>
+                <CheckCircle className="h-4 w-4" />
+                Mark Complete
+              </Button>
+            )}
             <Button variant="outline" className="flex items-center gap-2" onClick={handleDownloadPDF}>
               <Download className="h-4 w-4" />
               Download PDF
@@ -260,7 +277,7 @@ export function RecordDetailModal({ record, open, onOpenChange, onEdit, onRecord
             )}
           </div>
         </div>
-      </DialogContent>
-    </Dialog>
+      </SheetContent>
+    </Sheet>
   );
 }

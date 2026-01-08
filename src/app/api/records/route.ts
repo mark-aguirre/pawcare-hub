@@ -63,28 +63,26 @@ let records: any[] = [
 export async function GET(request: NextRequest) {
   try {
     const { searchParams } = new URL(request.url);
+    const petId = searchParams.get('petId');
     const BACKEND_URL = process.env.BACKEND_URL || 'http://localhost:8082';
     
-    const response = await fetch(`${BACKEND_URL}/api/medical-records`, {
-      method: 'GET',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-    });
-
+    let backendUrl = `${BACKEND_URL}/api/medical-records`;
+    if (petId) {
+      backendUrl = `${BACKEND_URL}/api/medical-records/pet/${petId}`;
+    } else {
+      backendUrl = `${BACKEND_URL}/api/medical-records?${searchParams.toString()}`;
+    }
+    
+    const response = await fetch(backendUrl);
     if (!response.ok) {
       throw new Error(`Backend responded with status: ${response.status}`);
     }
-
+    
     const data = await response.json();
-    
-    // Sort by createdAt (newest first)
-    const sortedData = data.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
-    
     return NextResponse.json({
       success: true,
-      data: sortedData,
-      total: sortedData.length
+      data,
+      total: data.length
     });
   } catch (error) {
     console.error('Error fetching records:', error);

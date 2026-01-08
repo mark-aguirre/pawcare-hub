@@ -22,9 +22,10 @@ interface NewRecordPanelProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   onRecordCreated?: () => void;
+  editRecord?: MedicalRecord | null;
 }
 
-export function NewRecordPanel({ open, onOpenChange, onRecordCreated }: NewRecordPanelProps) {
+export function NewRecordPanel({ open, onOpenChange, onRecordCreated, editRecord }: NewRecordPanelProps) {
   const [date, setDate] = useState<Date>(new Date());
   const [openPetSelect, setOpenPetSelect] = useState(false);
   const [openVetSelect, setOpenVetSelect] = useState(false);
@@ -43,7 +44,7 @@ export function NewRecordPanel({ open, onOpenChange, onRecordCreated }: NewRecor
   const pets = petsData || [];
   const veterinarians = vetsData || [];
   const { toast } = useToast();
-  const { createRecord } = useRecords();
+  const { createRecord, updateRecord } = useRecords();
 
   const recordTypes = [
     { value: 'vaccination', label: 'Vaccination', color: 'bg-success/10 text-success' },
@@ -55,6 +56,37 @@ export function NewRecordPanel({ open, onOpenChange, onRecordCreated }: NewRecor
     { value: 'follow-up', label: 'Follow-up', color: 'bg-secondary/10 text-secondary-foreground' },
   ];
 
+  // Initialize form with edit data if provided
+  useEffect(() => {
+    if (editRecord) {
+      // Find the actual pet and vet IDs from the record
+      const petId = editRecord.pet?.id?.toString() || '1'; // Fallback to ID 1
+      const vetId = editRecord.veterinarian?.id?.toString() || '1'; // Fallback to ID 1
+      
+      setFormData({
+        petId: petId,
+        veterinarianId: vetId,
+        type: editRecord.type,
+        title: editRecord.title,
+        description: editRecord.description,
+        notes: editRecord.notes || '',
+        attachments: editRecord.attachments?.join(', ') || '',
+      });
+      setDate(new Date(editRecord.date));
+    } else {
+      setFormData({
+        petId: '',
+        veterinarianId: '',
+        type: '',
+        title: '',
+        description: '',
+        notes: '',
+        attachments: '',
+      });
+      setDate(new Date());
+    }
+  }, [editRecord, open]);
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
@@ -63,43 +95,61 @@ export function NewRecordPanel({ open, onOpenChange, onRecordCreated }: NewRecor
     setIsSubmitting(true);
     
     try {
-      const selectedPet = pets.find(p => p.id.toString() === formData.petId);
-      const selectedVet = veterinarians.find(v => v.id.toString() === formData.veterinarianId);
-      
-      if (!selectedPet || !selectedVet) {
+      if (editRecord) {
+        // Update existing record
+        const updateData = {
+          date: date.toISOString().split('T')[0],
+          type: formData.type.toUpperCase().replace('-', '_'),
+          title: formData.title,
+          description: formData.description,
+          notes: formData.notes || null,
+        };
+
+        await updateRecord(editRecord.id, updateData);
+        
         toast({
-          title: "Error",
-          description: "Please select both a pet and veterinarian.",
-          variant: "destructive",
+          title: "Medical Record Updated",
+          description: `${formData.title} has been updated successfully.`,
+          variant: "default",
         });
-        return;
+      } else {
+        // Create new record
+        const selectedPet = pets.find(p => p.id.toString() === formData.petId);
+        const selectedVet = veterinarians.find(v => v.id.toString() === formData.veterinarianId);
+        
+        if (!selectedPet || !selectedVet) {
+          toast({
+            title: "Error",
+            description: "Please select both a pet and veterinarian.",
+            variant: "destructive",
+          });
+          return;
+        }
+
+        const recordData = {
+          pet: {
+            id: parseInt(formData.petId)
+          },
+          veterinarian: {
+            id: parseInt(formData.veterinarianId)
+          },
+          date: date.toISOString().split('T')[0],
+          type: formData.type.toUpperCase().replace('-', '_'),
+          title: formData.title,
+          description: formData.description,
+          notes: formData.notes || null,
+          status: 'PENDING',
+          attachments: formData.attachments ? formData.attachments.split(',').map(a => a.trim()).filter(Boolean) : null,
+        };
+
+        await createRecord(recordData);
+        
+        toast({
+          title: "Medical Record Created",
+          description: `${formData.title} has been added to ${selectedPet.name}'s medical history.`,
+          variant: "default",
+        });
       }
-
-      const recordData = {
-        pet: {
-          id: parseInt(formData.petId)
-        },
-        veterinarian: {
-          id: parseInt(formData.veterinarianId)
-        },
-        date: date.toISOString().split('T')[0],
-        type: formData.type.toUpperCase().replace('-', '_'),
-        title: formData.title,
-        description: formData.description,
-        notes: formData.notes || null,
-        status: 'PENDING',
-        attachments: formData.attachments ? formData.attachments.split(',').map(a => a.trim()).filter(Boolean) : null,
-      };
-
-      console.log('Sending record data:', recordData);
-
-      await createRecord(recordData);
-      
-      toast({
-        title: "Medical Record Created",
-        description: `${formData.title} has been added to ${selectedPet.name}'s medical history.`,
-        variant: "default",
-      });
       
       // Reset form
       setFormData({
@@ -134,8 +184,8 @@ export function NewRecordPanel({ open, onOpenChange, onRecordCreated }: NewRecor
               <FileText className="h-5 w-5 text-white" />
             </div>
             <div>
-              <SheetTitle className="text-xl font-display">Create New Medical Record</SheetTitle>
-              <p className="text-sm text-muted-foreground mt-1">Add a medical record for a pet</p>
+              <SheetTitle className="text-xl font-display">{editRecord ? 'Edit Medical Record' : 'Create New Medical Record'}</SheetTitle>
+              <p className="text-sm text-muted-foreground mt-1">{editRecord ? 'Update medical record details' : 'Add a medical record for a pet'}</p>
             </div>
           </div>
         </SheetHeader>
@@ -157,6 +207,7 @@ export function NewRecordPanel({ open, onOpenChange, onRecordCreated }: NewRecor
                       role="combobox"
                       aria-expanded={openPetSelect}
                       className="w-full justify-between"
+                      disabled={!!editRecord}
                     >
                       {formData.petId
                         ? (() => {
@@ -218,6 +269,7 @@ export function NewRecordPanel({ open, onOpenChange, onRecordCreated }: NewRecor
                       role="combobox"
                       aria-expanded={openVetSelect}
                       className="w-full justify-between"
+                      disabled={!!editRecord}
                     >
                       {formData.veterinarianId
                         ? (() => {
@@ -397,10 +449,10 @@ export function NewRecordPanel({ open, onOpenChange, onRecordCreated }: NewRecor
             <Button 
               type="submit" 
               className="bg-gradient-primary hover:shadow-glow flex-1"
-              disabled={!formData.petId || !formData.veterinarianId || !formData.type || !formData.title || !formData.description || isSubmitting}
+              disabled={editRecord ? (!formData.type || !formData.title || !formData.description || isSubmitting) : (!formData.petId || !formData.veterinarianId || !formData.type || !formData.title || !formData.description || isSubmitting)}
             >
               <FileText className="mr-2 h-4 w-4" />
-              {isSubmitting ? 'Creating...' : 'Create Record'}
+              {isSubmitting ? (editRecord ? 'Updating...' : 'Creating...') : (editRecord ? 'Update Record' : 'Create Record')}
             </Button>
             <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>
               Cancel

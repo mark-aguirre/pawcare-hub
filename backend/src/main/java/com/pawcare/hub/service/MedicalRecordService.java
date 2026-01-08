@@ -56,4 +56,13 @@ public class MedicalRecordService {
     public List<MedicalRecord> getMedicalRecordsByType(MedicalRecord.RecordType type) {
         return medicalRecordRepository.findByType(type);
     }
+
+    public List<MedicalRecord> searchMedicalRecords(String search) {
+        try {
+            Long petId = Long.parseLong(search);
+            return medicalRecordRepository.findByPetId(petId);
+        } catch (NumberFormatException e) {
+            return medicalRecordRepository.searchByMultipleFields(search);
+        }
+    }
 }

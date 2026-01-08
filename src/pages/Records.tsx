@@ -3,7 +3,7 @@
 import { useState, useEffect } from 'react';
 import { MainLayout } from '@/components/layout/MainLayout';
 import { RecordCard } from '@/components/records/RecordCard';
-import { RecordDetailModal } from '@/components/records/RecordDetailModal';
+import { RecordDetailPanel } from '@/components/records/RecordDetailPanel';
 import { NewRecordPanel } from '@/components/dashboard/panels/NewRecordPanel';
 import { LoadingWrapper } from '@/components/ui/loading-wrapper';
 import { Input } from '@/components/ui/input';
@@ -46,7 +46,9 @@ export default function Records() {
   const [selectedType, setSelectedType] = useState<typeof typeFilters[number]>('all');
   const [selectedPet, setSelectedPet] = useState<string>('all');
   const [selectedRecord, setSelectedRecord] = useState<MedicalRecord | null>(null);
-  const [isDetailModalOpen, setIsDetailModalOpen] = useState(false);
+  const [isDetailPanelOpen, setIsDetailPanelOpen] = useState(false);
+  const [isEditModalOpen, setIsEditModalOpen] = useState(false);
+  const [editingRecord, setEditingRecord] = useState<MedicalRecord | null>(null);
   const [isRecordPanelOpen, setIsRecordPanelOpen] = useState(false);
   const [currentPage, setCurrentPage] = useState(1);
   const recordsPerPage = 10;
@@ -60,7 +62,6 @@ export default function Records() {
     updateRecord,
     deleteRecord 
   } = useRecords({
-    search: search || undefined,
     status: selectedStatus !== 'all' ? selectedStatus.toUpperCase() : undefined,
     type: selectedType !== 'all' ? selectedType.toUpperCase().replace('-', '_') : undefined,
     petId: selectedPet !== 'all' ? selectedPet : undefined,
@@ -78,8 +79,8 @@ export default function Records() {
       petSpecies: pet?.species || 'unknown',
       ownerName: pet?.ownerName || 'Unknown Owner',
       veterinarianName: vet?.name || 'Unknown Vet',
-      status: record.status.toLowerCase(),
-      type: record.type.toLowerCase().replace('_', '-'),
+      status: record.status?.toLowerCase() || 'pending',
+      type: record.type?.toLowerCase().replace('_', '-') || 'unknown',
       date: new Date(record.date),
       createdAt: new Date(record.createdAt)
     };
@@ -116,25 +117,32 @@ export default function Records() {
     specialization: vet.specialization || 'General Practice'
   }));
 
-  const filteredRecords = transformedRecords;
+  // Apply frontend search filter
+  const filteredRecords = search ? transformedRecords.filter(record => 
+    record.title?.toLowerCase().includes(search.toLowerCase()) ||
+    record.description?.toLowerCase().includes(search.toLowerCase()) ||
+    record.petName?.toLowerCase().includes(search.toLowerCase()) ||
+    record.ownerName?.toLowerCase().includes(search.toLowerCase())
+  ) : transformedRecords;
+
   const totalPages = Math.ceil(filteredRecords.length / recordsPerPage);
   const paginatedRecords = filteredRecords.slice(
     (currentPage - 1) * recordsPerPage,
     currentPage * recordsPerPage
   );
 
-  // Calculate stats from API data
-  const totalRecords = transformedRecords.length;
-  const pendingRecords = transformedRecords.filter(r => r.status === 'pending').length;
-  const completedRecords = transformedRecords.filter(r => r.status === 'completed').length;
-  const recentRecords = transformedRecords.filter(r => {
+  // Calculate stats from filtered data
+  const totalRecords = filteredRecords.length;
+  const pendingRecords = filteredRecords.filter(r => r.status === 'pending').length;
+  const completedRecords = filteredRecords.filter(r => r.status === 'completed').length;
+  const recentRecords = filteredRecords.filter(r => {
     const daysDiff = (new Date().getTime() - r.date.getTime()) / (1000 * 3600 * 24);
     return daysDiff <= 7;
   }).length;
 
   const handleRecordClick = (record: MedicalRecord) => {
     setSelectedRecord(record);
-    setIsDetailModalOpen(true);
+    setIsDetailPanelOpen(true);
   };
 
   const handleNewRecord = () => {
@@ -142,20 +150,9 @@ export default function Records() {
   };
 
   const handleEditRecord = async (record: MedicalRecord) => {
-    try {
-      console.log('Edit record:', record);
-      toast({
-        title: "Edit Record",
-        description: "Edit functionality will be implemented soon.",
-        variant: "default",
-      });
-    } catch (error) {
-      toast({
-        title: "Error",
-        description: "Failed to edit record.",
-        variant: "destructive",
-      });
-    }
+    setEditingRecord(record);
+    setIsDetailPanelOpen(false);
+    setIsRecordPanelOpen(true);
   };
 
   const handleArchiveRecords = async () => {
@@ -274,6 +271,48 @@ export default function Records() {
               </CardContent>
             </Card>
           </div>
+
+          {/* Filters */}
+          <Card className="p-4">
+            <div className="flex flex-col sm:flex-row gap-4">
+              <div className="relative flex-1 max-w-md">
+                <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+                <Input
+                  type="search"
+                  placeholder="Search records..."
+                  value={search}
+                  onChange={(e) => setSearch(e.target.value)}
+                  className="pl-9"
+                />
+              </div>
+              <div className="flex gap-2 flex-wrap">
+                {statusFilters.map((status) => (
+                  <Button
+                    key={status}
+                    variant={selectedStatus === status ? 'default' : 'secondary'}
+                    size="sm"
+                    onClick={() => setSelectedStatus(status)}
+                    className="capitalize"
+                  >
+                    {status === 'all' ? 'All Status' : status}
+                  </Button>
+                ))}
+              </div>
+              <div className="flex gap-2 flex-wrap">
+                {typeFilters.slice(0, 4).map((type) => (
+                  <Button
+                    key={type}
+                    variant={selectedType === type ? 'default' : 'outline'}
+                    size="sm"
+                    onClick={() => setSelectedType(type)}
+                    className="capitalize"
+                  >
+                    {type === 'all' ? 'All Types' : type.replace('-', ' ')}
+                  </Button>
+                ))}
+              </div>
+            </div>
+          </Card>
 
           {/* Records List */}
           <div className="space-y-4">
@@ -407,19 +446,24 @@ export default function Records() {
       </div>
       </LoadingWrapper>
 
-      {/* Record Detail Modal */}
-      <RecordDetailModal
+      {/* Record Detail Panel */}
+      <RecordDetailPanel
         record={selectedRecord}
-        open={isDetailModalOpen}
-        onOpenChange={setIsDetailModalOpen}
+        open={isDetailPanelOpen}
+        onOpenChange={setIsDetailPanelOpen}
         onEdit={handleEditRecord}
+        onRecordUpdated={refetch}
       />
 
       {/* New Record Panel */}
       <NewRecordPanel
         open={isRecordPanelOpen}
-        onOpenChange={setIsRecordPanelOpen}
+        onOpenChange={(open) => {
+          setIsRecordPanelOpen(open);
+          if (!open) setEditingRecord(null);
+        }}
         onRecordCreated={refetch}
+        editRecord={editingRecord}
       />
     </MainLayout>
   );

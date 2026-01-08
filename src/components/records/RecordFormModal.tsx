@@ -21,12 +21,13 @@ interface RecordFormModalProps {
   onOpenChange: (open: boolean) => void;
   record?: MedicalRecord | null;
   mode?: 'create' | 'edit';
+  preSelectedPetId?: string;
 }
 
-export function RecordFormModal({ open, onOpenChange, record, mode = 'create' }: RecordFormModalProps) {
+export function RecordFormModal({ open, onOpenChange, record, mode = 'create', preSelectedPetId }: RecordFormModalProps) {
   const [date, setDate] = useState<Date>(record?.date || new Date());
   const [formData, setFormData] = useState({
-    petId: record?.petId || '',
+    petId: record?.petId || preSelectedPetId || '',
     veterinarianId: record?.veterinarianId || '',
     type: record?.type || '',
     title: record?.title || '',
@@ -46,6 +47,13 @@ export function RecordFormModal({ open, onOpenChange, record, mode = 'create' }:
   const [veterinarians, setVeterinarians] = useState([]);
   const [petsLoading, setPetsLoading] = useState(false);
   const [vetsLoading, setVetsLoading] = useState(false);
+
+  // Update form data when preSelectedPetId changes
+  useEffect(() => {
+    if (preSelectedPetId && mode === 'create') {
+      setFormData(prev => ({ ...prev, petId: preSelectedPetId }));
+    }
+  }, [preSelectedPetId, mode]);
 
   // Fetch pets and veterinarians when modal opens
   useEffect(() => {
@@ -172,7 +180,7 @@ export function RecordFormModal({ open, onOpenChange, record, mode = 'create' }:
 
   const resetForm = () => {
     setFormData({
-      petId: '',
+      petId: preSelectedPetId || '',
       veterinarianId: '',
       type: '',
       title: '',

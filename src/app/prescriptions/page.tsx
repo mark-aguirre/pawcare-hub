@@ -185,54 +185,6 @@ export default function PrescriptionsPage() {
       >
         <LoadingWrapper isLoading={isLoading} variant="list">
           <div className="space-y-6">
-            {/* Stats */}
-            <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-              <Card>
-                <CardContent className="p-4">
-                  <div className="flex items-center justify-between">
-                    <div>
-                      <p className="text-sm font-medium text-muted-foreground">Total Prescriptions</p>
-                      <p className="text-2xl font-bold">{prescriptions.length}</p>
-                    </div>
-                    <Pill className="h-8 w-8 text-primary" />
-                  </div>
-                </CardContent>
-              </Card>
-              <Card>
-                <CardContent className="p-4">
-                  <div className="flex items-center justify-between">
-                    <div>
-                      <p className="text-sm font-medium text-muted-foreground">Active</p>
-                      <p className="text-2xl font-bold text-success">{activeCount}</p>
-                    </div>
-                    <CheckCircle className="h-8 w-8 text-success" />
-                  </div>
-                </CardContent>
-              </Card>
-              <Card>
-                <CardContent className="p-4">
-                  <div className="flex items-center justify-between">
-                    <div>
-                      <p className="text-sm font-medium text-muted-foreground">Need Refill</p>
-                      <p className="text-2xl font-bold text-warning">{needRefillCount}</p>
-                    </div>
-                    <RefreshCw className="h-8 w-8 text-warning" />
-                  </div>
-                </CardContent>
-              </Card>
-              <Card>
-                <CardContent className="p-4">
-                  <div className="flex items-center justify-between">
-                    <div>
-                      <p className="text-sm font-medium text-muted-foreground">Completed</p>
-                      <p className="text-2xl font-bold">{prescriptions.filter(p => p.status === 'completed').length}</p>
-                    </div>
-                    <AlertCircle className="h-8 w-8 text-muted-foreground" />
-                  </div>
-                </CardContent>
-              </Card>
-            </div>
-
             {/* Filters */}
             <div className="flex gap-4">
               <div className="relative flex-1 max-w-md">

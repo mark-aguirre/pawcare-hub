@@ -100,6 +100,12 @@ export function useRecords(options: UseRecordsOptions = {}): UseRecordsReturn {
         body: JSON.stringify(record),
       });
 
+      if (!response.ok) {
+        const errorText = await response.text();
+        console.error('Update error response:', errorText);
+        throw new Error(`Failed to update record: ${response.status}`);
+      }
+
       const data = await response.json();
 
       if (!data.success) {

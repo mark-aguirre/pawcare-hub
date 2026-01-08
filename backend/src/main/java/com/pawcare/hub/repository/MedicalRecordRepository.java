@@ -27,4 +27,13 @@ public interface MedicalRecordRepository extends JpaRepository<MedicalRecord, Lo
     
     @Query("SELECT mr FROM MedicalRecord mr WHERE mr.date BETWEEN :start AND :end")
     List<MedicalRecord> findByDateBetween(@Param("start") LocalDate start, @Param("end") LocalDate end);
+    
+    @Query("SELECT mr FROM MedicalRecord mr WHERE LOWER(mr.pet.name) LIKE LOWER(CONCAT('%', :name, '%'))")
+    List<MedicalRecord> findByPetNameContainingIgnoreCase(@Param("name") String name);
+    
+    @Query("SELECT mr FROM MedicalRecord mr WHERE " +
+           "LOWER(mr.pet.name) LIKE LOWER(CONCAT('%', :search, '%')) OR " +
+           "LOWER(mr.title) LIKE LOWER(CONCAT('%', :search, '%')) OR " +
+           "LOWER(mr.description) LIKE LOWER(CONCAT('%', :search, '%'))")
+    List<MedicalRecord> searchByMultipleFields(@Param("search") String search);
 }

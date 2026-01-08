@@ -17,11 +17,17 @@ import {
   MapPin,
   Edit,
   FileText,
-  Activity
+  Activity,
+  Stethoscope,
+  Syringe,
+  Pill,
+  ExternalLink
 } from 'lucide-react';
 import { Pet } from '@/types';
 import { usePetAppointments } from '@/hooks/use-pets';
+import { useRecords } from '@/hooks/use-records';
 import { EditPetModal } from './EditPetModal';
+import { RecordCard } from '@/components/records/RecordCard';
 import { cn } from '@/lib/utils';
 
 interface PetDetailModalProps {
@@ -51,6 +57,7 @@ const speciesEmoji = {
 export function PetDetailModal({ pet, open, onOpenChange }: PetDetailModalProps) {
   const [showEditModal, setShowEditModal] = useState(false);
   const { data: petAppointments = [] } = usePetAppointments(pet?.id);
+  const { records: medicalRecords = [], loading: recordsLoading } = useRecords({ petId: pet?.id?.toString() });
   
   if (!pet) return null;
 
@@ -145,10 +152,57 @@ export function PetDetailModal({ pet, open, onOpenChange }: PetDetailModalProps)
           </TabsContent>
 
           <TabsContent value="medical" className="space-y-4">
-            <div className="text-center py-8 text-muted-foreground">
-              <FileText className="h-12 w-12 mx-auto mb-3 opacity-30" />
-              <p>Medical records will be available soon</p>
+            <div className="flex items-center justify-between mb-4">
+              <h3 className="text-lg font-semibold">Medical History</h3>
+              <Button 
+                size="sm" 
+                variant="outline"
+                onClick={() => window.open(`/records?petId=${pet?.id}`, '_blank')}
+              >
+                <ExternalLink className="h-4 w-4 mr-2" />
+                Manage Records
+              </Button>
             </div>
+
+            {recordsLoading ? (
+              <div className="text-center py-8 text-muted-foreground">
+                <FileText className="h-12 w-12 mx-auto mb-3 opacity-30 animate-pulse" />
+                <p>Loading medical records...</p>
+              </div>
+            ) : medicalRecords.length > 0 ? (
+              <div className="space-y-4">
+                <div className="space-y-3">
+                  {medicalRecords.slice(0, 5).map((record, index) => (
+                    <RecordCard 
+                      key={record.id} 
+                      record={record} 
+                      delay={index * 50}
+                    />
+                  ))}
+                </div>
+                
+                {medicalRecords.length > 5 && (
+                  <div className="text-center">
+                    <Button variant="outline" size="sm" onClick={() => window.open(`/records?petId=${pet?.id}`, '_blank')}>
+                      View All {medicalRecords.length} Records
+                    </Button>
+                  </div>
+                )}
+              </div>
+            ) : (
+              <div className="text-center py-8 text-muted-foreground">
+                <FileText className="h-12 w-12 mx-auto mb-3 opacity-30" />
+                <h4 className="font-medium text-foreground mb-1">No Medical Records</h4>
+                <p className="text-sm mb-4">Medical records for {pet?.name} will appear here</p>
+                <Button 
+                  variant="outline" 
+                  onClick={() => window.open(`/records?petId=${pet?.id}`, '_blank')}
+                >
+                  <ExternalLink className="h-4 w-4 mr-2" />
+                  Go to Records Page
+                </Button>
+              </div>
+            )}
           </TabsContent>
 
           <TabsContent value="appointments" className="space-y-4">
