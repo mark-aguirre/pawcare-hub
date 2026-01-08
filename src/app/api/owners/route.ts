@@ -6,11 +6,14 @@ export async function GET(request: NextRequest) {
   try {
     const { searchParams } = new URL(request.url);
     const name = searchParams.get('name');
+    const email = searchParams.get('email');
     
     let backendUrl = `${BACKEND_URL}/api/owners`;
     
     if (name) {
       backendUrl += `/search?name=${encodeURIComponent(name)}`;
+    } else if (email) {
+      backendUrl += `?email=${encodeURIComponent(email)}`;
     }
     
     const response = await fetch(backendUrl, {

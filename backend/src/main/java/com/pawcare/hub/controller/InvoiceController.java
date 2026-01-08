@@ -19,7 +19,10 @@ public class InvoiceController {
     private InvoiceService invoiceService;
 
     @GetMapping
-    public List<Invoice> getAllInvoices() {
+    public List<Invoice> getAllInvoices(@RequestParam(required = false) Long ownerId) {
+        if (ownerId != null) {
+            return invoiceService.getInvoicesByOwner(ownerId);
+        }
         return invoiceService.getAllInvoices();
     }
 

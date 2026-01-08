@@ -11,6 +11,7 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { Skeleton } from '@/components/ui/skeleton';
 import { 
   Search, 
   Filter, 
@@ -27,12 +28,14 @@ import { mockMedicalRecords, mockPets, mockVeterinarians } from '@/data/mockData
 import { MedicalRecord } from '@/types';
 import { cn } from '@/lib/utils';
 import { useToast } from '@/components/ui/use-toast';
+import { useMedicalRecordActivities } from '@/hooks/use-medical-record-activities';
 
 const statusFilters = ['all', 'pending', 'completed', 'archived'] as const;
 const typeFilters = ['all', 'checkup', 'vaccination', 'surgery', 'treatment', 'lab-result', 'emergency', 'follow-up'] as const;
 
 export default function Records() {
   const { toast } = useToast();
+  const { activities: medicalActivities, loading: activitiesLoading } = useMedicalRecordActivities(5);
   const [isLoading, setIsLoading] = useState(true);
   const [search, setSearch] = useState('');
   const [selectedStatus, setSelectedStatus] = useState<typeof statusFilters[number]>('all');
@@ -328,27 +331,44 @@ export default function Records() {
               </CardTitle>
             </CardHeader>
             <CardContent className="space-y-4">
-              {mockMedicalRecords
-                .sort((a, b) => b.createdAt.getTime() - a.createdAt.getTime())
-                .slice(0, 5)
-                .map((record) => (
-                  <div key={record.id} className="flex items-start gap-3 p-3 rounded-lg bg-secondary/50">
+              {activitiesLoading ? (
+                <div className="space-y-3">
+                  {[1, 2, 3].map((i) => (
+                    <div key={i} className="flex items-start gap-3 p-3 rounded-lg bg-secondary/50">
+                      <Skeleton className="w-8 h-8 rounded-full" />
+                      <div className="flex-1">
+                        <Skeleton className="h-4 w-32 mb-1" />
+                        <Skeleton className="h-3 w-24 mb-1" />
+                        <Skeleton className="h-3 w-16" />
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              ) : medicalActivities.length > 0 ? (
+                medicalActivities.map((activity) => (
+                  <div key={activity.id} className="flex items-start gap-3 p-3 rounded-lg bg-secondary/50">
                     <div className="flex items-center justify-center w-8 h-8 rounded-full bg-primary/10 text-primary text-sm">
-                      {record.petSpecies === 'dog' ? '🐕' : record.petSpecies === 'cat' ? '🐱' : '🐾'}
+                      📋
                     </div>
                     <div className="flex-1 min-w-0">
                       <p className="text-sm font-medium text-foreground truncate">
-                        {record.title}
+                        {activity.description || activity.entityName}
                       </p>
                       <p className="text-xs text-muted-foreground">
-                        {record.petName} • {record.veterinarianName}
+                        {activity.action} • {activity.userName || 'System'}
                       </p>
                       <p className="text-xs text-muted-foreground">
-                        {record.createdAt.toLocaleDateString()}
+                        {new Date(activity.timestamp).toLocaleDateString()}
                       </p>
                     </div>
                   </div>
-                ))}
+                ))
+              ) : (
+                <div className="text-center py-4 text-muted-foreground">
+                  <Clock className="h-8 w-8 mx-auto mb-2 opacity-50" />
+                  <p className="text-sm">No recent medical record activity</p>
+                </div>
+              )}
             </CardContent>
           </Card>
 

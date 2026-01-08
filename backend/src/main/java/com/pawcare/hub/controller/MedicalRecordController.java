@@ -17,7 +17,10 @@ public class MedicalRecordController {
     private MedicalRecordService medicalRecordService;
 
     @GetMapping
-    public List<MedicalRecord> getAllMedicalRecords() {
+    public List<MedicalRecord> getAllMedicalRecords(@RequestParam(required = false) Long ownerId) {
+        if (ownerId != null) {
+            return medicalRecordService.getMedicalRecordsByOwner(ownerId);
+        }
         return medicalRecordService.getAllMedicalRecords();
     }
 

@@ -14,6 +14,9 @@ public class InvoiceService {
 
     @Autowired
     private InvoiceRepository invoiceRepository;
+    
+    @Autowired
+    private ActivityService activityService;
 
     public List<Invoice> getAllInvoices() {
         return invoiceRepository.findAll();
@@ -26,11 +29,24 @@ public class InvoiceService {
     public Invoice saveInvoice(Invoice invoice) {
         // Calculate totals before saving
         calculateInvoiceTotals(invoice);
-        return invoiceRepository.save(invoice);
+        boolean isNew = invoice.getId() == null;
+        Invoice saved = invoiceRepository.save(invoice);
+        String action = isNew ? "CREATE" : "UPDATE";
+        String petName = saved.getPet() != null ? saved.getPet().getName() : "Unknown Pet";
+        String description = isNew ? "Invoice created" : "Invoice updated";
+        activityService.logActivity(action, "INVOICE", saved.getId(), 
+            "Invoice for " + petName, description);
+        return saved;
     }
 
     public void deleteInvoice(Long id) {
-        invoiceRepository.deleteById(id);
+        Optional<Invoice> invoice = invoiceRepository.findById(id);
+        if (invoice.isPresent()) {
+            String petName = invoice.get().getPet() != null ? invoice.get().getPet().getName() : "Unknown Pet";
+            invoiceRepository.deleteById(id);
+            activityService.logActivity("DELETE", "INVOICE", id, 
+                "Invoice for " + petName, "Invoice deleted");
+        }
     }
 
     public List<Invoice> getInvoicesByStatus(Invoice.InvoiceStatus status) {

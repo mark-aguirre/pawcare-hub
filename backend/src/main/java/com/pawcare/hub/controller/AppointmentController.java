@@ -27,7 +27,14 @@ public class AppointmentController {
     @GetMapping
     public List<AppointmentDTO> getAllAppointments(
             @RequestParam(required = false) Boolean upcoming,
-            @RequestParam(required = false) Boolean today) {
+            @RequestParam(required = false) Boolean today,
+            @RequestParam(required = false) Long ownerId) {
+        
+        if (ownerId != null) {
+            return appointmentService.getAppointmentsByOwner(ownerId).stream()
+                    .map(AppointmentDTO::new)
+                    .collect(Collectors.toList());
+        }
         
         if (Boolean.TRUE.equals(upcoming)) {
             return appointmentService.getUpcomingAppointments().stream()

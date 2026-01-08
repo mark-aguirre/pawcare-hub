@@ -2,34 +2,51 @@
 
 import { useState } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
+import { useLogin } from '@/hooks/use-auth';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { PawPrint, Eye, EyeOff } from 'lucide-react';
 import { useRouter } from 'next/navigation';
+import { toast } from '@/hooks/use-toast';
 
 export default function LoginPage() {
-  const [email, setEmail] = useState('');
+  const [identifier, setIdentifier] = useState('');
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
-  const [isLoading, setIsLoading] = useState(false);
-  const [error, setError] = useState('');
   const { login } = useAuth();
   const router = useRouter();
+  const loginMutation = useLogin();
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    setIsLoading(true);
-    setError('');
-
-    const success = await login(email, password);
-    if (success) {
-      router.push('/');
-    } else {
-      setError('Invalid email or password');
+    
+    try {
+      const response = await loginMutation.mutateAsync({ identifier, password });
+      
+      if (response.success && response.user) {
+        login(response.user);
+        toast({
+          title: 'Login successful',
+          description: `Welcome back, ${response.user.firstName}!`,
+        });
+        router.push('/');
+      } else {
+        toast({
+          title: 'Login failed',
+          description: response.message || 'Invalid credentials',
+          variant: 'destructive',
+        });
+      }
+    } catch (error: any) {
+      console.error('Login error:', error);
+      toast({
+        title: 'Login failed',
+        description: error?.message || 'Unable to connect to server',
+        variant: 'destructive',
+      });
     }
-    setIsLoading(false);
   };
 
   return (
@@ -47,13 +64,13 @@ export default function LoginPage() {
         <CardContent>
           <form onSubmit={handleSubmit} className="space-y-4">
             <div className="space-y-2">
-              <Label htmlFor="email">Email</Label>
+              <Label htmlFor="identifier">PID / Email / Phone</Label>
               <Input
-                id="email"
-                type="email"
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-                placeholder="Enter your email"
+                id="identifier"
+                type="text"
+                value={identifier}
+                onChange={(e) => setIdentifier(e.target.value)}
+                placeholder="Enter your PID, email, or phone"
                 required
               />
             </div>
@@ -79,18 +96,20 @@ export default function LoginPage() {
                 </Button>
               </div>
             </div>
-            {error && (
-              <div className="text-sm text-destructive">{error}</div>
+            {loginMutation.error && (
+              <div className="text-sm text-destructive">
+                Login failed. Please check your credentials.
+              </div>
             )}
-            <Button type="submit" className="w-full" disabled={isLoading}>
-              {isLoading ? 'Signing in...' : 'Sign In'}
+            <Button type="submit" className="w-full" disabled={loginMutation.isPending}>
+              {loginMutation.isPending ? 'Signing in...' : 'Sign In'}
             </Button>
           </form>
           <div className="mt-6 text-center text-sm text-muted-foreground">
             <p>Demo credentials:</p>
             <p>Admin: admin@pawcare.com / password</p>
             <p>Vet: vet@pawcare.com / password</p>
-            <p>Owner: owner@example.com / password</p>
+            <p>Owner: PID001 / password</p>
           </div>
         </CardContent>
       </Card>

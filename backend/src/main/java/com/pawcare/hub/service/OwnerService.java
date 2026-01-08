@@ -12,6 +12,9 @@ public class OwnerService {
 
     @Autowired
     private OwnerRepository ownerRepository;
+    
+    @Autowired
+    private ActivityService activityService;
 
     public List<Owner> getAllOwners() {
         return ownerRepository.findAll();
@@ -22,11 +25,21 @@ public class OwnerService {
     }
 
     public Owner saveOwner(Owner owner) {
-        return ownerRepository.save(owner);
+        boolean isNew = owner.getId() == null;
+        Owner saved = ownerRepository.save(owner);
+        String action = isNew ? "CREATE" : "UPDATE";
+        String description = isNew ? "New client registered" : "Client information updated";
+        activityService.logActivity(action, "OWNER", saved.getId(), saved.getName(), description);
+        return saved;
     }
 
     public void deleteOwner(Long id) {
-        ownerRepository.deleteById(id);
+        Optional<Owner> owner = ownerRepository.findById(id);
+        if (owner.isPresent()) {
+            String ownerName = owner.get().getName();
+            ownerRepository.deleteById(id);
+            activityService.logActivity("DELETE", "OWNER", id, ownerName, "Client removed from system");
+        }
     }
 
     public Optional<Owner> getOwnerByEmail(String email) {

@@ -9,29 +9,56 @@ import { Badge } from '@/components/ui/badge';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { LoadingWrapper } from '@/components/ui/loading-wrapper';
 import { PawPrint, Calendar, FileText, Receipt, Download, Phone, Mail, LogOut } from 'lucide-react';
-import { mockPets, mockAppointments, mockMedicalRecords, mockInvoices } from '@/data/mockData';
 
 export default function PortalPage() {
   const { user, logout } = useAuth();
   const [isLoading, setIsLoading] = useState(true);
+  const [ownerPets, setOwnerPets] = useState([]);
+  const [ownerAppointments, setOwnerAppointments] = useState([]);
+  const [ownerRecords, setOwnerRecords] = useState([]);
+  const [ownerInvoices, setOwnerInvoices] = useState([]);
 
   useEffect(() => {
-    const timer = setTimeout(() => setIsLoading(false), 1000);
-    return () => clearTimeout(timer);
-  }, []);
+    const fetchPortalData = async () => {
+      if (!user?.id) return;
+      
+      try {
+        const ownerId = user.id; // Use user ID directly since auth returns owner data
+        
+        const [pets, appointments, records, invoices] = await Promise.all([
+          fetch(`/api/portal/pets?ownerId=${ownerId}`).then(res => res.json()),
+          fetch(`/api/portal/appointments?ownerId=${ownerId}`).then(res => res.json()),
+          fetch(`/api/portal/records?ownerId=${ownerId}`).then(res => res.json()),
+          fetch(`/api/portal/billing?ownerId=${ownerId}`).then(res => res.json())
+        ]);
+        
+        setOwnerPets(pets);
+        setOwnerAppointments(appointments);
+        setOwnerRecords(records);
+        setOwnerInvoices(invoices);
+      } catch (error) {
+        console.error('Failed to fetch portal data:', error);
+      } finally {
+        setIsLoading(false);
+      }
+    };
 
-  // Mock data for the logged-in pet owner
-  const ownerPets = mockPets.filter(pet => pet.ownerId === 'owner-1'); // Assuming logged-in owner
-  const ownerAppointments = mockAppointments.filter(apt => apt.ownerId === 'owner-1');
-  const ownerRecords = mockMedicalRecords.filter(record => record.ownerId === 'owner-1');
-  const ownerInvoices = mockInvoices.filter(invoice => invoice.ownerId === 'owner-1');
+    fetchPortalData();
+  }, [user?.id]);
+
+  useEffect(() => {
+    if (!user?.id) {
+      const timer = setTimeout(() => setIsLoading(false), 1000);
+      return () => clearTimeout(timer);
+    }
+  }, [user?.id]);
 
   return (
     <ProtectedRoute requiredPermissions={['portal']}>
       <div className="min-h-screen bg-gradient-to-br from-primary/5 via-background to-secondary/5">
       <LoadingWrapper isLoading={isLoading} variant="dashboard">
         {/* Header */}
-        <div className="bg-gradient-to-r from-primary to-primary/80 text-primary-foreground">
+        <div className="bg-gradient-to-r from-primary via-primary/90 to-primary/70 text-primary-foreground shadow-lg">
           <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
             <div className="flex items-center justify-between h-20">
               <div className="flex items-center gap-4">
@@ -40,7 +67,7 @@ export default function PortalPage() {
                 </div>
                 <div>
                   <h1 className="text-2xl font-bold">PawCare Portal</h1>
-                  <p className="text-primary-foreground/80">Welcome back, {user?.name}</p>
+                  <p className="text-primary-foreground/80">Welcome back, {user?.firstName || user?.name}</p>
                 </div>
               </div>
               <div className="flex items-center gap-3">
@@ -62,66 +89,30 @@ export default function PortalPage() {
         </div>
 
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-          {/* Quick Stats */}
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8">
-            <Card className="bg-gradient-to-br from-blue-50 to-blue-100 border-blue-200">
-              <CardContent className="p-6">
-                <div className="flex items-center justify-between">
-                  <div>
-                    <p className="text-sm font-medium text-blue-700">My Pets</p>
-                    <p className="text-3xl font-bold text-blue-900">{ownerPets.length}</p>
-                  </div>
-                  <PawPrint className="h-10 w-10 text-blue-600" />
-                </div>
-              </CardContent>
-            </Card>
-            <Card className="bg-gradient-to-br from-green-50 to-green-100 border-green-200">
-              <CardContent className="p-6">
-                <div className="flex items-center justify-between">
-                  <div>
-                    <p className="text-sm font-medium text-green-700">Appointments</p>
-                    <p className="text-3xl font-bold text-green-900">{ownerAppointments.length}</p>
-                  </div>
-                  <Calendar className="h-10 w-10 text-green-600" />
-                </div>
-              </CardContent>
-            </Card>
-            <Card className="bg-gradient-to-br from-purple-50 to-purple-100 border-purple-200">
-              <CardContent className="p-6">
-                <div className="flex items-center justify-between">
-                  <div>
-                    <p className="text-sm font-medium text-purple-700">Records</p>
-                    <p className="text-3xl font-bold text-purple-900">{ownerRecords.length}</p>
-                  </div>
-                  <FileText className="h-10 w-10 text-purple-600" />
-                </div>
-              </CardContent>
-            </Card>
-            <Card className="bg-gradient-to-br from-orange-50 to-orange-100 border-orange-200">
-              <CardContent className="p-6">
-                <div className="flex items-center justify-between">
-                  <div>
-                    <p className="text-sm font-medium text-orange-700">Pending Bills</p>
-                    <p className="text-3xl font-bold text-orange-900">{ownerInvoices.filter(i => i.status !== 'paid').length}</p>
-                  </div>
-                  <Receipt className="h-10 w-10 text-orange-600" />
-                </div>
-              </CardContent>
-            </Card>
-          </div>
-
           {/* Main Content */}
           <Tabs defaultValue="pets" className="space-y-6">
-            <TabsList className="grid w-full grid-cols-4 h-12">
-              <TabsTrigger value="pets" className="text-sm font-medium">My Pets</TabsTrigger>
-              <TabsTrigger value="appointments" className="text-sm font-medium">Appointments</TabsTrigger>
-              <TabsTrigger value="records" className="text-sm font-medium">Medical Records</TabsTrigger>
-              <TabsTrigger value="billing" className="text-sm font-medium">Billing</TabsTrigger>
+            <TabsList className="grid w-full grid-cols-4 h-14 bg-gradient-to-r from-primary/5 to-secondary/5 rounded-xl p-1">
+              <TabsTrigger value="pets" className="text-sm font-semibold data-[state=active]:bg-gradient-to-r data-[state=active]:from-blue-500 data-[state=active]:to-blue-600 data-[state=active]:text-white data-[state=active]:shadow-lg transition-all duration-200 rounded-lg">
+                <PawPrint className="h-4 w-4 mr-2" />
+                My Pets ({Array.isArray(ownerPets) ? ownerPets.length : 0})
+              </TabsTrigger>
+              <TabsTrigger value="appointments" className="text-sm font-semibold data-[state=active]:bg-gradient-to-r data-[state=active]:from-green-500 data-[state=active]:to-green-600 data-[state=active]:text-white data-[state=active]:shadow-lg transition-all duration-200 rounded-lg">
+                <Calendar className="h-4 w-4 mr-2" />
+                Appointments ({Array.isArray(ownerAppointments) ? ownerAppointments.length : 0})
+              </TabsTrigger>
+              <TabsTrigger value="records" className="text-sm font-semibold data-[state=active]:bg-gradient-to-r data-[state=active]:from-purple-500 data-[state=active]:to-purple-600 data-[state=active]:text-white data-[state=active]:shadow-lg transition-all duration-200 rounded-lg">
+                <FileText className="h-4 w-4 mr-2" />
+                Medical Records ({Array.isArray(ownerRecords) ? ownerRecords.length : 0})
+              </TabsTrigger>
+              <TabsTrigger value="billing" className="text-sm font-semibold data-[state=active]:bg-gradient-to-r data-[state=active]:from-orange-500 data-[state=active]:to-orange-600 data-[state=active]:text-white data-[state=active]:shadow-lg transition-all duration-200 rounded-lg">
+                <Receipt className="h-4 w-4 mr-2" />
+                Billing ({Array.isArray(ownerInvoices) ? ownerInvoices.filter(i => i.status !== 'paid').length : 0})
+              </TabsTrigger>
             </TabsList>
 
             <TabsContent value="pets" className="space-y-4">
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                {ownerPets.map((pet) => (
+                {Array.isArray(ownerPets) && ownerPets.map((pet) => (
                   <Card key={pet.id} className="hover:shadow-lg transition-shadow">
                     <CardContent className="p-6">
                       <div className="flex items-center gap-4">
@@ -138,11 +129,11 @@ export default function PortalPage() {
                           <p className="text-sm text-muted-foreground">{pet.age} years old • {pet.weight}kg</p>
                         </div>
                       </div>
-                      {pet.conditions.length > 0 && (
+                      {pet.conditions && pet.conditions.length > 0 && (
                         <div className="mt-4">
                           <p className="text-sm font-medium mb-2">Health Conditions:</p>
                           <div className="flex flex-wrap gap-2">
-                            {pet.conditions.map((condition, index) => (
+                            {pet.conditions && pet.conditions.map((condition, index) => (
                               <Badge key={index} variant="secondary" className="text-xs px-3 py-1">
                                 {condition}
                               </Badge>
@@ -157,7 +148,7 @@ export default function PortalPage() {
             </TabsContent>
 
             <TabsContent value="appointments" className="space-y-4">
-              {ownerAppointments.map((appointment) => (
+              {Array.isArray(ownerAppointments) && ownerAppointments.map((appointment) => (
                 <Card key={appointment.id}>
                   <CardContent className="p-6">
                     <div className="flex items-center justify-between">
@@ -169,7 +160,7 @@ export default function PortalPage() {
                           <h3 className="font-semibold">{appointment.petName}</h3>
                           <p className="text-muted-foreground capitalize">{appointment.type}</p>
                           <p className="text-sm text-muted-foreground">
-                            {appointment.date.toLocaleDateString()} at {appointment.time}
+                            {new Date(appointment.date).toLocaleDateString()} at {appointment.time}
                           </p>
                           <p className="text-sm text-muted-foreground">{appointment.veterinarianName}</p>
                         </div>
@@ -199,7 +190,7 @@ export default function PortalPage() {
                           <h3 className="font-semibold">{record.title}</h3>
                           <p className="text-muted-foreground">{record.petName}</p>
                           <p className="text-sm text-muted-foreground">
-                            {record.date.toLocaleDateString()} • {record.veterinarianName}
+                            {new Date(record.date).toLocaleDateString()} • {record.veterinarianName}
                           </p>
                           <p className="text-sm mt-2">{record.description}</p>
                           {record.notes && (
@@ -220,7 +211,7 @@ export default function PortalPage() {
             </TabsContent>
 
             <TabsContent value="billing" className="space-y-4">
-              {ownerInvoices.map((invoice) => (
+              {Array.isArray(ownerInvoices) && ownerInvoices.map((invoice) => (
                 <Card key={invoice.id}>
                   <CardContent className="p-6">
                     <div className="flex items-center justify-between">
@@ -232,7 +223,7 @@ export default function PortalPage() {
                           <h3 className="font-semibold">{invoice.invoiceNumber}</h3>
                           <p className="text-muted-foreground">{invoice.petName}</p>
                           <p className="text-sm text-muted-foreground">
-                            Issued: {invoice.issueDate.toLocaleDateString()}
+                            Issued: {new Date(invoice.issueDate).toLocaleDateString()}
                           </p>
                           <p className="text-lg font-semibold mt-1">${invoice.total.toFixed(2)}</p>
                         </div>

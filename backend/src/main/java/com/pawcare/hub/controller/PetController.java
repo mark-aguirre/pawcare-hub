@@ -19,8 +19,14 @@ public class PetController {
     private PetService petService;
 
     @GetMapping
-    public List<PetDTO> getAllPets() {
-        return petService.getAllPets().stream()
+    public List<PetDTO> getAllPets(@RequestParam(required = false) Long ownerId) {
+        List<Pet> pets;
+        if (ownerId != null) {
+            pets = petService.getPetsByOwnerId(ownerId);
+        } else {
+            pets = petService.getAllPets();
+        }
+        return pets.stream()
                 .map(this::convertToDTO)
                 .collect(Collectors.toList());
     }

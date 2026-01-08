@@ -82,9 +82,11 @@ export function Sidebar() {
           {navigation
             .filter(item => {
               if (!user) return false;
-              if (user.permissions.includes('all')) return true;
-              if (user.role === 'pet-owner') return item.href === '/portal';
-              return item.permissions.length === 0 || item.permissions.some(permission => user.permissions.includes(permission));
+              if (user.role === 'ADMINISTRATOR') return true;
+              if (user.role === 'RECEPTIONIST') return item.href === '/portal';
+              return item.permissions.length === 0 || 
+                     (item.permissions.includes('pets') && user.role === 'VETERINARIAN') ||
+                     (item.permissions.includes('appointments') && ['VETERINARIAN', 'NURSE', 'TECHNICIAN'].includes(user.role));
             })
             .map((item) => {
               const isActive = pathname === item.href;
@@ -124,9 +126,8 @@ export function Sidebar() {
           {bottomNavigation
             .filter(item => {
               if (!user) return false;
-              if (user.permissions.includes('all')) return true;
-              if (user.role === 'pet-owner') return false;
-              return item.permissions.length === 0 || item.permissions.some(permission => user.permissions.includes(permission));
+              if (user.role === 'ADMINISTRATOR') return true;
+              return false;
             })
             .map((item) => {
               const isActive = pathname === item.href;

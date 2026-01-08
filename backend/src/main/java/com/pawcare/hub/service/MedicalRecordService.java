@@ -12,6 +12,9 @@ public class MedicalRecordService {
 
     @Autowired
     private MedicalRecordRepository medicalRecordRepository;
+    
+    @Autowired
+    private ActivityService activityService;
 
     public List<MedicalRecord> getAllMedicalRecords() {
         return medicalRecordRepository.findAll();
@@ -22,11 +25,28 @@ public class MedicalRecordService {
     }
 
     public MedicalRecord saveMedicalRecord(MedicalRecord record) {
-        return medicalRecordRepository.save(record);
+        boolean isNew = record.getId() == null;
+        MedicalRecord saved = medicalRecordRepository.save(record);
+        String action = isNew ? "CREATE" : "UPDATE";
+        String petName = saved.getPet() != null ? saved.getPet().getName() : "Unknown Pet";
+        String description = isNew ? "Medical record created" : "Medical record updated";
+        activityService.logActivity(action, "MEDICAL_RECORD", saved.getId(), 
+            "Record for " + petName, description);
+        return saved;
     }
 
     public void deleteMedicalRecord(Long id) {
-        medicalRecordRepository.deleteById(id);
+        Optional<MedicalRecord> record = medicalRecordRepository.findById(id);
+        if (record.isPresent()) {
+            String petName = record.get().getPet() != null ? record.get().getPet().getName() : "Unknown Pet";
+            medicalRecordRepository.deleteById(id);
+            activityService.logActivity("DELETE", "MEDICAL_RECORD", id, 
+                "Record for " + petName, "Medical record deleted");
+        }
+    }
+
+    public List<MedicalRecord> getMedicalRecordsByOwner(Long ownerId) {
+        return medicalRecordRepository.findByPetOwnerId(ownerId);
     }
 
     public List<MedicalRecord> getMedicalRecordsByPet(Long petId) {

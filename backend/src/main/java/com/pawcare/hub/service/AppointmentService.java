@@ -24,6 +24,9 @@ public class AppointmentService {
     
     @Autowired
     private VeterinarianService veterinarianService;
+    
+    @Autowired
+    private ActivityService activityService;
 
     public List<Appointment> getAllAppointments() {
         return appointmentRepository.findAll();
@@ -34,11 +37,21 @@ public class AppointmentService {
     }
 
     public Appointment saveAppointment(Appointment appointment) {
-        return appointmentRepository.save(appointment);
+        Appointment saved = appointmentRepository.save(appointment);
+        String petName = saved.getPet() != null ? saved.getPet().getName() : "Unknown Pet";
+        activityService.logActivity("UPDATE", "APPOINTMENT", saved.getId(), 
+            "Appointment for " + petName, "Appointment updated");
+        return saved;
     }
 
     public void deleteAppointment(Long id) {
-        appointmentRepository.deleteById(id);
+        Optional<Appointment> appointment = appointmentRepository.findById(id);
+        if (appointment.isPresent()) {
+            String petName = appointment.get().getPet() != null ? appointment.get().getPet().getName() : "Unknown Pet";
+            appointmentRepository.deleteById(id);
+            activityService.logActivity("DELETE", "APPOINTMENT", id, 
+                "Appointment for " + petName, "Appointment cancelled");
+        }
     }
 
     public List<Appointment> getAppointmentsByPet(Long petId) {
@@ -65,7 +78,11 @@ public class AppointmentService {
         Optional<Appointment> appointment = appointmentRepository.findById(id);
         if (appointment.isPresent()) {
             appointment.get().setStatus(status);
-            return appointmentRepository.save(appointment.get());
+            Appointment saved = appointmentRepository.save(appointment.get());
+            String petName = saved.getPet() != null ? saved.getPet().getName() : "Unknown Pet";
+            activityService.logActivity("STATUS_UPDATE", "APPOINTMENT", saved.getId(), 
+                "Appointment for " + petName, "Status changed to " + status.toString().toLowerCase());
+            return saved;
         }
         return null;
     }
@@ -86,6 +103,10 @@ public class AppointmentService {
         appointment.setPet(pet);
         appointment.setVeterinarian(veterinarian);
         
-        return appointmentRepository.save(appointment);
+        Appointment saved = appointmentRepository.save(appointment);
+        String petName = pet != null ? pet.getName() : "Unknown Pet";
+        activityService.logActivity("CREATE", "APPOINTMENT", saved.getId(), 
+            "Appointment for " + petName, "New appointment scheduled");
+        return saved;
     }
 }

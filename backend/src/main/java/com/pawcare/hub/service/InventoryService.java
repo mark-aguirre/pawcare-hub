@@ -13,6 +13,9 @@ public class InventoryService {
 
     @Autowired
     private InventoryItemRepository inventoryItemRepository;
+    
+    @Autowired
+    private ActivityService activityService;
 
     public List<InventoryItem> getAllInventoryItems() {
         return inventoryItemRepository.findAll();
@@ -23,11 +26,21 @@ public class InventoryService {
     }
 
     public InventoryItem saveInventoryItem(InventoryItem item) {
-        return inventoryItemRepository.save(item);
+        boolean isNew = item.getId() == null;
+        InventoryItem saved = inventoryItemRepository.save(item);
+        String action = isNew ? "CREATE" : "UPDATE";
+        String description = isNew ? "Inventory item added" : "Inventory item updated";
+        activityService.logActivity(action, "INVENTORY", saved.getId(), saved.getName(), description);
+        return saved;
     }
 
     public void deleteInventoryItem(Long id) {
-        inventoryItemRepository.deleteById(id);
+        Optional<InventoryItem> item = inventoryItemRepository.findById(id);
+        if (item.isPresent()) {
+            String itemName = item.get().getName();
+            inventoryItemRepository.deleteById(id);
+            activityService.logActivity("DELETE", "INVENTORY", id, itemName, "Inventory item removed");
+        }
     }
 
     public List<InventoryItem> getInventoryItemsByCategory(InventoryItem.ItemCategory category) {
@@ -63,7 +76,11 @@ public class InventoryService {
             if (quantity > 0) {
                 item.setLastRestocked(LocalDate.now());
             }
-            return inventoryItemRepository.save(item);
+            InventoryItem saved = inventoryItemRepository.save(item);
+            String action = quantity > 0 ? "STOCK_IN" : "STOCK_OUT";
+            String description = reason != null ? reason : (quantity > 0 ? "Stock added" : "Stock removed");
+            activityService.logActivity(action, "INVENTORY", saved.getId(), saved.getName(), description);
+            return saved;
         }
         return null;
     }

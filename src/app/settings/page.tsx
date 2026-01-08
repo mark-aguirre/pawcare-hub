@@ -13,50 +13,27 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from '@/components/ui/command';
-import { Building2, Clock, Bell, Database, Users, Check, ChevronsUpDown, Image, Type, Upload } from 'lucide-react';
+import { Building2, Clock, Bell, Database, Users, Check, ChevronsUpDown, Type, Save } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useAppSettings } from '@/contexts/AppSettingsContext';
+import { useClinicSettings, useUpdateClinicSettings, useUsers, useUserPermissions, useUpdateUserPermissions } from '@/hooks/use-settings';
+import { toast } from '@/hooks/use-toast';
+import { ClinicSettings } from '@/types';
 
 export default function SettingsPage() {
   const { settings: appSettings, updateSettings: updateAppSettings } = useAppSettings();
-  const [isLoading, setIsLoading] = useState(true);
   const [selectedUser, setSelectedUser] = useState('');
   const [openUserSelect, setOpenUserSelect] = useState(false);
 
-  useEffect(() => {
-    // Simulate loading time
-    const timer = setTimeout(() => {
-      setIsLoading(false);
-    }, 800);
+  // Backend hooks
+  const { data: clinicSettings, isLoading: settingsLoading } = useClinicSettings();
+  const { data: users, isLoading: usersLoading } = useUsers();
+  const { data: userPermissions } = useUserPermissions(selectedUser);
+  const updateClinicMutation = useUpdateClinicSettings();
+  const updatePermissionsMutation = useUpdateUserPermissions();
 
-    return () => clearTimeout(timer);
-  }, []);
-
-  const users = [
-    { value: 'dr-smith', label: 'Dr. Sarah Smith', role: 'Veterinarian' },
-    { value: 'nurse-jones', label: 'Mike Jones', role: 'Veterinary Nurse' },
-    { value: 'receptionist-brown', label: 'Lisa Brown', role: 'Receptionist' },
-    { value: 'admin-wilson', label: 'John Wilson', role: 'Administrator' },
-    { value: 'dr-johnson', label: 'Dr. Emily Johnson', role: 'Veterinarian' },
-    { value: 'tech-davis', label: 'Robert Davis', role: 'Veterinary Technician' }
-  ];
-
-  const [settings, setSettings] = useState({
-    clinicName: 'PawCare Veterinary Clinic',
-    address: '123 Pet Street, Animal City, AC 12345',
-    phone: '(555) 123-4567',
-    email: 'info@pawcare.com',
-    timezone: 'America/New_York',
-    appointmentDuration: '30',
-    workingHours: { start: '08:00', end: '18:00' },
-    emailNotifications: true,
-    smsNotifications: false,
-    appointmentReminders: true,
-    autoBackup: true,
-    backupFrequency: 'daily',
-    theme: 'system'
-  });
-
+  // Local state for form data
+  const [settings, setSettings] = useState<Partial<ClinicSettings>>({});
   const [userAccess, setUserAccess] = useState({
     appointments: true,
     pets: true,
@@ -67,6 +44,22 @@ export default function SettingsPage() {
     reports: false,
     settings: false
   });
+
+  const isLoading = settingsLoading || usersLoading;
+
+  // Update local state when backend data loads
+  useEffect(() => {
+    if (clinicSettings) {
+      setSettings(clinicSettings);
+    }
+  }, [clinicSettings]);
+
+  // Update user access when user permissions load
+  useEffect(() => {
+    if (userPermissions && 'permissions' in userPermissions) {
+      setUserAccess(userPermissions.permissions);
+    }
+  }, [userPermissions]);
 
   const handleLogoUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
@@ -80,8 +73,48 @@ export default function SettingsPage() {
     }
   };
 
-  const handleSave = () => {
-    console.log('Settings saved:', { settings, userAccess, appSettings });
+  const handleSave = async () => {
+    try {
+      await updateClinicMutation.mutateAsync(settings);
+      toast({
+        title: 'Settings saved',
+        description: 'Your clinic settings have been updated successfully.',
+      });
+    } catch (error) {
+      toast({
+        title: 'Error',
+        description: 'Failed to save settings. Please try again.',
+        variant: 'destructive',
+      });
+    }
+  };
+
+  const handleSavePermissions = async () => {
+    if (!selectedUser) {
+      toast({
+        title: 'Error',
+        description: 'Please select a user first.',
+        variant: 'destructive',
+      });
+      return;
+    }
+
+    try {
+      await updatePermissionsMutation.mutateAsync({
+        userId: selectedUser,
+        permissions: userAccess
+      });
+      toast({
+        title: 'Permissions updated',
+        description: 'User permissions have been updated successfully.',
+      });
+    } catch (error) {
+      toast({
+        title: 'Error',
+        description: 'Failed to update permissions. Please try again.',
+        variant: 'destructive',
+      });
+    }
   };
 
   const modules = [
@@ -202,7 +235,7 @@ export default function SettingsPage() {
                   <Label htmlFor="clinicName">Clinic Name</Label>
                   <Input
                     id="clinicName"
-                    value={settings.clinicName}
+                    value={settings.clinicName || ''}
                     onChange={(e) => setSettings({ ...settings, clinicName: e.target.value })}
                   />
                 </div>
@@ -210,7 +243,7 @@ export default function SettingsPage() {
                   <Label htmlFor="phone">Phone Number</Label>
                   <Input
                     id="phone"
-                    value={settings.phone}
+                    value={settings.phone || ''}
                     onChange={(e) => setSettings({ ...settings, phone: e.target.value })}
                   />
                 </div>
@@ -219,7 +252,7 @@ export default function SettingsPage() {
                 <Label htmlFor="address">Address</Label>
                 <Input
                   id="address"
-                  value={settings.address}
+                  value={settings.address || ''}
                   onChange={(e) => setSettings({ ...settings, address: e.target.value })}
                 />
               </div>
@@ -228,7 +261,7 @@ export default function SettingsPage() {
                 <Input
                   id="email"
                   type="email"
-                  value={settings.email}
+                  value={settings.email || ''}
                   onChange={(e) => setSettings({ ...settings, email: e.target.value })}
                 />
               </div>
@@ -253,10 +286,10 @@ export default function SettingsPage() {
                   <Input
                     id="startTime"
                     type="time"
-                    value={settings.workingHours.start}
+                    value={settings.workingHoursStart || '08:00'}
                     onChange={(e) => setSettings({ 
                       ...settings, 
-                      workingHours: { ...settings.workingHours, start: e.target.value }
+                      workingHoursStart: e.target.value
                     })}
                   />
                 </div>
@@ -265,18 +298,18 @@ export default function SettingsPage() {
                   <Input
                     id="endTime"
                     type="time"
-                    value={settings.workingHours.end}
+                    value={settings.workingHoursEnd || '18:00'}
                     onChange={(e) => setSettings({ 
                       ...settings, 
-                      workingHours: { ...settings.workingHours, end: e.target.value }
+                      workingHoursEnd: e.target.value
                     })}
                   />
                 </div>
                 <div className="space-y-2">
                   <Label htmlFor="appointmentDuration">Default Appointment Duration (minutes)</Label>
                   <Select
-                    value={settings.appointmentDuration}
-                    onValueChange={(value) => setSettings({ ...settings, appointmentDuration: value })}
+                    value={settings.appointmentDuration?.toString() || '30'}
+                    onValueChange={(value) => setSettings({ ...settings, appointmentDuration: parseInt(value) })}
                   >
                     <SelectTrigger>
                       <SelectValue />
@@ -293,7 +326,7 @@ export default function SettingsPage() {
               <div className="space-y-2">
                 <Label htmlFor="timezone">Timezone</Label>
                 <Select
-                  value={settings.timezone}
+                  value={settings.timezone || 'America/New_York'}
                   onValueChange={(value) => setSettings({ ...settings, timezone: value })}
                 >
                   <SelectTrigger>
@@ -328,7 +361,7 @@ export default function SettingsPage() {
                   <p className="text-sm text-muted-foreground">Receive notifications via email</p>
                 </div>
                 <Switch
-                  checked={settings.emailNotifications}
+                  checked={settings.emailNotifications || false}
                   onCheckedChange={(checked) => setSettings({ ...settings, emailNotifications: checked })}
                 />
               </div>
@@ -338,7 +371,7 @@ export default function SettingsPage() {
                   <p className="text-sm text-muted-foreground">Receive notifications via text message</p>
                 </div>
                 <Switch
-                  checked={settings.smsNotifications}
+                  checked={settings.smsNotifications || false}
                   onCheckedChange={(checked) => setSettings({ ...settings, smsNotifications: checked })}
                 />
               </div>
@@ -348,7 +381,7 @@ export default function SettingsPage() {
                   <p className="text-sm text-muted-foreground">Send automatic reminders to pet owners</p>
                 </div>
                 <Switch
-                  checked={settings.appointmentReminders}
+                  checked={settings.appointmentReminders || false}
                   onCheckedChange={(checked) => setSettings({ ...settings, appointmentReminders: checked })}
                 />
               </div>
@@ -373,7 +406,7 @@ export default function SettingsPage() {
                   <p className="text-sm text-muted-foreground">Automatically backup your data</p>
                 </div>
                 <Switch
-                  checked={settings.autoBackup}
+                  checked={settings.autoBackup || false}
                   onCheckedChange={(checked) => setSettings({ ...settings, autoBackup: checked })}
                 />
               </div>
@@ -381,16 +414,16 @@ export default function SettingsPage() {
                 <div className="space-y-2">
                   <Label htmlFor="backupFrequency">Backup Frequency</Label>
                   <Select
-                    value={settings.backupFrequency}
-                    onValueChange={(value) => setSettings({ ...settings, backupFrequency: value })}
+                    value={settings.backupFrequency || 'DAILY'}
+                    onValueChange={(value) => setSettings({ ...settings, backupFrequency: value as 'HOURLY' | 'DAILY' | 'WEEKLY' })}
                   >
                     <SelectTrigger>
                       <SelectValue />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="hourly">Every Hour</SelectItem>
-                      <SelectItem value="daily">Daily</SelectItem>
-                      <SelectItem value="weekly">Weekly</SelectItem>
+                      <SelectItem value="HOURLY">Every Hour</SelectItem>
+                      <SelectItem value="DAILY">Daily</SelectItem>
+                      <SelectItem value="WEEKLY">Weekly</SelectItem>
                     </SelectContent>
                   </Select>
                 </div>
@@ -398,16 +431,16 @@ export default function SettingsPage() {
               <div className="space-y-2">
                 <Label htmlFor="theme">Theme</Label>
                 <Select
-                  value={settings.theme}
-                  onValueChange={(value) => setSettings({ ...settings, theme: value })}
+                  value={settings.theme || 'SYSTEM'}
+                  onValueChange={(value) => setSettings({ ...settings, theme: value as 'LIGHT' | 'DARK' | 'SYSTEM' })}
                 >
                   <SelectTrigger>
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="light">Light</SelectItem>
-                    <SelectItem value="dark">Dark</SelectItem>
-                    <SelectItem value="system">System</SelectItem>
+                    <SelectItem value="LIGHT">Light</SelectItem>
+                    <SelectItem value="DARK">Dark</SelectItem>
+                    <SelectItem value="SYSTEM">System</SelectItem>
                   </SelectContent>
                 </Select>
               </div>
@@ -438,7 +471,7 @@ export default function SettingsPage() {
                       className="w-full justify-between"
                     >
                       {selectedUser
-                        ? users.find((user) => user.value === selectedUser)?.label + ' (' + users.find((user) => user.value === selectedUser)?.role + ')'
+                        ? users?.find((user) => user.id === selectedUser)?.firstName + ' ' + users?.find((user) => user.id === selectedUser)?.lastName + ' (' + users?.find((user) => user.id === selectedUser)?.role + ')'
                         : "Choose a user to configure access..."}
                       <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
                     </Button>
@@ -449,10 +482,10 @@ export default function SettingsPage() {
                       <CommandList>
                         <CommandEmpty>No user found.</CommandEmpty>
                         <CommandGroup>
-                          {users.map((user) => (
+                          {users?.map((user) => (
                             <CommandItem
-                              key={user.value}
-                              value={user.value}
+                              key={user.id}
+                              value={user.id}
                               onSelect={(currentValue) => {
                                 setSelectedUser(currentValue === selectedUser ? "" : currentValue);
                                 setOpenUserSelect(false);
@@ -461,10 +494,10 @@ export default function SettingsPage() {
                               <Check
                                 className={cn(
                                   "mr-2 h-4 w-4",
-                                  selectedUser === user.value ? "opacity-100" : "opacity-0"
+                                  selectedUser === user.id ? "opacity-100" : "opacity-0"
                                 )}
                               />
-                              {user.label} ({user.role})
+                              {user.firstName} {user.lastName} ({user.role})
                             </CommandItem>
                           ))}
                         </CommandGroup>
@@ -495,10 +528,22 @@ export default function SettingsPage() {
           </Card>
         </TabsContent>
 
-        {/* Save Button */}
-        <div className="flex justify-end">
-          <Button onClick={handleSave} size="lg">
-            Save Settings
+        {/* Save Buttons */}
+        <div className="flex justify-end gap-2">
+          <Button 
+            onClick={handleSavePermissions} 
+            variant="outline"
+            disabled={!selectedUser || updatePermissionsMutation.isPending}
+          >
+            {updatePermissionsMutation.isPending ? 'Saving...' : 'Save Permissions'}
+          </Button>
+          <Button 
+            onClick={handleSave} 
+            size="lg"
+            disabled={updateClinicMutation.isPending}
+          >
+            <Save className="mr-2 h-4 w-4" />
+            {updateClinicMutation.isPending ? 'Saving...' : 'Save Settings'}
           </Button>
         </div>
       </Tabs>

@@ -25,6 +25,9 @@ public class Owner {
     @Email
     private String email;
 
+    @Column(unique = true)
+    private String pid;
+
     private String phone;
     private String address;
     private String city;
@@ -72,6 +75,9 @@ public class Owner {
 
     public String getEmail() { return email; }
     public void setEmail(String email) { this.email = email; }
+
+    public String getPid() { return pid; }
+    public void setPid(String pid) { this.pid = pid; }
 
     public String getPhone() { return phone; }
     public void setPhone(String phone) { this.phone = phone; }

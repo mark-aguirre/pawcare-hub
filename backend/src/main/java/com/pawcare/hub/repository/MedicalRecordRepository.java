@@ -13,6 +13,9 @@ public interface MedicalRecordRepository extends JpaRepository<MedicalRecord, Lo
     
     List<MedicalRecord> findByPetId(Long petId);
     
+    @Query("SELECT mr FROM MedicalRecord mr WHERE mr.pet.owner.id = :ownerId")
+    List<MedicalRecord> findByPetOwnerId(@Param("ownerId") Long ownerId);
+    
     List<MedicalRecord> findByType(MedicalRecord.RecordType type);
     
     List<MedicalRecord> findByStatus(MedicalRecord.RecordStatus status);

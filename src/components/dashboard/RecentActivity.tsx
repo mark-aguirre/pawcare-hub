@@ -1,12 +1,14 @@
-import { Clock, CheckCircle, Calendar, FileText, User, PawPrint } from 'lucide-react';
+import { Clock, CheckCircle, Calendar, FileText, User, PawPrint, Plus, Edit, Trash2 } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { Skeleton } from '@/components/ui/skeleton';
-import { useRecentActivity } from '@/hooks/use-dashboard';
+import { useActivities } from '@/hooks/use-activities';
 import { cn } from '@/lib/utils';
+import { useRouter } from 'next/navigation';
 
 interface ActivityItem {
   id: string;
-  type: 'appointment' | 'record' | 'pet' | 'owner';
+  action: string;
+  entityType: string;
   title: string;
   description: string;
   time: string;
@@ -14,51 +16,64 @@ interface ActivityItem {
   color: string;
 }
 
-const typeLabels = {
-  appointment: 'Appointment',
-  record: 'Medical Record',
-  pet: 'Pet Registration',
-  owner: 'New Client',
+const typeLabels: Record<string, string> = {
+  APPOINTMENT: 'Appointment',
+  PET: 'Pet',
+  OWNER: 'Owner',
+  MEDICAL_RECORD: 'Medical Record',
+  INVOICE: 'Invoice',
+  PRESCRIPTION: 'Prescription',
+  VACCINATION: 'Vaccination',
+  INVENTORY: 'Inventory',
+  LAB_TEST: 'Lab Test',
 };
 
-function formatActivityData(activity: any): ActivityItem[] {
-  const items: ActivityItem[] = [];
-  
-  // Process recent appointments
-  if (activity?.recentAppointments) {
-    activity.recentAppointments.forEach((apt: any) => {
-      items.push({
-        id: `apt-${apt.id}`,
-        type: 'appointment',
-        title: apt.status === 'completed' ? 'Appointment Completed' : 'New Appointment',
-        description: `${apt.petName} - ${apt.notes || apt.type}`,
-        time: new Date(apt.date).toLocaleDateString(),
-        icon: apt.status === 'completed' ? CheckCircle : Calendar,
-        color: apt.status === 'completed' ? 'text-success' : 'text-accent',
-      });
-    });
+const actionLabels: Record<string, string> = {
+  CREATE: 'Created',
+  UPDATE: 'Updated',
+  DELETE: 'Deleted',
+  STATUS_UPDATE: 'Status Changed',
+  STOCK_IN: 'Stock Added',
+  STOCK_OUT: 'Stock Removed',
+};
+
+function getActivityIcon(action: string, entityType: string) {
+  if (action === 'CREATE') return Plus;
+  if (action === 'UPDATE' || action === 'STATUS_UPDATE') return Edit;
+  if (action === 'DELETE') return Trash2;
+  if (entityType === 'APPOINTMENT') return Calendar;
+  if (entityType === 'PET') return PawPrint;
+  if (entityType === 'OWNER') return User;
+  if (entityType === 'MEDICAL_RECORD') return FileText;
+  if (entityType === 'INVOICE') return FileText;
+  return FileText;
+}
+
+function getActivityColor(action: string) {
+  switch (action) {
+    case 'CREATE': case 'STOCK_IN': return 'text-success';
+    case 'UPDATE': case 'STATUS_UPDATE': return 'text-primary';
+    case 'DELETE': case 'STOCK_OUT': return 'text-destructive';
+    default: return 'text-muted-foreground';
   }
-  
-  // Process recent invoices
-  if (activity?.recentInvoices) {
-    activity.recentInvoices.forEach((inv: any) => {
-      items.push({
-        id: `inv-${inv.id}`,
-        type: 'record',
-        title: 'Invoice Created',
-        description: `${inv.petName} - $${inv.total}`,
-        time: new Date(inv.issueDate).toLocaleDateString(),
-        icon: FileText,
-        color: 'text-primary',
-      });
-    });
-  }
-  
-  return items.sort((a, b) => new Date(b.time).getTime() - new Date(a.time).getTime()).slice(0, 6);
+}
+
+function formatActivityData(activities: any[]): ActivityItem[] {
+  return activities.map((activity) => ({
+    id: `${activity.entityType}-${activity.id}`,
+    action: activity.action,
+    entityType: activity.entityType,
+    title: `${actionLabels[activity.action] || activity.action} ${typeLabels[activity.entityType] || activity.entityType}`,
+    description: activity.description || activity.entityName,
+    time: new Date(activity.timestamp).toLocaleString(),
+    icon: getActivityIcon(activity.action, activity.entityType),
+    color: getActivityColor(activity.action),
+  }));
 }
 
 export function RecentActivity() {
-  const { activity, loading, error } = useRecentActivity();
+  const { activities, loading, error } = useActivities(6);
+  const router = useRouter();
   
   if (loading) {
     return (
@@ -96,7 +111,7 @@ export function RecentActivity() {
     );
   }
   
-  const activities = formatActivityData(activity);
+  const activityItems = formatActivityData(activities);
 
   return (
     <div className="rounded-2xl border border-border bg-card p-6 animate-slide-up shadow-card" style={{ animationDelay: '250ms' }}>
@@ -106,12 +121,12 @@ export function RecentActivity() {
           <p className="text-sm text-muted-foreground">Latest updates and changes</p>
         </div>
         <Badge variant="secondary" className="text-xs">
-          {activities.length} items
+          {activityItems.length} items
         </Badge>
       </div>
 
       <div className="space-y-4">
-        {activities.length > 0 ? activities.map((activityItem, index) => (
+        {activityItems.length > 0 ? activityItems.map((activityItem, index) => (
           <div
             key={activityItem.id}
             className="group flex items-start gap-4 p-3 rounded-xl hover:bg-secondary/50 transition-all duration-200 cursor-pointer"
@@ -120,11 +135,9 @@ export function RecentActivity() {
             {/* Icon */}
             <div className={cn(
               'rounded-xl p-2.5 transition-all duration-300 group-hover:scale-110',
-              activityItem.type === 'appointment' && activityItem.title.includes('Completed') ? 'bg-success/10' :
-              activityItem.type === 'record' ? 'bg-primary/10' :
-              activityItem.type === 'appointment' && activityItem.title.includes('New') ? 'bg-accent/10' :
-              activityItem.type === 'pet' ? 'bg-warning/10' :
-              activityItem.type === 'owner' ? 'bg-secondary' :
+              activityItem.action === 'CREATE' ? 'bg-success/10' :
+              activityItem.action === 'UPDATE' || activityItem.action === 'STATUS_UPDATE' ? 'bg-primary/10' :
+              activityItem.action === 'DELETE' ? 'bg-destructive/10' :
               'bg-muted'
             )}>
               <activityItem.icon className={cn('h-4 w-4', activityItem.color)} />
@@ -137,7 +150,7 @@ export function RecentActivity() {
                   {activityItem.title}
                 </h4>
                 <Badge variant="outline" className="text-xs">
-                  {typeLabels[activityItem.type]}
+                  {typeLabels[activityItem.entityType] || activityItem.entityType}
                 </Badge>
               </div>
               <p className="text-sm text-muted-foreground mb-1">{activityItem.description}</p>
@@ -153,7 +166,7 @@ export function RecentActivity() {
                 'w-2 h-2 rounded-full transition-all duration-300',
                 index === 0 ? 'bg-primary animate-pulse' : 'bg-border group-hover:bg-primary/50'
               )} />
-              {index < activities.length - 1 && (
+              {index < activityItems.length - 1 && (
                 <div className="w-px h-8 bg-border mt-2" />
               )}
             </div>
@@ -168,7 +181,10 @@ export function RecentActivity() {
 
       {/* View all link */}
       <div className="mt-4 pt-4 border-t border-border">
-        <button className="w-full text-sm font-medium text-primary hover:underline transition-colors">
+        <button 
+          onClick={() => router.push('/activities')}
+          className="w-full text-sm font-medium text-primary hover:underline transition-colors"
+        >
           View all activity
         </button>
       </div>

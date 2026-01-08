@@ -1,5 +1,6 @@
 export interface Owner {
   id: number;
+  pid?: string;
   firstName: string;
   lastName: string;
   email: string;
@@ -223,4 +224,55 @@ export interface DashboardStats {
   lowStockItems: number;
   revenueToday: number;
   completedToday: number;
+}
+
+export interface ClinicSettings {
+  id: number;
+  clinicName: string;
+  address: string;
+  phone: string;
+  email: string;
+  timezone: string;
+  appointmentDuration: number;
+  workingHoursStart: string;
+  workingHoursEnd: string;
+  emailNotifications: boolean;
+  smsNotifications: boolean;
+  appointmentReminders: boolean;
+  autoBackup: boolean;
+  backupFrequency: 'HOURLY' | 'DAILY' | 'WEEKLY';
+  theme: 'LIGHT' | 'DARK' | 'SYSTEM';
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface UserPermissions {
+  id: number;
+  user: User;
+  permissions: {
+    appointments: boolean;
+    pets: boolean;
+    owners: boolean;
+    records: boolean;
+    inventory: boolean;
+    billing: boolean;
+    reports: boolean;
+    settings: boolean;
+  };
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface User {
+  id: number;
+  firstName: string;
+  lastName: string;
+  email: string;
+  pid?: string;
+  phone?: string;
+  role: 'VETERINARIAN' | 'NURSE' | 'RECEPTIONIST' | 'ADMINISTRATOR' | 'TECHNICIAN' | 'OWNER';
+  permissions?: string[];
+  isActive: boolean;
+  createdAt: string;
+  updatedAt: string;
 }
