@@ -1,5 +1,6 @@
 package com.pawcare.hub.entity;
 
+import com.fasterxml.jackson.annotation.JsonBackReference;
 import jakarta.persistence.*;
 import jakarta.validation.constraints.NotNull;
 import java.math.BigDecimal;
@@ -14,6 +15,7 @@ public class InvoiceItem {
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "invoice_id")
     @NotNull
+    @JsonBackReference
     private Invoice invoice;
 
     private String description;

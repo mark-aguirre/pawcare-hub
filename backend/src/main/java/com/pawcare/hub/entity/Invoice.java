@@ -1,5 +1,6 @@
 package com.pawcare.hub.entity;
 
+import com.fasterxml.jackson.annotation.JsonManagedReference;
 import jakarta.persistence.*;
 import jakarta.validation.constraints.NotNull;
 import java.math.BigDecimal;
@@ -46,6 +47,7 @@ public class Invoice {
     private LocalDate paidDate;
 
     @OneToMany(mappedBy = "invoice", cascade = CascadeType.ALL, fetch = FetchType.LAZY)
+    @JsonManagedReference
     private List<InvoiceItem> items;
 
     private BigDecimal subtotal;

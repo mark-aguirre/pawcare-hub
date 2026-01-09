@@ -161,7 +161,7 @@ export function InvoiceDetailPanel({ invoice, open, onOpenChange, onEdit, onPaym
                   )}
                   <div className="flex flex-col text-sm">
                     <span className="text-muted-foreground">Veterinarian</span>
-                    <span>{invoice.veterinarianName}</span>
+                    <span>{invoice.veterinarianName || 'Not assigned'}</span>
                   </div>
                   {invoice.appointmentId && (
                     <div className="flex flex-col text-sm">
@@ -187,13 +187,13 @@ export function InvoiceDetailPanel({ invoice, open, onOpenChange, onEdit, onPaym
                   </div>
                   <div className="flex flex-col text-sm">
                     <span className="text-muted-foreground">Email</span>
-                    <span>{invoice.ownerEmail}</span>
+                    <span>{invoice.ownerEmail || 'Not provided'}</span>
                   </div>
                 </div>
                 <div className="space-y-3">
                   <div className="flex flex-col text-sm">
                     <span className="text-muted-foreground">Pet</span>
-                    <span>{invoice.petName} ({invoice.petSpecies})</span>
+                    <span>{invoice.petName} ({invoice.petSpecies || 'Unknown'})</span>
                   </div>
                 </div>
               </div>

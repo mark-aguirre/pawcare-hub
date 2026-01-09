@@ -27,6 +27,11 @@ public class InvoiceService {
     }
 
     public Invoice saveInvoice(Invoice invoice) {
+        // Set up bidirectional relationship for items
+        if (invoice.getItems() != null) {
+            invoice.getItems().forEach(item -> item.setInvoice(invoice));
+        }
+        
         // Calculate totals before saving
         calculateInvoiceTotals(invoice);
         boolean isNew = invoice.getId() == null;

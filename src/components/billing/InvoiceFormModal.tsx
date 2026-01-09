@@ -42,8 +42,10 @@ import {
   User,
   PawPrint
 } from 'lucide-react';
-import { Invoice, InvoiceItem, Pet, Owner } from '@/types';
-import { mockPets, mockOwners, mockVeterinarians, mockBillingSettings } from '@/data/mockData';
+import { Invoice, InvoiceItem } from '@/types';
+import { usePets } from '@/hooks/use-pets';
+import { useVeterinarians } from '@/hooks/use-veterinarians';
+import { mockBillingSettings } from '@/data/mockData';
 import { cn } from '@/lib/utils';
 
 interface InvoiceFormPanelProps {
@@ -72,6 +74,9 @@ const defaultItem: Omit<InvoiceItem, 'id'> = {
 };
 
 export function InvoiceFormPanel({ invoice, open, onOpenChange, onSave }: InvoiceFormPanelProps) {
+  const { pets, isLoading: petsLoading } = usePets();
+  const { veterinarians, isLoading: vetsLoading } = useVeterinarians();
+  
   const [formData, setFormData] = useState({
     petId: '',
     ownerId: '',
@@ -84,8 +89,8 @@ export function InvoiceFormPanel({ invoice, open, onOpenChange, onSave }: Invoic
     { ...defaultItem, tempId: '1' }
   ]);
 
-  const [selectedPet, setSelectedPet] = useState<Pet | null>(null);
-  const [selectedOwner, setSelectedOwner] = useState<Owner | null>(null);
+  const [selectedPet, setSelectedPet] = useState<any>(null);
+  const [selectedOwner, setSelectedOwner] = useState<any>(null);
   const [petSearchOpen, setPetSearchOpen] = useState(false);
   const [vetSearchOpen, setVetSearchOpen] = useState(false);
   const [calendarOpen, setCalendarOpen] = useState(false);
@@ -94,9 +99,9 @@ export function InvoiceFormPanel({ invoice, open, onOpenChange, onSave }: Invoic
     if (invoice) {
       // Edit mode - populate form with existing invoice data
       setFormData({
-        petId: invoice.petId,
-        ownerId: invoice.ownerId,
-        veterinarianId: invoice.veterinarianId,
+        petId: invoice.petId?.toString() || '',
+        ownerId: invoice.ownerId?.toString() || '',
+        veterinarianId: invoice.veterinarianId?.toString() || '',
         dueDate: invoice.dueDate,
         notes: invoice.notes || '',
       });
@@ -106,10 +111,9 @@ export function InvoiceFormPanel({ invoice, open, onOpenChange, onSave }: Invoic
         tempId: `${index + 1}`,
       })));
 
-      const pet = mockPets.find(p => p.id === invoice.petId);
-      const owner = mockOwners.find(o => o.id === invoice.ownerId);
+      const pet = pets.find(p => p.id === invoice.petId);
       setSelectedPet(pet || null);
-      setSelectedOwner(owner || null);
+      setSelectedOwner(pet ? { name: pet.ownerName } : null);
     } else {
       // Create mode - reset form
       const defaultDueDate = new Date(Date.now() + mockBillingSettings.defaultPaymentTerms * 24 * 60 * 60 * 1000);
@@ -127,15 +131,14 @@ export function InvoiceFormPanel({ invoice, open, onOpenChange, onSave }: Invoic
   }, [invoice, open]);
 
   const handlePetChange = (petId: string) => {
-    const pet = mockPets.find(p => p.id === petId);
-    const owner = mockOwners.find(o => o.id === pet?.ownerId);
+    const pet = pets.find(p => p.id.toString() === petId);
     
     setSelectedPet(pet || null);
-    setSelectedOwner(owner || null);
+    setSelectedOwner(pet ? { name: pet.ownerName } : null);
     setFormData(prev => ({
       ...prev,
       petId,
-      ownerId: pet?.ownerId || '',
+      ownerId: pet?.ownerId?.toString() || '',
     }));
   };
 
@@ -180,7 +183,7 @@ export function InvoiceFormPanel({ invoice, open, onOpenChange, onSave }: Invoic
       petSpecies: selectedPet?.species || 'other',
       ownerName: selectedOwner?.name || '',
       ownerEmail: selectedOwner?.email || '',
-      veterinarianName: mockVeterinarians.find(v => v.id === formData.veterinarianId)?.name || '',
+      veterinarianName: veterinarians.find(v => v.id.toString() === formData.veterinarianId)?.name || '',
       issueDate: new Date(),
       dueDate: formData.dueDate || new Date(),
       items: items.map((item, index) => ({
@@ -215,7 +218,7 @@ export function InvoiceFormPanel({ invoice, open, onOpenChange, onSave }: Invoic
     <SlidingPanel
       open={open}
       onOpenChange={onOpenChange}
-      width="xl"
+      width="2xl"
       title={invoice ? 'Edit Invoice' : 'Create New Invoice'}
     >
       <SlidingPanelContent>
@@ -246,14 +249,14 @@ export function InvoiceFormPanel({ invoice, open, onOpenChange, onSave }: Invoic
                 <PopoverContent className="w-full p-0">
                   <Command>
                     <CommandInput placeholder="Search pets..." />
-                    <CommandEmpty>No pet found.</CommandEmpty>
+                    <CommandEmpty>{petsLoading ? 'Loading pets...' : 'No pet found.'}</CommandEmpty>
                     <CommandGroup className="max-h-64 overflow-auto">
-                      {mockPets.map((pet) => (
+                      {pets.map((pet) => (
                         <CommandItem
                           key={pet.id}
-                          value={`${pet.name} ${pet.species} ${pet.ownerName} ${pet.breed}`}
+                          value={`${pet.name} ${pet.species} ${pet.ownerName || ''} ${pet.breed || ''}`}
                           onSelect={() => {
-                            handlePetChange(pet.id);
+                            handlePetChange(pet.id.toString());
                             setPetSearchOpen(false);
                           }}
                         >
@@ -267,7 +270,7 @@ export function InvoiceFormPanel({ invoice, open, onOpenChange, onSave }: Invoic
                             <PawPrint className="h-4 w-4" />
                             <div>
                               <div className="font-medium">{pet.name} ({pet.species})</div>
-                              <div className="text-sm text-muted-foreground">{pet.ownerName} • {pet.breed}</div>
+                              <div className="text-sm text-muted-foreground">{pet.ownerName || 'Unknown Owner'} • {pet.breed || 'Mixed'}</div>
                             </div>
                           </div>
                         </CommandItem>
@@ -291,7 +294,7 @@ export function InvoiceFormPanel({ invoice, open, onOpenChange, onSave }: Invoic
                     {formData.veterinarianId ? (
                       <div className="flex items-center gap-2">
                         <User className="h-4 w-4" />
-                        {mockVeterinarians.find(v => v.id === formData.veterinarianId)?.name} - {mockVeterinarians.find(v => v.id === formData.veterinarianId)?.specialization}
+                        {veterinarians.find(v => v.id.toString() === formData.veterinarianId)?.name} - {veterinarians.find(v => v.id.toString() === formData.veterinarianId)?.specialization || 'General Practice'}
                       </div>
                     ) : (
                       "Select veterinarian..."
@@ -302,28 +305,28 @@ export function InvoiceFormPanel({ invoice, open, onOpenChange, onSave }: Invoic
                 <PopoverContent className="w-full p-0">
                   <Command>
                     <CommandInput placeholder="Search veterinarians..." />
-                    <CommandEmpty>No veterinarian found.</CommandEmpty>
+                    <CommandEmpty>{vetsLoading ? 'Loading veterinarians...' : 'No veterinarian found.'}</CommandEmpty>
                     <CommandGroup className="max-h-64 overflow-auto">
-                      {mockVeterinarians.map((vet) => (
+                      {veterinarians.map((vet) => (
                         <CommandItem
                           key={vet.id}
-                          value={`${vet.name} ${vet.specialization} ${vet.email}`}
+                          value={`${vet.name} ${vet.specialization || ''} ${vet.email}`}
                           onSelect={() => {
-                            setFormData(prev => ({ ...prev, veterinarianId: vet.id }));
+                            setFormData(prev => ({ ...prev, veterinarianId: vet.id.toString() }));
                             setVetSearchOpen(false);
                           }}
                         >
                           <Check
                             className={cn(
                               "mr-2 h-4 w-4",
-                              formData.veterinarianId === vet.id ? "opacity-100" : "opacity-0"
+                              formData.veterinarianId === vet.id.toString() ? "opacity-100" : "opacity-0"
                             )}
                           />
                           <div className="flex items-center gap-2">
                             <User className="h-4 w-4" />
                             <div>
                               <div className="font-medium">{vet.name}</div>
-                              <div className="text-sm text-muted-foreground">{vet.specialization} • {vet.email}</div>
+                              <div className="text-sm text-muted-foreground">{vet.specialization || 'General Practice'} • {vet.email}</div>
                             </div>
                           </div>
                         </CommandItem>
@@ -445,79 +448,89 @@ export function InvoiceFormPanel({ invoice, open, onOpenChange, onSave }: Invoic
               </Button>
             </div>
 
-            <div className="space-y-3">
+            <div className="space-y-4">
               {items.map((item) => (
-                <div key={item.tempId} className="grid grid-cols-12 gap-3 p-4 border border-border rounded-lg">
-                  <div className="col-span-12 md:col-span-4">
-                    <Label className="text-xs">Description *</Label>
-                    <Input
-                      placeholder="Service description"
-                      value={item.description}
-                      onChange={(e) => updateItem(item.tempId, 'description', e.target.value)}
-                    />
-                  </div>
-                  
-                  <div className="col-span-6 md:col-span-2">
-                    <Label className="text-xs">Category</Label>
-                    <Select 
-                      value={item.category} 
-                      onValueChange={(value) => updateItem(item.tempId, 'category', value)}
-                    >
-                      <SelectTrigger>
-                        <SelectValue />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {serviceCategories.map((category) => (
-                          <SelectItem key={category} value={category}>
-                            <Badge variant="outline" className="capitalize">
-                              {category}
-                            </Badge>
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                  </div>
-
-                  <div className="col-span-3 md:col-span-1">
-                    <Label className="text-xs">Qty</Label>
-                    <Input
-                      type="number"
-                      min="1"
-                      value={item.quantity}
-                      onChange={(e) => updateItem(item.tempId, 'quantity', parseInt(e.target.value) || 1)}
-                    />
-                  </div>
-
-                  <div className="col-span-3 md:col-span-2">
-                    <Label className="text-xs">Unit Price</Label>
-                    <Input
-                      type="number"
-                      step="0.01"
-                      min="0"
-                      value={item.unitPrice}
-                      onChange={(e) => updateItem(item.tempId, 'unitPrice', parseFloat(e.target.value) || 0)}
-                    />
-                  </div>
-
-                  <div className="col-span-9 md:col-span-2">
-                    <Label className="text-xs">Total</Label>
-                    <div className="flex items-center gap-2">
+                <div key={item.tempId} className="p-6 border border-border rounded-lg bg-card space-y-4">
+                  {/* First Row - Description and Category */}
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div>
+                      <Label className="text-sm font-medium mb-2 block">Description *</Label>
                       <Input
-                        value={`${item.total.toFixed(2)}`}
-                        readOnly
-                        className="bg-secondary"
+                        placeholder="Service description"
+                        value={item.description}
+                        onChange={(e) => updateItem(item.tempId, 'description', e.target.value)}
+                        className="h-10"
                       />
-                      {items.length > 1 && (
+                    </div>
+                    
+                    <div>
+                      <Label className="text-sm font-medium mb-2 block">Category</Label>
+                      <Select 
+                        value={item.category} 
+                        onValueChange={(value) => updateItem(item.tempId, 'category', value)}
+                      >
+                        <SelectTrigger className="h-10">
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {serviceCategories.map((category) => (
+                            <SelectItem key={category} value={category}>
+                              <Badge variant="outline" className="capitalize">
+                                {category}
+                              </Badge>
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </div>
+                  </div>
+
+                  {/* Second Row - Qty, Unit Price, Total, Delete */}
+                  <div className="grid grid-cols-12 gap-4">
+                    <div className="col-span-3">
+                      <Label className="text-sm font-medium mb-2 block">Qty</Label>
+                      <Input
+                        type="number"
+                        min="1"
+                        value={item.quantity}
+                        onChange={(e) => updateItem(item.tempId, 'quantity', parseInt(e.target.value) || 1)}
+                        className="h-10"
+                      />
+                    </div>
+
+                    <div className="col-span-4">
+                      <Label className="text-sm font-medium mb-2 block">Unit Price</Label>
+                      <Input
+                        type="number"
+                        step="0.01"
+                        min="0"
+                        value={item.unitPrice}
+                        onChange={(e) => updateItem(item.tempId, 'unitPrice', parseFloat(e.target.value) || 0)}
+                        className="h-10"
+                      />
+                    </div>
+
+                    <div className="col-span-4">
+                      <Label className="text-sm font-medium mb-2 block">Total</Label>
+                      <Input
+                        value={`$${item.total.toFixed(2)}`}
+                        readOnly
+                        className="bg-secondary h-10 font-medium"
+                      />
+                    </div>
+
+                    {items.length > 1 && (
+                      <div className="col-span-1 flex items-end">
                         <Button
                           size="sm"
                           variant="outline"
                           onClick={() => removeItem(item.tempId)}
-                          className="text-destructive hover:text-destructive"
+                          className="text-destructive hover:text-destructive h-10 w-10 p-0"
                         >
                           <Trash2 className="h-4 w-4" />
                         </Button>
-                      )}
-                    </div>
+                      </div>
+                    )}
                   </div>
                 </div>
               ))}

@@ -33,9 +33,10 @@ import {
   Eye,
   Trash2
 } from 'lucide-react';
-import { mockInvoices, mockPets, mockPaymentRecords } from '@/data/mockData';
+import { mockPets } from '@/data/mockData';
 import { Invoice, PaymentRecord } from '@/types';
 import { cn } from '@/lib/utils';
+import { useBilling } from '@/hooks/use-billing';
 
 const statusFilters = ['all', 'draft', 'sent', 'paid', 'overdue', 'cancelled'] as const;
 const paymentMethodFilters = ['all', 'cash', 'card', 'check', 'insurance', 'online'] as const;
@@ -53,25 +54,54 @@ export default function Billing() {
   const [isFormModalOpen, setIsFormModalOpen] = useState(false);
   const [isPaymentModalOpen, setIsPaymentModalOpen] = useState(false);
   const [editingInvoice, setEditingInvoice] = useState<Invoice | null>(null);
-  const [invoices, setInvoices] = useState<Invoice[]>(mockInvoices);
-  const [payments, setPayments] = useState<PaymentRecord[]>(mockPaymentRecords);
+  const {
+    invoices,
+    payments,
+    analytics,
+    isLoading: billingLoading,
+    error: billingError,
+    fetchInvoices,
+    fetchPayments,
+    fetchAnalytics,
+    createInvoice,
+    updateInvoice,
+    deleteInvoice,
+    processPayment
+  } = useBilling();
+  const [localPayments] = useState<PaymentRecord[]>([]);
 
   useEffect(() => {
-    // Simulate loading time
-    const timer = setTimeout(() => {
-      setIsLoading(false);
-    }, 1300);
-
-    return () => clearTimeout(timer);
+    const loadData = async () => {
+      setIsLoading(true);
+      try {
+        await fetchInvoices();
+        await fetchPayments();
+        await fetchAnalytics();
+      } catch (error) {
+        console.error('Failed to load billing data:', error);
+      } finally {
+        setIsLoading(false);
+      }
+    };
+    
+    loadData();
   }, []);
+
+  useEffect(() => {
+    const filters = {
+      status: selectedStatus,
+      petId: selectedPet,
+    };
+    fetchInvoices(filters);
+  }, [selectedStatus, selectedPet]);
 
   const filteredInvoices = invoices.filter((invoice) => {
     const matchesSearch =
-      invoice.invoiceNumber.toLowerCase().includes(search.toLowerCase()) ||
-      invoice.petName.toLowerCase().includes(search.toLowerCase()) ||
-      invoice.ownerName.toLowerCase().includes(search.toLowerCase()) ||
-      invoice.veterinarianName.toLowerCase().includes(search.toLowerCase()) ||
-      invoice.items.some(item => item.description.toLowerCase().includes(search.toLowerCase()));
+      (invoice.invoiceNumber || '').toLowerCase().includes(search.toLowerCase()) ||
+      (invoice.petName || '').toLowerCase().includes(search.toLowerCase()) ||
+      (invoice.ownerName || '').toLowerCase().includes(search.toLowerCase()) ||
+      (invoice.veterinarianName || '').toLowerCase().includes(search.toLowerCase()) ||
+      invoice.items.some(item => (item.description || '').toLowerCase().includes(search.toLowerCase()));
     
     const matchesStatus = selectedStatus === 'all' || invoice.status === selectedStatus;
     const matchesPaymentMethod = selectedPaymentMethod === 'all' || invoice.paymentMethod === selectedPaymentMethod;
@@ -93,13 +123,13 @@ export default function Billing() {
     }
   });
 
-  // Calculate stats
-  const totalInvoices = invoices.length;
-  const paidInvoices = invoices.filter(inv => inv.status === 'paid').length;
-  const overdueInvoices = invoices.filter(inv => inv.status === 'overdue').length;
-  const pendingInvoices = invoices.filter(inv => inv.status === 'sent').length;
-  const totalRevenue = invoices.filter(inv => inv.status === 'paid').reduce((sum, inv) => sum + inv.total, 0);
-  const pendingAmount = invoices.filter(inv => inv.status === 'sent' || inv.status === 'overdue').reduce((sum, inv) => sum + inv.total, 0);
+  // Calculate stats from analytics or fallback to local calculation
+  const totalInvoices = analytics?.totalInvoices || invoices.length;
+  const paidInvoices = analytics?.paidInvoices || invoices.filter(inv => inv.status === 'paid').length;
+  const overdueInvoices = analytics?.overdueInvoices || invoices.filter(inv => inv.status === 'overdue').length;
+  const pendingInvoices = analytics?.pendingInvoices || invoices.filter(inv => inv.status === 'sent').length;
+  const totalRevenue = analytics?.totalRevenue || invoices.filter(inv => inv.status === 'paid').reduce((sum, inv) => sum + inv.total, 0);
+  const pendingAmount = analytics?.pendingAmount || invoices.filter(inv => inv.status === 'sent' || inv.status === 'overdue').reduce((sum, inv) => sum + inv.total, 0);
 
   const formatCurrency = (amount: number) => {
     return new Intl.NumberFormat('en-US', {
@@ -123,48 +153,47 @@ export default function Billing() {
     setIsFormModalOpen(true);
   };
 
-  const handleDeleteInvoice = (invoiceId: string) => {
-    setInvoices(prev => prev.filter(inv => inv.id !== invoiceId));
-  };
-
-  const handleSaveInvoice = (invoiceData: Partial<Invoice>) => {
-    if (editingInvoice) {
-      // Update existing invoice
-      setInvoices(prev => prev.map(inv => 
-        inv.id === editingInvoice.id ? { ...inv, ...invoiceData } : inv
-      ));
-    } else {
-      // Create new invoice
-      const newInvoice: Invoice = {
-        ...invoiceData as Invoice,
-        id: invoiceData.id || `inv-${Date.now()}`,
-        invoiceNumber: invoiceData.invoiceNumber || `INV-${Date.now()}`,
-      };
-      setInvoices(prev => [newInvoice, ...prev]);
+  const handleDeleteInvoice = async (invoiceId: string) => {
+    try {
+      await deleteInvoice(invoiceId);
+    } catch (error) {
+      console.error('Failed to delete invoice:', error);
     }
   };
 
-  const handleProcessPayment = (payment: Partial<PaymentRecord>) => {
-    // Add payment record
-    setPayments(prev => [...prev, payment as PaymentRecord]);
-    
-    // Update invoice status
-    if (payment.invoiceId) {
-      setInvoices(prev => prev.map(inv => {
-        if (inv.id === payment.invoiceId) {
-          const totalPaid = payments
-            .filter(p => p.invoiceId === payment.invoiceId)
-            .reduce((sum, p) => sum + p.amount, 0) + (payment.amount || 0);
-          
-          return {
-            ...inv,
-            status: totalPaid >= inv.total ? 'paid' : inv.status,
-            paidDate: totalPaid >= inv.total ? new Date() : inv.paidDate,
-            paymentMethod: payment.method,
-          };
-        }
-        return inv;
-      }));
+  const handleSaveInvoice = async (invoiceData: Partial<Invoice>) => {
+    try {
+      if (editingInvoice) {
+        await updateInvoice(editingInvoice.id, invoiceData);
+      } else {
+        const newInvoiceData = {
+          ...invoiceData,
+          invoiceNumber: invoiceData.invoiceNumber || `INV-${Date.now()}`,
+          petId: parseInt(invoiceData.petId as string),
+          ownerId: parseInt(invoiceData.ownerId as string),
+          veterinarianId: parseInt(invoiceData.veterinarianId as string),
+        };
+        await createInvoice(newInvoiceData);
+      }
+      setIsFormModalOpen(false);
+    } catch (error) {
+      console.error('Failed to save invoice:', error);
+    }
+  };
+
+  const handleProcessPayment = async (payment: Partial<PaymentRecord>) => {
+    try {
+      const result = await processPayment({
+        invoiceId: payment.invoiceId!,
+        amount: payment.amount!,
+        method: payment.method!,
+        transactionId: payment.transactionId,
+        notes: payment.notes,
+      });
+      
+      setIsPaymentModalOpen(false);
+    } catch (error) {
+      console.error('Failed to process payment:', error);
     }
   };
 
@@ -179,7 +208,12 @@ export default function Billing() {
       subtitle={`${totalInvoices} total invoices • ${pendingInvoices + overdueInvoices} pending payment`}
       action={{ label: 'New Invoice', onClick: handleCreateInvoice }}
     >
-      <LoadingWrapper isLoading={isLoading} variant="billing">
+      <LoadingWrapper isLoading={isLoading || billingLoading} variant="billing">
+      {billingError && (
+        <div className="mb-4 p-4 bg-destructive/10 border border-destructive/20 rounded-lg">
+          <p className="text-destructive text-sm">{billingError}</p>
+        </div>
+      )}
       <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
         <TabsList className="grid w-full grid-cols-4">
           <TabsTrigger value="invoices">Invoices</TabsTrigger>
