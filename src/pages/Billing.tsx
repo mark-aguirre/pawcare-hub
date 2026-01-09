@@ -226,49 +226,49 @@ export default function Billing() {
           {/* Stats Cards */}
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
             <Card className="bg-gradient-to-br from-success/5 via-success/10 to-success/5 border-success/20">
-              <CardContent className="p-4">
+              <CardContent className="p-3">
                 <div className="flex items-center justify-between">
                   <div>
-                    <p className="text-sm font-medium text-muted-foreground">Total Revenue</p>
-                    <p className="text-2xl font-bold text-success">{formatCurrency(totalRevenue)}</p>
+                    <p className="text-xs font-medium text-muted-foreground">Total Revenue</p>
+                    <p className="text-lg font-bold text-success">{formatCurrency(totalRevenue)}</p>
                   </div>
-                  <DollarSign className="h-8 w-8 text-success" />
+                  <DollarSign className="h-6 w-6 text-success" />
                 </div>
               </CardContent>
             </Card>
 
             <Card className="bg-gradient-to-br from-warning/5 via-warning/10 to-warning/5 border-warning/20">
-              <CardContent className="p-4">
+              <CardContent className="p-3">
                 <div className="flex items-center justify-between">
                   <div>
-                    <p className="text-sm font-medium text-muted-foreground">Pending Amount</p>
-                    <p className="text-2xl font-bold text-warning">{formatCurrency(pendingAmount)}</p>
+                    <p className="text-xs font-medium text-muted-foreground">Pending Amount</p>
+                    <p className="text-lg font-bold text-warning">{formatCurrency(pendingAmount)}</p>
                   </div>
-                  <Clock className="h-8 w-8 text-warning" />
+                  <Clock className="h-6 w-6 text-warning" />
                 </div>
               </CardContent>
             </Card>
 
             <Card className="bg-gradient-to-br from-destructive/5 via-destructive/10 to-destructive/5 border-destructive/20">
-              <CardContent className="p-4">
+              <CardContent className="p-3">
                 <div className="flex items-center justify-between">
                   <div>
-                    <p className="text-sm font-medium text-muted-foreground">Overdue</p>
-                    <p className="text-2xl font-bold text-destructive">{overdueInvoices}</p>
+                    <p className="text-xs font-medium text-muted-foreground">Overdue</p>
+                    <p className="text-lg font-bold text-destructive">{overdueInvoices}</p>
                   </div>
-                  <AlertTriangle className="h-8 w-8 text-destructive" />
+                  <AlertTriangle className="h-6 w-6 text-destructive" />
                 </div>
               </CardContent>
             </Card>
 
             <Card className="bg-gradient-to-br from-primary/5 via-primary/10 to-primary/5 border-primary/20">
-              <CardContent className="p-4">
+              <CardContent className="p-3">
                 <div className="flex items-center justify-between">
                   <div>
-                    <p className="text-sm font-medium text-muted-foreground">Paid Invoices</p>
-                    <p className="text-2xl font-bold text-primary">{paidInvoices}</p>
+                    <p className="text-xs font-medium text-muted-foreground">Paid Invoices</p>
+                    <p className="text-lg font-bold text-primary">{paidInvoices}</p>
                   </div>
-                  <CheckCircle className="h-8 w-8 text-primary" />
+                  <CheckCircle className="h-6 w-6 text-primary" />
                 </div>
               </CardContent>
             </Card>
@@ -373,7 +373,7 @@ export default function Billing() {
           {/* Invoices List */}
           <div className="space-y-4">
             {filteredInvoices.length > 0 ? (
-              <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-3">
                 {filteredInvoices.map((invoice, index) => (
                   <InvoiceCard
                     key={invoice.id}
@@ -409,30 +409,30 @@ export default function Billing() {
           <BillingAnalytics />
         </TabsContent>
 
-        <TabsContent value="payments" className="space-y-6">
+        <TabsContent value="payments" className="space-y-4">
           <Card>
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <CreditCard className="h-5 w-5" />
+            <CardHeader className="pb-3">
+              <CardTitle className="flex items-center gap-2 text-base">
+                <CreditCard className="h-4 w-4" />
                 Payment Records
               </CardTitle>
             </CardHeader>
-            <CardContent>
-              <div className="space-y-4">
+            <CardContent className="pt-0">
+              <div className="space-y-3">
                 {payments.length > 0 ? (
                   payments
                     .sort((a, b) => b.paidDate.getTime() - a.paidDate.getTime())
                     .map((payment) => {
                       const invoice = invoices.find(inv => inv.id === payment.invoiceId);
                       return (
-                        <div key={payment.id} className="flex items-center justify-between p-4 border border-border rounded-lg">
-                          <div className="flex items-center gap-4">
-                            <div className="flex items-center justify-center w-10 h-10 rounded-full bg-success/10 text-success">
-                              <CheckCircle className="h-5 w-5" />
+                        <div key={payment.id} className="flex items-center justify-between p-3 border border-border rounded-lg">
+                          <div className="flex items-center gap-3">
+                            <div className="flex items-center justify-center w-8 h-8 rounded-full bg-success/10 text-success">
+                              <CheckCircle className="h-4 w-4" />
                             </div>
                             <div>
-                              <p className="font-medium">{formatCurrency(payment.amount)}</p>
-                              <p className="text-sm text-muted-foreground">
+                              <p className="text-sm font-medium">{formatCurrency(payment.amount)}</p>
+                              <p className="text-xs text-muted-foreground">
                                 {invoice?.invoiceNumber} • {invoice?.petName}
                               </p>
                               <p className="text-xs text-muted-foreground">
@@ -441,7 +441,7 @@ export default function Billing() {
                             </div>
                           </div>
                           <div className="text-right">
-                            <Badge variant="outline" className="capitalize">
+                            <Badge variant="outline" className="capitalize text-xs">
                               {payment.method}
                             </Badge>
                             {payment.transactionId && (
@@ -454,9 +454,9 @@ export default function Billing() {
                       );
                     })
                 ) : (
-                  <div className="text-center py-8">
-                    <CreditCard className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
-                    <p className="text-muted-foreground">No payment records found</p>
+                  <div className="text-center py-6">
+                    <CreditCard className="h-8 w-8 text-muted-foreground mx-auto mb-3" />
+                    <p className="text-sm text-muted-foreground">No payment records found</p>
                   </div>
                 )}
               </div>

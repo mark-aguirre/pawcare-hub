@@ -122,7 +122,8 @@ export function PaymentPanel({ invoice, open, onOpenChange, onPaymentProcessed }
   const paymentAmount = parseFloat(paymentData.amount) || 0;
   const remainingBalance = invoice ? invoice.total - paymentAmount : 0;
   const isFullPayment = invoice && paymentAmount >= invoice.total;
-  const isValidAmount = paymentAmount > 0 && paymentAmount <= (invoice?.total || 0);
+  const isValidAmount = paymentAmount > 0 && paymentAmount <= (invoice?.total || 0) && paymentData.amount !== '';
+  const canProcessPayment = isValidAmount && paymentData.method && !isProcessing;
 
   return (
     <SlidingPanel
@@ -130,7 +131,7 @@ export function PaymentPanel({ invoice, open, onOpenChange, onPaymentProcessed }
       onOpenChange={onOpenChange}
       width="lg"
       title="Process Payment"
-      description={invoice ? `${invoice.invoiceNumber} • ${invoice.petName}` : undefined}
+      description={invoice ? `${invoice.invoiceNumber || 'INV-' + invoice.id} • ${invoice.petName}` : undefined}
     >
       <SlidingPanelContent>
         {invoice && (
@@ -140,7 +141,7 @@ export function PaymentPanel({ invoice, open, onOpenChange, onPaymentProcessed }
               <h4 className="font-medium mb-3">Invoice Details</h4>
               <div className="grid grid-cols-2 gap-4 text-sm">
                 <div>
-                  <p><span className="font-medium">Invoice:</span> {invoice.invoiceNumber}</p>
+                  <p><span className="font-medium">Invoice:</span> {invoice.invoiceNumber || `INV-${invoice.id}`}</p>
                   <p><span className="font-medium">Pet:</span> {invoice.petName}</p>
                   <p><span className="font-medium">Owner:</span> {invoice.ownerName}</p>
                 </div>
@@ -294,7 +295,7 @@ export function PaymentPanel({ invoice, open, onOpenChange, onPaymentProcessed }
           </Button>
           <Button 
             onClick={processPayment}
-            disabled={!isValidAmount || !paymentData.method || isProcessing}
+            disabled={!canProcessPayment}
           >
             {isProcessing ? (
               <>

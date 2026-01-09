@@ -79,17 +79,17 @@ export function InvoiceCard({ invoice, delay = 0, onClick }: InvoiceCardProps) {
       style={{ animationDelay: `${delay}ms` }}
       onClick={onClick}
     >
-      <CardContent className="p-6">
-        <div className="flex items-start justify-between mb-4">
-          <div className="flex items-center gap-3">
-            <div className="flex items-center justify-center w-10 h-10 rounded-full bg-primary/10 text-primary">
-              <span className="text-lg">{speciesEmoji[invoice.petSpecies]}</span>
+      <CardContent className="p-4">
+        <div className="flex items-start justify-between mb-3">
+          <div className="flex items-center gap-2">
+            <div className="flex items-center justify-center w-8 h-8 rounded-full bg-primary/10 text-primary">
+              <span className="text-sm">{speciesEmoji[invoice.petSpecies]}</span>
             </div>
             <div>
-              <h3 className="font-semibold text-foreground group-hover:text-primary transition-colors">
+              <h3 className="font-semibold text-sm text-foreground group-hover:text-primary transition-colors">
                 {invoice.invoiceNumber}
               </h3>
-              <p className="text-sm text-muted-foreground">
+              <p className="text-xs text-muted-foreground">
                 {invoice.petName} • {invoice.ownerName}
               </p>
             </div>
@@ -105,17 +105,17 @@ export function InvoiceCard({ invoice, delay = 0, onClick }: InvoiceCardProps) {
           </div>
         </div>
 
-        <div className="space-y-3">
+        <div className="space-y-2">
           {/* Amount */}
           <div className="flex items-center justify-between">
-            <span className="text-sm text-muted-foreground">Total Amount</span>
-            <span className="text-lg font-bold text-foreground">
+            <span className="text-xs text-muted-foreground">Total Amount</span>
+            <span className="text-base font-bold text-foreground">
               {formatCurrency(invoice.total)}
             </span>
           </div>
 
           {/* Items Summary */}
-          <div className="text-sm text-muted-foreground">
+          <div className="text-xs text-muted-foreground">
             <span className="font-medium">{invoice.items.length} item{invoice.items.length !== 1 ? 's' : ''}</span>
             {invoice.items.length > 0 && (
               <span className="ml-2">
@@ -126,7 +126,7 @@ export function InvoiceCard({ invoice, delay = 0, onClick }: InvoiceCardProps) {
           </div>
 
           <div className="flex items-center justify-between pt-2 border-t border-border">
-            <div className="flex items-center gap-4 text-xs text-muted-foreground">
+            <div className="flex items-center gap-3 text-xs text-muted-foreground">
               <div className="flex items-center gap-1">
                 <Calendar className="h-3 w-3" />
                 {invoice.status === 'paid' && invoice.paidDate ? 
@@ -150,8 +150,8 @@ export function InvoiceCard({ invoice, delay = 0, onClick }: InvoiceCardProps) {
           {/* Overdue Warning */}
           {isOverdue && (
             <div className="flex items-center gap-2 p-2 rounded-lg bg-destructive/10 text-destructive">
-              <AlertTriangle className="h-4 w-4" />
-              <span className="text-sm font-medium">
+              <AlertTriangle className="h-3 w-3" />
+              <span className="text-xs font-medium">
                 {invoice.status === 'overdue' ? 'Payment Overdue' : 
                  `${Math.ceil((new Date().getTime() - invoice.dueDate.getTime()) / (1000 * 60 * 60 * 24))} days overdue`}
               </span>
