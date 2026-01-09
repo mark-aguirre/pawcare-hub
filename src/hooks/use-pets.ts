@@ -23,7 +23,7 @@ export const petKeys = {
 };
 
 export function usePets() {
-  return useQuery({
+  const query = useQuery({
     queryKey: petKeys.lists(),
     queryFn: async () => {
       const response = await fetch('/api/pets?t=' + Date.now());
@@ -35,6 +35,13 @@ export function usePets() {
     staleTime: 0,
     cacheTime: 0,
   });
+
+  return {
+    pets: query.data || [],
+    isLoading: query.isLoading,
+    error: query.error,
+    fetchPets: query.refetch
+  };
 }
 
 export function useCreatePet() {

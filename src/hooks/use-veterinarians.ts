@@ -4,10 +4,12 @@ import { apiClient } from '@/lib/api';
 export interface Veterinarian {
   id: number;
   name: string;
+  firstName: string;
+  lastName: string;
   specialization?: string;
   email: string;
   phone?: string;
-  photoUrl?: string;
+  licenseNumber?: string;
   createdAt: string;
   updatedAt: string;
 }
@@ -18,26 +20,26 @@ export const veterinarianKeys = {
 };
 
 export function useVeterinarians() {
-  return useQuery({
+  const query = useQuery({
     queryKey: veterinarianKeys.lists(),
     queryFn: async () => {
       try {
-        return await apiClient.get<Veterinarian[]>('/api/veterinarians');
+        const data = await apiClient.get<any[]>('/api/veterinarians');
+        return data.map(vet => ({
+          ...vet,
+          name: vet.firstName && vet.lastName ? `${vet.firstName} ${vet.lastName}` : vet.name || 'Unknown Veterinarian'
+        }));
       } catch (error) {
-        console.warn('Backend not available, using mock data');
-        return [
-          {
-            id: 1,
-            name: 'Dr. Sarah Chen',
-            specialization: 'General Practice',
-            email: 'sarah.chen@pawcare.com',
-            phone: '555-0100',
-            photoUrl: 'https://images.unsplash.com/photo-1559839734-2b71ea197ec2?w=150&h=150&fit=crop&crop=face',
-            createdAt: new Date().toISOString(),
-            updatedAt: new Date().toISOString()
-          }
-        ] as Veterinarian[];
+        console.error('Failed to fetch veterinarians:', error);
+        return [];
       }
     },
   });
+
+  return {
+    veterinarians: query.data || [],
+    isLoading: query.isLoading,
+    error: query.error,
+    fetchVeterinarians: query.refetch
+  };
 }

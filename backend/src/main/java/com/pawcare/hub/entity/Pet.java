@@ -1,6 +1,7 @@
 package com.pawcare.hub.entity;
 
 import com.fasterxml.jackson.annotation.JsonBackReference;
+import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import com.fasterxml.jackson.annotation.JsonManagedReference;
 import jakarta.persistence.*;
 import jakarta.validation.constraints.NotBlank;
@@ -32,6 +33,7 @@ public class Pet {
     @ManyToOne(fetch = FetchType.EAGER)
     @JoinColumn(name = "owner_id")
     @NotNull
+    @JsonIgnoreProperties({"pets"})
     private Owner owner;
 
     @OneToMany(mappedBy = "pet", cascade = CascadeType.ALL)

@@ -1,5 +1,7 @@
 package com.pawcare.hub.entity;
 
+import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
+import com.fasterxml.jackson.annotation.JsonManagedReference;
 import jakarta.persistence.*;
 import jakarta.validation.constraints.NotNull;
 import java.time.LocalDate;
@@ -15,6 +17,7 @@ public class Vaccination {
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "pet_id")
     @NotNull
+    @JsonIgnoreProperties({"hibernateLazyInitializer", "handler", "owner"})
     private Pet pet;
 
     @Column(name = "vaccine_type")
@@ -29,6 +32,7 @@ public class Vaccination {
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "veterinarian_id")
     @NotNull
+    @JsonIgnoreProperties({"hibernateLazyInitializer", "handler"})
     private Veterinarian veterinarian;
 
     @Column(name = "batch_number")

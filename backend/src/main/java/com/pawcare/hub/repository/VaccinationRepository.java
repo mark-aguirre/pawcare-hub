@@ -11,6 +11,14 @@ import java.util.List;
 @Repository
 public interface VaccinationRepository extends JpaRepository<Vaccination, Long> {
     
+    @Query(value = "SELECT v.id, v.pet_id, v.vaccine_type, v.administered_date, v.next_due_date, " +
+           "v.veterinarian_id, v.batch_number, v.notes, v.status, v.created_at, v.updated_at, " +
+           "p.name AS pet_name, v2.name AS veterinarian_name " +
+           "FROM vaccinations v " +
+           "LEFT JOIN pets p ON p.id = v.pet_id " +
+           "LEFT JOIN veterinarians v2 ON v2.id = v.veterinarian_id", nativeQuery = true)
+    List<Object[]> findAllWithRelations();
+    
     List<Vaccination> findByPetId(Long petId);
     
     List<Vaccination> findByStatus(Vaccination.VaccinationStatus status);
