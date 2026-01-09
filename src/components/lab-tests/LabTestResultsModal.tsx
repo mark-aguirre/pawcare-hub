@@ -35,12 +35,16 @@ export function LabTestResultsModal({ isOpen, onClose, labTest, onSaveResults }:
     setIsEditing(false);
   };
 
-  const formatDate = (date: Date) => {
+  const formatDate = (date: Date | string) => {
+    const dateObj = typeof date === 'string' ? new Date(date) : date;
+    if (isNaN(dateObj.getTime())) {
+      return 'Invalid Date';
+    }
     return new Intl.DateTimeFormat('en-US', {
       year: 'numeric',
       month: 'long',
       day: 'numeric'
-    }).format(date);
+    }).format(dateObj);
   };
 
   const getStatusColor = (status: string) => {

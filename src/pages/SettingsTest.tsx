@@ -1,1 +1,149 @@
-'use client';\n\nimport { useState } from 'react';\nimport { Button } from '@/components/ui/button';\nimport { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';\nimport { useClinicSettings, useUpdateClinicSettings, useUsers, useUserPermissions, useUpdateUserPermissions } from '@/hooks/use-settings';\nimport { toast } from '@/hooks/use-toast';\n\nexport default function SettingsTestPage() {\n  const [selectedUserId, setSelectedUserId] = useState('');\n  \n  const { data: clinicSettings, isLoading: settingsLoading, error: settingsError } = useClinicSettings();\n  const { data: users, isLoading: usersLoading, error: usersError } = useUsers();\n  const { data: userPermissions, isLoading: permissionsLoading } = useUserPermissions(selectedUserId);\n  \n  const updateClinicMutation = useUpdateClinicSettings();\n  const updatePermissionsMutation = useUpdateUserPermissions();\n\n  const testUpdateSettings = async () => {\n    try {\n      await updateClinicMutation.mutateAsync({\n        clinicName: 'Test Clinic Updated',\n        email: 'test@updated.com'\n      });\n      toast({ title: 'Success', description: 'Settings updated successfully' });\n    } catch (error) {\n      toast({ title: 'Error', description: 'Failed to update settings', variant: 'destructive' });\n    }\n  };\n\n  const testUpdatePermissions = async () => {\n    if (!selectedUserId) {\n      toast({ title: 'Error', description: 'Select a user first', variant: 'destructive' });\n      return;\n    }\n    \n    try {\n      await updatePermissionsMutation.mutateAsync({\n        userId: selectedUserId,\n        permissions: {\n          appointments: true,\n          pets: true,\n          owners: false,\n          records: false,\n          inventory: true,\n          billing: false,\n          reports: true,\n          settings: false\n        }\n      });\n      toast({ title: 'Success', description: 'Permissions updated successfully' });\n    } catch (error) {\n      toast({ title: 'Error', description: 'Failed to update permissions', variant: 'destructive' });\n    }\n  };\n\n  return (\n    <div className=\"container mx-auto p-6 space-y-6\">\n      <h1 className=\"text-2xl font-bold\">Settings API Test Page</h1>\n      \n      <Card>\n        <CardHeader>\n          <CardTitle>Clinic Settings</CardTitle>\n          <CardDescription>Test clinic settings API</CardDescription>\n        </CardHeader>\n        <CardContent className=\"space-y-4\">\n          <div>\n            <strong>Loading:</strong> {settingsLoading ? 'Yes' : 'No'}\n          </div>\n          <div>\n            <strong>Error:</strong> {settingsError ? 'Yes' : 'No'}\n          </div>\n          <div>\n            <strong>Data:</strong>\n            <pre className=\"bg-gray-100 p-2 rounded text-sm overflow-auto\">\n              {JSON.stringify(clinicSettings, null, 2)}\n            </pre>\n          </div>\n          <Button onClick={testUpdateSettings} disabled={updateClinicMutation.isPending}>\n            {updateClinicMutation.isPending ? 'Updating...' : 'Test Update Settings'}\n          </Button>\n        </CardContent>\n      </Card>\n\n      <Card>\n        <CardHeader>\n          <CardTitle>Users</CardTitle>\n          <CardDescription>Test users API</CardDescription>\n        </CardHeader>\n        <CardContent className=\"space-y-4\">\n          <div>\n            <strong>Loading:</strong> {usersLoading ? 'Yes' : 'No'}\n          </div>\n          <div>\n            <strong>Error:</strong> {usersError ? 'Yes' : 'No'}\n          </div>\n          <div>\n            <strong>Data:</strong>\n            <pre className=\"bg-gray-100 p-2 rounded text-sm overflow-auto\">\n              {JSON.stringify(users, null, 2)}\n            </pre>\n          </div>\n          <div className=\"space-y-2\">\n            <strong>Select User for Permissions Test:</strong>\n            <select \n              value={selectedUserId} \n              onChange={(e) => setSelectedUserId(e.target.value)}\n              className=\"block w-full p-2 border rounded\"\n            >\n              <option value=\"\">Select a user...</option>\n              {users?.map(user => (\n                <option key={user.id} value={user.id}>\n                  {user.firstName} {user.lastName} ({user.role})\n                </option>\n              ))}\n            </select>\n          </div>\n        </CardContent>\n      </Card>\n\n      <Card>\n        <CardHeader>\n          <CardTitle>User Permissions</CardTitle>\n          <CardDescription>Test user permissions API</CardDescription>\n        </CardHeader>\n        <CardContent className=\"space-y-4\">\n          <div>\n            <strong>Loading:</strong> {permissionsLoading ? 'Yes' : 'No'}\n          </div>\n          <div>\n            <strong>Selected User:</strong> {selectedUserId || 'None'}\n          </div>\n          <div>\n            <strong>Data:</strong>\n            <pre className=\"bg-gray-100 p-2 rounded text-sm overflow-auto\">\n              {JSON.stringify(userPermissions, null, 2)}\n            </pre>\n          </div>\n          <Button \n            onClick={testUpdatePermissions} \n            disabled={updatePermissionsMutation.isPending || !selectedUserId}\n          >\n            {updatePermissionsMutation.isPending ? 'Updating...' : 'Test Update Permissions'}\n          </Button>\n        </CardContent>\n      </Card>\n    </div>\n  );\n}"
+'use client';
+
+import { useState } from 'react';
+import { Button } from '@/components/ui/button';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { useClinicSettings, useUpdateClinicSettings, useUsers, useUserPermissions, useUpdateUserPermissions } from '@/hooks/use-settings';
+import { toast } from '@/hooks/use-toast';
+
+export default function SettingsTestPage() {
+  const [selectedUserId, setSelectedUserId] = useState('');
+  
+  const { data: clinicSettings, isLoading: settingsLoading, error: settingsError } = useClinicSettings();
+  const { data: users, isLoading: usersLoading, error: usersError } = useUsers();
+  const { data: userPermissions, isLoading: permissionsLoading } = useUserPermissions(selectedUserId);
+  
+  const updateClinicMutation = useUpdateClinicSettings();
+  const updatePermissionsMutation = useUpdateUserPermissions();
+
+  const testUpdateSettings = async () => {
+    try {
+      await updateClinicMutation.mutateAsync({
+        clinicName: 'Test Clinic Updated',
+        email: 'test@updated.com'
+      });
+      toast({ title: 'Success', description: 'Settings updated successfully' });
+    } catch (error) {
+      toast({ title: 'Error', description: 'Failed to update settings', variant: 'destructive' });
+    }
+  };
+
+  const testUpdatePermissions = async () => {
+    if (!selectedUserId) {
+      toast({ title: 'Error', description: 'Select a user first', variant: 'destructive' });
+      return;
+    }
+    
+    try {
+      await updatePermissionsMutation.mutateAsync({
+        userId: selectedUserId,
+        permissions: {
+          appointments: true,
+          pets: true,
+          owners: false,
+          records: false,
+          inventory: true,
+          billing: false,
+          reports: true,
+          settings: false
+        }
+      });
+      toast({ title: 'Success', description: 'Permissions updated successfully' });
+    } catch (error) {
+      toast({ title: 'Error', description: 'Failed to update permissions', variant: 'destructive' });
+    }
+  };
+
+  return (
+    <div className="container mx-auto p-6 space-y-6">
+      <h1 className="text-2xl font-bold">Settings API Test Page</h1>
+      
+      <Card>
+        <CardHeader>
+          <CardTitle>Clinic Settings</CardTitle>
+          <CardDescription>Test clinic settings API</CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          <div>
+            <strong>Loading:</strong> {settingsLoading ? 'Yes' : 'No'}
+          </div>
+          <div>
+            <strong>Error:</strong> {settingsError ? 'Yes' : 'No'}
+          </div>
+          <div>
+            <strong>Data:</strong>
+            <pre className="bg-gray-100 p-2 rounded text-sm overflow-auto">
+              {JSON.stringify(clinicSettings, null, 2)}
+            </pre>
+          </div>
+          <Button onClick={testUpdateSettings} disabled={updateClinicMutation.isPending}>
+            {updateClinicMutation.isPending ? 'Updating...' : 'Test Update Settings'}
+          </Button>
+        </CardContent>
+      </Card>
+
+      <Card>
+        <CardHeader>
+          <CardTitle>Users</CardTitle>
+          <CardDescription>Test users API</CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          <div>
+            <strong>Loading:</strong> {usersLoading ? 'Yes' : 'No'}
+          </div>
+          <div>
+            <strong>Error:</strong> {usersError ? 'Yes' : 'No'}
+          </div>
+          <div>
+            <strong>Data:</strong>
+            <pre className="bg-gray-100 p-2 rounded text-sm overflow-auto">
+              {JSON.stringify(users, null, 2)}
+            </pre>
+          </div>
+          <div className="space-y-2">
+            <strong>Select User for Permissions Test:</strong>
+            <select 
+              value={selectedUserId} 
+              onChange={(e) => setSelectedUserId(e.target.value)}
+              className="block w-full p-2 border rounded"
+            >
+              <option value="">Select a user...</option>
+              {users?.map(user => (
+                <option key={user.id} value={user.id}>
+                  {user.firstName} {user.lastName} ({user.role})
+                </option>
+              ))}
+            </select>
+          </div>
+        </CardContent>
+      </Card>
+
+      <Card>
+        <CardHeader>
+          <CardTitle>User Permissions</CardTitle>
+          <CardDescription>Test user permissions API</CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          <div>
+            <strong>Loading:</strong> {permissionsLoading ? 'Yes' : 'No'}
+          </div>
+          <div>
+            <strong>Selected User:</strong> {selectedUserId || 'None'}
+          </div>
+          <div>
+            <strong>Data:</strong>
+            <pre className="bg-gray-100 p-2 rounded text-sm overflow-auto">
+              {JSON.stringify(userPermissions, null, 2)}
+            </pre>
+          </div>
+          <Button 
+            onClick={testUpdatePermissions} 
+            disabled={updatePermissionsMutation.isPending || !selectedUserId}
+          >
+            {updatePermissionsMutation.isPending ? 'Updating...' : 'Test Update Permissions'}
+          </Button>
+        </CardContent>
+      </Card>
+    </div>
+  );
+}

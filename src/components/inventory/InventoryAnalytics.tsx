@@ -30,23 +30,40 @@ import {
   PieChart as PieChartIcon,
   Activity
 } from 'lucide-react';
-import { mockInventoryItems } from '@/data/mockData';
+import { useInventory } from '@/hooks/use-inventory';
 import { cn } from '@/lib/utils';
 
 const COLORS = ['#0088FE', '#00C49F', '#FFBB28', '#FF8042', '#8884D8', '#82CA9D'];
 
 export function InventoryAnalytics() {
+  const { data: inventoryItems = [], isLoading } = useInventory();
+
+  if (isLoading) {
+    return (
+      <div className="space-y-6">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+          {Array.from({ length: 4 }).map((_, i) => (
+            <Card key={i} className="animate-pulse">
+              <CardContent className="p-4">
+                <div className="h-16 bg-muted rounded" />
+              </CardContent>
+            </Card>
+          ))}
+        </div>
+      </div>
+    );
+  }
   // Calculate analytics data
-  const totalItems = mockInventoryItems.length;
-  const totalValue = mockInventoryItems.reduce((sum, item) => sum + (item.currentStock * item.unitPrice), 0);
-  const lowStockItems = mockInventoryItems.filter(item => item.currentStock <= item.minStock);
-  const outOfStockItems = mockInventoryItems.filter(item => item.currentStock === 0);
-  const expiringSoon = mockInventoryItems.filter(item => 
-    item.expiryDate && item.expiryDate <= new Date(Date.now() + 30 * 24 * 60 * 60 * 1000)
+  const totalItems = inventoryItems.length;
+  const totalValue = inventoryItems.reduce((sum, item) => sum + (item.currentStock * item.unitPrice), 0);
+  const lowStockItems = inventoryItems.filter(item => item.currentStock <= item.minStock);
+  const outOfStockItems = inventoryItems.filter(item => item.currentStock === 0);
+  const expiringSoon = inventoryItems.filter(item => 
+    item.expiryDate && new Date(item.expiryDate) <= new Date(Date.now() + 30 * 24 * 60 * 60 * 1000)
   );
 
   // Category distribution
-  const categoryData = mockInventoryItems.reduce((acc, item) => {
+  const categoryData = inventoryItems.reduce((acc, item) => {
     acc[item.category] = (acc[item.category] || 0) + 1;
     return acc;
   }, {} as Record<string, number>);
@@ -58,7 +75,7 @@ export function InventoryAnalytics() {
   }));
 
   // Stock status distribution
-  const statusData = mockInventoryItems.reduce((acc, item) => {
+  const statusData = inventoryItems.reduce((acc, item) => {
     acc[item.status] = (acc[item.status] || 0) + 1;
     return acc;
   }, {} as Record<string, number>);
@@ -73,7 +90,7 @@ export function InventoryAnalytics() {
 
   // Value by category
   const categoryValueData = Object.keys(categoryData).map(category => {
-    const categoryItems = mockInventoryItems.filter(item => item.category === category);
+    const categoryItems = inventoryItems.filter(item => item.category === category);
     const totalValue = categoryItems.reduce((sum, item) => sum + (item.currentStock * item.unitPrice), 0);
     return {
       category,
@@ -93,7 +110,7 @@ export function InventoryAnalytics() {
   ];
 
   // Top items by value
-  const topValueItems = mockInventoryItems
+  const topValueItems = inventoryItems
     .map(item => ({
       ...item,
       totalValue: item.currentStock * item.unitPrice
@@ -102,9 +119,9 @@ export function InventoryAnalytics() {
     .slice(0, 10);
 
   // Items needing attention
-  const itemsNeedingAttention = mockInventoryItems.filter(item => 
+  const itemsNeedingAttention = inventoryItems.filter(item => 
     item.currentStock <= item.minStock || 
-    (item.expiryDate && item.expiryDate <= new Date(Date.now() + 30 * 24 * 60 * 60 * 1000))
+    (item.expiryDate && new Date(item.expiryDate) <= new Date(Date.now() + 30 * 24 * 60 * 60 * 1000))
   );
 
   return (

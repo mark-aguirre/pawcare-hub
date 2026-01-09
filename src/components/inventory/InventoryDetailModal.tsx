@@ -37,9 +37,13 @@ interface InventoryDetailPanelProps {
 
 const statusStyles = {
   'in-stock': 'bg-success/10 text-success border-success/20',
+  'IN_STOCK': 'bg-success/10 text-success border-success/20',
   'low-stock': 'bg-warning/10 text-warning border-warning/20',
+  'LOW_STOCK': 'bg-warning/10 text-warning border-warning/20',
   'out-of-stock': 'bg-destructive/10 text-destructive border-destructive/20',
+  'OUT_OF_STOCK': 'bg-destructive/10 text-destructive border-destructive/20',
   'expired': 'bg-destructive/10 text-destructive border-destructive/20',
+  'EXPIRED': 'bg-destructive/10 text-destructive border-destructive/20',
 };
 
 const categoryStyles = {
@@ -63,18 +67,21 @@ const categoryIcons = {
 export function InventoryDetailPanel({ item, open, onOpenChange, onEdit, onStockAdjustment }: InventoryDetailPanelProps) {
   if (!item) return null;
 
-  const CategoryIcon = categoryIcons[item.category];
+  const CategoryIcon = categoryIcons[item.category] || Package;
   const stockPercentage = item.maxStock > 0 ? (item.currentStock / item.maxStock) * 100 : 0;
   const isLowStock = item.currentStock <= item.minStock;
   const isExpiringSoon = item.expiryDate && item.expiryDate <= new Date(Date.now() + 30 * 24 * 60 * 60 * 1000);
 
-  const formatDate = (date: Date) => {
+  const formatDate = (date: Date | string | null) => {
+    if (!date) return 'Not set';
+    const dateObj = typeof date === 'string' ? new Date(date) : date;
+    if (isNaN(dateObj.getTime())) return 'Invalid Date';
     return new Intl.DateTimeFormat('en-US', {
       weekday: 'long',
       year: 'numeric',
       month: 'long',
       day: 'numeric',
-    }).format(date);
+    }).format(dateObj);
   };
 
   const totalValue = item.currentStock * item.unitPrice;
@@ -93,7 +100,7 @@ export function InventoryDetailPanel({ item, open, onOpenChange, onEdit, onStock
             {/* Status Badges */}
             <div className="flex items-center gap-2">
               <Badge className={cn('text-sm', statusStyles[item.status])}>
-                {item.status.replace('-', ' ')}
+                {item.status.replace('_', ' ').replace('-', ' ')}
               </Badge>
               <Badge className={cn('text-sm', categoryStyles[item.category])}>
                 {item.category}
@@ -218,7 +225,6 @@ export function InventoryDetailPanel({ item, open, onOpenChange, onEdit, onStock
                   <Calendar className="h-5 w-5" />
                   Important Dates
                 </h3>
-                <div className="space-y-2">
                   <div className="flex items-center justify-between text-sm">
                     <span className="text-muted-foreground">Last Restocked:</span>
                     <span>{formatDate(item.lastRestocked)}</span>
@@ -237,7 +243,6 @@ export function InventoryDetailPanel({ item, open, onOpenChange, onEdit, onStock
                     <span className="text-muted-foreground">Added:</span>
                     <span>{formatDate(item.createdAt)}</span>
                   </div>
-                </div>
               </div>
             </div>
 

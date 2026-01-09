@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import { MainLayout } from '@/components/layout/MainLayout';
 import { InventoryCard } from '@/components/inventory/InventoryCard';
 import { InventoryDetailPanel } from '@/components/inventory/InventoryDetailModal';
@@ -29,14 +29,20 @@ import {
   Calendar,
   Clock
 } from 'lucide-react';
-import { mockInventoryItems } from '@/data/mockData';
 import { InventoryItem } from '@/types';
+import * as XLSX from 'xlsx';
+import { 
+  useInventory, 
+  useCreateInventoryItem, 
+  useUpdateInventoryItem, 
+  useAdjustStock 
+} from '@/hooks/use-inventory';
+import { toast } from '@/hooks/use-toast';
 
 const statusFilters = ['all', 'in-stock', 'low-stock', 'out-of-stock', 'expired'] as const;
 const categoryFilters = ['all', 'medication', 'supplies', 'equipment', 'food', 'toys', 'other'] as const;
 
 export default function Inventory() {
-  const [isLoading, setIsLoading] = useState(true);
   const [activeTab, setActiveTab] = useState('inventory');
   const [search, setSearch] = useState('');
   const [selectedStatus, setSelectedStatus] = useState<typeof statusFilters[number]>('all');
@@ -47,16 +53,11 @@ export default function Inventory() {
   const [isFormModalOpen, setIsFormModalOpen] = useState(false);
   const [isStockAdjustmentOpen, setIsStockAdjustmentOpen] = useState(false);
   const [editingItem, setEditingItem] = useState<InventoryItem | null>(null);
-  const [inventoryItems, setInventoryItems] = useState<InventoryItem[]>(mockInventoryItems);
 
-  useEffect(() => {
-    // Simulate loading time
-    const timer = setTimeout(() => {
-      setIsLoading(false);
-    }, 1400);
-
-    return () => clearTimeout(timer);
-  }, []);
+  const { data: inventoryItems = [], isLoading, error } = useInventory();
+  const createMutation = useCreateInventoryItem();
+  const updateMutation = useUpdateInventoryItem();
+  const adjustStockMutation = useAdjustStock();
 
   const filteredItems = inventoryItems.filter((item) => {
     const matchesSearch =
@@ -82,7 +83,7 @@ export default function Inventory() {
         if (!a.expiryDate && !b.expiryDate) return 0;
         if (!a.expiryDate) return 1;
         if (!b.expiryDate) return -1;
-        return a.expiryDate.getTime() - b.expiryDate.getTime();
+        return new Date(a.expiryDate).getTime() - new Date(b.expiryDate).getTime();
       default:
         return 0;
     }
@@ -94,7 +95,7 @@ export default function Inventory() {
   const outOfStockItems = inventoryItems.filter(item => item.status === 'out-of-stock').length;
   const totalValue = inventoryItems.reduce((sum, item) => sum + (item.currentStock * item.unitPrice), 0);
   const expiringSoon = inventoryItems.filter(item => 
-    item.expiryDate && item.expiryDate <= new Date(Date.now() + 30 * 24 * 60 * 60 * 1000)
+    item.expiryDate && new Date(item.expiryDate) <= new Date(Date.now() + 30 * 24 * 60 * 60 * 1000)
   ).length;
 
   const handleItemClick = (item: InventoryItem) => {
@@ -119,51 +120,122 @@ export default function Inventory() {
 
   const handleSaveItem = (itemData: Partial<InventoryItem>) => {
     if (editingItem) {
-      // Update existing item
-      setInventoryItems(prev => prev.map(item => 
-        item.id === editingItem.id ? { ...item, ...itemData } : item
-      ));
+      updateMutation.mutate({ id: editingItem.id, data: itemData });
     } else {
-      // Create new item
-      const newItem: InventoryItem = {
-        ...itemData as InventoryItem,
-        id: itemData.id || `inv-${Date.now()}`,
-        sku: itemData.sku || `SKU-${Date.now()}`,
-      };
-      setInventoryItems(prev => [newItem, ...prev]);
+      createMutation.mutate(itemData as Omit<InventoryItem, 'id' | 'createdAt'>);
     }
+    setIsFormModalOpen(false);
   };
 
   const handleStockAdjustmentSubmit = (itemId: string, adjustment: any) => {
-    setInventoryItems(prev => prev.map(item => {
-      if (item.id === itemId) {
-        let newStock = item.currentStock;
+    adjustStockMutation.mutate({ id: itemId, adjustment });
+    setIsStockAdjustmentOpen(false);
+  };
+
+  const handleExportReport = () => {
+    const csvContent = [
+      ['Name', 'SKU', 'Category', 'Current Stock', 'Unit Price', 'Total Value', 'Status', 'Location'],
+      ...inventoryItems.map(item => [
+        item.name,
+        item.sku,
+        item.category,
+        item.currentStock,
+        item.unitPrice,
+        (item.currentStock * item.unitPrice).toFixed(2),
+        item.status,
+        item.location
+      ])
+    ].map(row => row.join(',')).join('\n');
+    
+    const blob = new Blob([csvContent], { type: 'text/csv' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `inventory-report-${new Date().toISOString().split('T')[0]}.csv`;
+    a.click();
+    URL.revokeObjectURL(url);
+  };
+
+  const handleImportInventory = () => {
+    const input = document.createElement('input');
+    input.type = 'file';
+    input.accept = '.csv,.xlsx,.xls';
+    input.onchange = async (e) => {
+      const file = (e.target as HTMLInputElement).files?.[0];
+      if (!file) return;
+
+      try {
+        const data = await file.arrayBuffer();
+        const workbook = XLSX.read(data, { type: 'array' });
+        const worksheet = workbook.Sheets[workbook.SheetNames[0]];
+        const jsonData = XLSX.utils.sheet_to_json(worksheet, { header: 1 }) as any[][];
         
-        switch (adjustment.type) {
-          case 'add':
-            newStock = item.currentStock + adjustment.quantity;
-            break;
-          case 'remove':
-            newStock = Math.max(0, item.currentStock - adjustment.quantity);
-            break;
-          case 'set':
-            newStock = adjustment.quantity;
-            break;
+        if (jsonData.length < 2) {
+          toast({ title: 'Error', description: 'File must have headers and data rows', variant: 'destructive' });
+          return;
         }
 
-        const newStatus = newStock === 0 ? 'out-of-stock' : 
-                         newStock <= item.minStock ? 'low-stock' : 'in-stock';
-
-        return {
-          ...item,
-          currentStock: newStock,
-          status: newStatus,
-          lastRestocked: new Date()
-        };
+        const headers = jsonData[0].map(h => h?.toString().toLowerCase());
+        const rows = jsonData.slice(1);
+        
+        let imported = 0;
+        for (const row of rows) {
+          if (!row[0]) continue; // Skip empty rows
+          
+          const item = {
+            name: row[headers.indexOf('name')] || row[0],
+            sku: row[headers.indexOf('sku')] || `SKU-${Date.now()}-${imported}`,
+            category: (row[headers.indexOf('category')] || 'SUPPLIES').toUpperCase(),
+            description: row[headers.indexOf('description')] || '',
+            currentStock: parseInt(row[headers.indexOf('currentstock') || headers.indexOf('stock')]) || 0,
+            minStock: parseInt(row[headers.indexOf('minstock')]) || 0,
+            maxStock: parseInt(row[headers.indexOf('maxstock')]) || 100,
+            unitPrice: parseFloat(row[headers.indexOf('unitprice') || headers.indexOf('price')]) || 0,
+            supplier: row[headers.indexOf('supplier')] || 'Unknown',
+            location: row[headers.indexOf('location')] || 'Storage',
+            batchNumber: row[headers.indexOf('batchnumber')] || '',
+            notes: row[headers.indexOf('notes')] || ''
+          };
+          
+          try {
+            await createMutation.mutateAsync(item);
+            imported++;
+          } catch (error) {
+            console.error('Failed to import item:', item.name, error);
+          }
+        }
+        
+        toast({ 
+          title: 'Import Complete', 
+          description: `Successfully imported ${imported} items from ${file.name}` 
+        });
+      } catch (error) {
+        toast({ 
+          title: 'Import Failed', 
+          description: 'Error reading file. Please check format.', 
+          variant: 'destructive' 
+        });
       }
-      return item;
-    }));
+    };
+    input.click();
   };
+
+  if (error) {
+    return (
+      <MainLayout title="Inventory Management" subtitle="Error loading inventory">
+        <Card className="p-12 text-center">
+          <AlertTriangle className="h-12 w-12 text-destructive mx-auto mb-4" />
+          <h3 className="text-lg font-semibold text-destructive mb-2">Failed to load inventory</h3>
+          <p className="text-muted-foreground mb-4">
+            Unable to connect to the inventory service. Please check your connection.
+          </p>
+          <Button onClick={() => window.location.reload()}>
+            Try Again
+          </Button>
+        </Card>
+      </MainLayout>
+    );
+  }
 
   return (
     <MainLayout
@@ -348,15 +420,15 @@ export default function Inventory() {
                     <Plus className="h-4 w-4 mr-2" />
                     Add New Item
                   </Button>
-                  <Button className="w-full justify-start" variant="outline">
+                  <Button className="w-full justify-start" variant="outline" onClick={handleImportInventory}>
                     <Upload className="h-4 w-4 mr-2" />
                     Import Inventory
                   </Button>
-                  <Button className="w-full justify-start" variant="outline">
+                  <Button className="w-full justify-start" variant="outline" onClick={handleExportReport}>
                     <Download className="h-4 w-4 mr-2" />
                     Export Report
                   </Button>
-                  <Button className="w-full justify-start" variant="outline">
+                  <Button className="w-full justify-start" variant="outline" onClick={() => setActiveTab('analytics')}>
                     <BarChart3 className="h-4 w-4 mr-2" />
                     View Analytics
                   </Button>
@@ -418,11 +490,11 @@ export default function Inventory() {
                 </CardHeader>
                 <CardContent className="space-y-3">
                   {[
-                    { category: 'medication', icon: Pill, count: inventoryItems.filter(i => i.category === 'medication').length },
-                    { category: 'supplies', icon: Package, count: inventoryItems.filter(i => i.category === 'supplies').length },
-                    { category: 'equipment', icon: Wrench, count: inventoryItems.filter(i => i.category === 'equipment').length },
-                    { category: 'food', icon: ShoppingCart, count: inventoryItems.filter(i => i.category === 'food').length },
-                    { category: 'toys', icon: Heart, count: inventoryItems.filter(i => i.category === 'toys').length },
+                    { category: 'medication', icon: Pill, count: inventoryItems.filter(i => i.category.toLowerCase() === 'medication').length },
+                    { category: 'supplies', icon: Package, count: inventoryItems.filter(i => i.category.toLowerCase() === 'supplies').length },
+                    { category: 'equipment', icon: Wrench, count: inventoryItems.filter(i => i.category.toLowerCase() === 'equipment').length },
+                    { category: 'food', icon: ShoppingCart, count: inventoryItems.filter(i => i.category.toLowerCase() === 'food').length },
+                    { category: 'toys', icon: Heart, count: inventoryItems.filter(i => i.category.toLowerCase() === 'toys').length },
                   ].map(({ category, icon: Icon, count }) => (
                     <div key={category} className="flex items-center gap-3 p-3 rounded-lg bg-secondary/50">
                       <div className="flex items-center justify-center w-8 h-8 rounded-full bg-primary/10 text-primary">
@@ -450,7 +522,7 @@ export default function Inventory() {
                 </CardHeader>
                 <CardContent className="space-y-4">
                   {inventoryItems
-                    .sort((a, b) => b.lastRestocked.getTime() - a.lastRestocked.getTime())
+                    .sort((a, b) => new Date(b.lastRestocked).getTime() - new Date(a.lastRestocked).getTime())
                     .slice(0, 5)
                     .map((item) => (
                       <div key={item.id} className="flex items-start gap-3 p-3 rounded-lg bg-secondary/50">
@@ -462,7 +534,7 @@ export default function Inventory() {
                             {item.name}
                           </p>
                           <p className="text-xs text-muted-foreground">
-                            Restocked • {item.lastRestocked.toLocaleDateString()}
+                            Restocked • {new Date(item.lastRestocked).toLocaleDateString()}
                           </p>
                         </div>
                       </div>

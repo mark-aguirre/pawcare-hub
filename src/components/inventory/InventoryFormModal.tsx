@@ -107,7 +107,7 @@ export function InventoryFormPanel({ item, open, onOpenChange, onSave }: Invento
         unitPrice: item.unitPrice,
         supplier: item.supplier,
         location: item.location,
-        expiryDate: item.expiryDate,
+        expiryDate: item.expiryDate ? new Date(item.expiryDate) : undefined,
         batchNumber: item.batchNumber || '',
         notes: item.notes || ''
       });
@@ -141,15 +141,15 @@ export function InventoryFormPanel({ item, open, onOpenChange, onSave }: Invento
   const handleSave = () => {
     const itemData: Partial<InventoryItem> = {
       ...formData,
+      expiryDate: formData.expiryDate ? formData.expiryDate.toISOString() : undefined,
       status: formData.currentStock === 0 ? 'out-of-stock' : 
               formData.currentStock <= formData.minStock ? 'low-stock' : 'in-stock',
-      lastRestocked: new Date(),
-      createdAt: item?.createdAt || new Date(),
+      lastRestocked: new Date().toISOString(),
+      createdAt: item?.createdAt || new Date().toISOString(),
     };
 
     if (!item) {
       // New item
-      itemData.id = `inv-${Date.now()}`;
       itemData.sku = formData.sku || generateSKU();
     }
 

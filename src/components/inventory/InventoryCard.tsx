@@ -13,9 +13,13 @@ interface InventoryCardProps {
 
 const statusStyles = {
   'in-stock': 'bg-success/10 text-success border-success/20',
+  'IN_STOCK': 'bg-success/10 text-success border-success/20',
   'low-stock': 'bg-warning/10 text-warning border-warning/20',
+  'LOW_STOCK': 'bg-warning/10 text-warning border-warning/20',
   'out-of-stock': 'bg-destructive/10 text-destructive border-destructive/20',
+  'OUT_OF_STOCK': 'bg-destructive/10 text-destructive border-destructive/20',
   'expired': 'bg-destructive/10 text-destructive border-destructive/20',
+  'EXPIRED': 'bg-destructive/10 text-destructive border-destructive/20',
 };
 
 const categoryStyles = {
@@ -37,7 +41,7 @@ const categoryIcons = {
 };
 
 export function InventoryCard({ item, delay = 0, onClick }: InventoryCardProps) {
-  const CategoryIcon = categoryIcons[item.category];
+  const CategoryIcon = categoryIcons[item.category] || Package;
   
   const stockPercentage = item.maxStock > 0 ? (item.currentStock / item.maxStock) * 100 : 0;
   const isLowStock = item.currentStock <= item.minStock;
@@ -77,7 +81,7 @@ export function InventoryCard({ item, delay = 0, onClick }: InventoryCardProps) 
           </div>
           <div className="flex items-center gap-2">
             <Badge className={cn('text-xs', statusStyles[item.status])}>
-              {item.status.replace('-', ' ')}
+              {item.status.replace('_', ' ').replace('-', ' ')}
             </Badge>
             {onClick && (
               <ChevronRight className="h-4 w-4 text-muted-foreground group-hover:text-primary transition-colors" />

@@ -135,12 +135,12 @@ export interface InventoryItem {
   unitPrice: number;
   supplier: string;
   location: string;
-  expiryDate?: Date;
+  expiryDate?: string | Date;
   batchNumber?: string;
   notes?: string;
-  lastRestocked: Date;
+  lastRestocked: string | Date;
   status: 'in-stock' | 'low-stock' | 'out-of-stock' | 'expired';
-  createdAt: Date;
+  createdAt: string | Date;
 }
 
 export interface MedicalRecord {
