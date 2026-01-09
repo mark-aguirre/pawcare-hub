@@ -1,6 +1,7 @@
 'use client';
 
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import { Sheet, SheetContent, SheetHeader, SheetTitle } from '@/components/ui/sheet';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Separator } from '@/components/ui/separator';
@@ -13,6 +14,7 @@ interface PrescriptionDetailModalProps {
   prescription: Prescription | null;
   onEdit?: () => void;
   onRefill?: () => void;
+  onDelete?: () => void;
 }
 
 export function PrescriptionDetailModal({ 
@@ -20,7 +22,8 @@ export function PrescriptionDetailModal({
   onClose, 
   prescription, 
   onEdit, 
-  onRefill 
+  onRefill,
+  onDelete 
 }: PrescriptionDetailModalProps) {
   if (!prescription) return null;
 
@@ -46,14 +49,14 @@ export function PrescriptionDetailModal({
   };
 
   return (
-    <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent className="max-w-2xl">
-        <DialogHeader>
-          <DialogTitle className="flex items-center gap-2">
+    <Sheet open={isOpen} onOpenChange={onClose}>
+      <SheetContent className="w-[40vw] overflow-y-auto">
+        <SheetHeader>
+          <SheetTitle className="flex items-center gap-2">
             <Pill className="h-5 w-5 text-primary" />
             Prescription Details
-          </DialogTitle>
-        </DialogHeader>
+          </SheetTitle>
+        </SheetHeader>
 
         <div className="space-y-6">
           {/* Header Info */}
@@ -165,6 +168,11 @@ export function PrescriptionDetailModal({
             <Button variant="outline" onClick={onClose}>
               Close
             </Button>
+            {onDelete && (
+              <Button variant="destructive" onClick={onDelete}>
+                Delete
+              </Button>
+            )}
             {prescription.status === 'active' && prescription.refillsRemaining > 0 && onRefill && (
               <Button onClick={onRefill} className="flex items-center gap-2">
                 <RefreshCw className="h-4 w-4" />
@@ -178,7 +186,7 @@ export function PrescriptionDetailModal({
             )}
           </div>
         </div>
-      </DialogContent>
-    </Dialog>
+      </SheetContent>
+    </Sheet>
   );
 }

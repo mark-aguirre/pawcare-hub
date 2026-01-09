@@ -14,7 +14,7 @@ import { Pet } from '@/types';
 const speciesFilters = ['all', 'dog', 'cat', 'bird', 'rabbit', 'hamster', 'other'] as const;
 
 export default function Pets() {
-  const { data: pets = [], isLoading, error } = usePets();
+  const { pets = [], isLoading, error } = usePets();
   const [search, setSearch] = useState('');
   const [selectedSpecies, setSelectedSpecies] = useState<typeof speciesFilters[number]>('all');
   const [selectedPet, setSelectedPet] = useState<Pet | null>(null);

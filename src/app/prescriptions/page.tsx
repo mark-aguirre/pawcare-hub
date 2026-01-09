@@ -12,93 +12,39 @@ import { PrescriptionFormModal } from '@/components/prescriptions/PrescriptionFo
 import { PrescriptionDetailModal } from '@/components/prescriptions/PrescriptionDetailModal';
 import { Search, Pill, RefreshCw, AlertCircle, CheckCircle, Plus } from 'lucide-react';
 import { Prescription } from '@/types';
-import { toast } from '@/components/ui/use-toast';
-
-const initialPrescriptions: Prescription[] = [
-  {
-    id: 'rx-1',
-    petId: 'pet-1',
-    petName: 'Max',
-    veterinarianId: 'vet-1',
-    veterinarianName: 'Dr. Sarah Chen',
-    medicationName: 'Amoxicillin',
-    dosage: '250mg',
-    frequency: 'Twice daily',
-    duration: '10 days',
-    instructions: 'Give with food. Complete full course.',
-    prescribedDate: new Date('2024-12-15'),
-    status: 'active',
-    refillsRemaining: 2,
-    notes: 'Monitor for allergic reactions'
-  },
-  {
-    id: 'rx-2',
-    petId: 'pet-4',
-    petName: 'Whiskers',
-    veterinarianId: 'vet-1',
-    veterinarianName: 'Dr. Sarah Chen',
-    medicationName: 'Insulin',
-    dosage: '2 units',
-    frequency: 'Twice daily',
-    duration: 'Ongoing',
-    instructions: 'Administer 30 minutes before meals',
-    prescribedDate: new Date('2024-11-20'),
-    status: 'active',
-    refillsRemaining: 5,
-    notes: 'Diabetes management - monitor blood glucose'
-  },
-  {
-    id: 'rx-3',
-    petId: 'pet-5',
-    petName: 'Bella',
-    veterinarianId: 'vet-3',
-    veterinarianName: 'Dr. Emily Watson',
-    medicationName: 'Prednisone',
-    dosage: '5mg',
-    frequency: 'Once daily',
-    duration: '7 days',
-    instructions: 'Taper dose as directed',
-    prescribedDate: new Date('2024-12-10'),
-    status: 'completed',
-    refillsRemaining: 0
-  },
-  {
-    id: 'rx-4',
-    petId: 'pet-2',
-    petName: 'Luna',
-    veterinarianId: 'vet-3',
-    veterinarianName: 'Dr. Emily Watson',
-    medicationName: 'Joint Supplement',
-    dosage: '1 tablet',
-    frequency: 'Once daily',
-    duration: '30 days',
-    instructions: 'Give with morning meal',
-    prescribedDate: new Date('2024-12-01'),
-    status: 'active',
-    refillsRemaining: 1,
-    notes: 'For arthritis management'
-  }
-];
+import { useToast } from '@/components/ui/use-toast';
+import { usePrescriptions } from '@/hooks/use-prescriptions';
+import { usePets } from '@/hooks/use-pets';
+import { useVeterinarians } from '@/hooks/use-veterinarians';
 
 export default function PrescriptionsPage() {
-  const [isLoading, setIsLoading] = useState(true);
   const [search, setSearch] = useState('');
   const [statusFilter, setStatusFilter] = useState<'all' | 'active' | 'completed' | 'cancelled'>('all');
-  const [prescriptions, setPrescriptions] = useState<Prescription[]>(initialPrescriptions);
   const [isFormModalOpen, setIsFormModalOpen] = useState(false);
   const [isDetailModalOpen, setIsDetailModalOpen] = useState(false);
   const [selectedPrescription, setSelectedPrescription] = useState<Prescription | null>(null);
   const [editingPrescription, setEditingPrescription] = useState<Prescription | undefined>(undefined);
+  const { toast } = useToast();
+  const {
+    prescriptions,
+    isLoading,
+    error,
+    createPrescription,
+    updatePrescription,
+    deletePrescription
+  } = usePrescriptions();
+  const { pets, fetchPets } = usePets();
+  const { veterinarians, fetchVeterinarians } = useVeterinarians();
 
   useEffect(() => {
-    const timer = setTimeout(() => setIsLoading(false), 1000);
-    return () => clearTimeout(timer);
-  }, []);
+    fetchPets();
+    fetchVeterinarians();
+  }, [fetchPets, fetchVeterinarians]);
 
   const filteredPrescriptions = prescriptions.filter(p => {
-    const matchesSearch = p.petName.toLowerCase().includes(search.toLowerCase()) ||
-      p.medicationName.toLowerCase().includes(search.toLowerCase()) ||
-      p.veterinarianName.toLowerCase().includes(search.toLowerCase());
+    const matchesSearch = (p.petName || '').toLowerCase().includes(search.toLowerCase()) ||
+      (p.medicationName || '').toLowerCase().includes(search.toLowerCase()) ||
+      (p.veterinarianName || '').toLowerCase().includes(search.toLowerCase());
     const matchesStatus = statusFilter === 'all' || p.status === statusFilter;
     return matchesSearch && matchesStatus;
   });
@@ -121,41 +67,49 @@ export default function PrescriptionsPage() {
     setIsDetailModalOpen(true);
   };
 
-  const handleSavePrescription = (prescriptionData: Omit<Prescription, 'id'>) => {
-    if (editingPrescription) {
-      setPrescriptions(prev => prev.map(p => 
-        p.id === editingPrescription.id 
-          ? { ...prescriptionData, id: editingPrescription.id }
-          : p
-      ));
+  const handleSavePrescription = async (prescriptionData: Omit<Prescription, 'id'>) => {
+    try {
+      if (editingPrescription) {
+        await updatePrescription(editingPrescription.id, prescriptionData);
+        toast({
+          title: "Prescription Updated",
+          description: "The prescription has been successfully updated."
+        });
+      } else {
+        await createPrescription(prescriptionData);
+        toast({
+          title: "Prescription Created",
+          description: "New prescription has been successfully created."
+        });
+      }
+      setIsFormModalOpen(false);
+    } catch (error) {
       toast({
-        title: "Prescription Updated",
-        description: "The prescription has been successfully updated."
-      });
-    } else {
-      const newPrescription: Prescription = {
-        ...prescriptionData,
-        id: `rx-${Date.now()}`
-      };
-      setPrescriptions(prev => [newPrescription, ...prev]);
-      toast({
-        title: "Prescription Created",
-        description: "New prescription has been successfully created."
+        title: "Error",
+        description: error instanceof Error ? error.message : "Failed to save prescription.",
+        variant: "destructive"
       });
     }
   };
 
-  const handleRefill = (prescription: Prescription) => {
+  const handleRefill = async (prescription: Prescription) => {
     if (prescription.refillsRemaining > 0) {
-      setPrescriptions(prev => prev.map(p => 
-        p.id === prescription.id 
-          ? { ...p, refillsRemaining: p.refillsRemaining - 1 }
-          : p
-      ));
-      toast({
-        title: "Refill Processed",
-        description: `Refill processed for ${prescription.medicationName}. ${prescription.refillsRemaining - 1} refills remaining.`
-      });
+      try {
+        await updatePrescription(prescription.id, {
+          ...prescription,
+          refillsRemaining: prescription.refillsRemaining - 1
+        });
+        toast({
+          title: "Refill Processed",
+          description: `Refill processed for ${prescription.medicationName}. ${prescription.refillsRemaining - 1} refills remaining.`
+        });
+      } catch (error) {
+        toast({
+          title: "Error",
+          description: "Failed to process refill.",
+          variant: "destructive"
+        });
+      }
     }
   };
 
@@ -166,9 +120,16 @@ export default function PrescriptionsPage() {
     }
   };
 
-  const handleRefillFromDetail = () => {
+  const handleDeleteFromDetail = async () => {
     if (selectedPrescription) {
-      handleRefill(selectedPrescription);
+      await handleDeletePrescription(selectedPrescription);
+      setIsDetailModalOpen(false);
+    }
+  };
+
+  const handleRefillFromDetail = async () => {
+    if (selectedPrescription) {
+      await handleRefill(selectedPrescription);
       setSelectedPrescription(prev => prev ? {
         ...prev,
         refillsRemaining: prev.refillsRemaining - 1
@@ -184,7 +145,36 @@ export default function PrescriptionsPage() {
         action={{ label: 'New Prescription', onClick: handleCreatePrescription }}
       >
         <LoadingWrapper isLoading={isLoading} variant="list">
+          {error && (
+            <div className="bg-destructive/10 border border-destructive/20 rounded-lg p-4 mb-6">
+              <p className="text-destructive font-medium">Error loading prescriptions</p>
+              <p className="text-sm text-destructive/80">{error}</p>
+            </div>
+          )}
+          
           <div className="space-y-6">
+            {/* Quick Stats */}
+            <div className="grid grid-cols-1 md:grid-cols-4 gap-3">
+              <div className="bg-card rounded-lg p-3 border">
+                <div className="text-xl font-bold text-primary">{prescriptions.length}</div>
+                <div className="text-xs text-muted-foreground">Total Prescriptions</div>
+              </div>
+              <div className="bg-card rounded-lg p-3 border">
+                <div className="text-xl font-bold text-green-600">{activeCount}</div>
+                <div className="text-xs text-muted-foreground">Active</div>
+              </div>
+              <div className="bg-card rounded-lg p-3 border">
+                <div className="text-xl font-bold text-yellow-600">
+                  {prescriptions.filter(p => p.status === 'completed').length}
+                </div>
+                <div className="text-xs text-muted-foreground">Completed</div>
+              </div>
+              <div className="bg-card rounded-lg p-3 border">
+                <div className="text-xl font-bold text-red-600">{needRefillCount}</div>
+                <div className="text-xs text-muted-foreground">Need Refill</div>
+              </div>
+            </div>
+
             {/* Filters */}
             <div className="flex gap-4">
               <div className="relative flex-1 max-w-md">
@@ -240,6 +230,7 @@ export default function PrescriptionsPage() {
                     onView={() => handleViewPrescription(prescription)}
                     onEdit={() => handleEditPrescription(prescription)}
                     onRefill={() => handleRefill(prescription)}
+                    onDelete={() => handleDeletePrescription(prescription)}
                   />
                 ))
               )}
@@ -253,6 +244,8 @@ export default function PrescriptionsPage() {
           onClose={() => setIsFormModalOpen(false)}
           onSave={handleSavePrescription}
           prescription={editingPrescription}
+          pets={pets}
+          veterinarians={veterinarians}
         />
 
         <PrescriptionDetailModal
@@ -261,6 +254,7 @@ export default function PrescriptionsPage() {
           prescription={selectedPrescription}
           onEdit={handleEditFromDetail}
           onRefill={handleRefillFromDetail}
+          onDelete={handleDeleteFromDetail}
         />
       </MainLayout>
     </ProtectedRoute>

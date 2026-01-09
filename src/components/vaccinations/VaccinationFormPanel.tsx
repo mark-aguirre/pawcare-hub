@@ -49,7 +49,7 @@ export function VaccinationFormPanel({
 }: VaccinationFormPanelProps) {
   return (
     <Sheet open={isOpen} onOpenChange={onClose}>
-      <SheetContent className="w-[500px] sm:w-[600px]">
+      <SheetContent className="w-[40vw] min-w-[600px] overflow-y-auto">
         <SheetHeader>
           <SheetTitle>
             {editingVaccination ? 'Edit Vaccination' : 'New Vaccination Record'}

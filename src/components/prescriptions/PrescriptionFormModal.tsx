@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import { Sheet, SheetContent, SheetHeader, SheetTitle } from '@/components/ui/sheet';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -11,16 +12,17 @@ import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, Command
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Badge } from '@/components/ui/badge';
 import { Prescription, Pet, Veterinarian } from '@/types';
-import { mockPets, mockVeterinarians } from '@/data/mockData';
 
 interface PrescriptionFormModalProps {
   isOpen: boolean;
   onClose: () => void;
   onSave: (prescription: Omit<Prescription, 'id'>) => void;
   prescription?: Prescription;
+  pets: Pet[];
+  veterinarians: Veterinarian[];
 }
 
-export function PrescriptionFormModal({ isOpen, onClose, onSave, prescription }: PrescriptionFormModalProps) {
+export function PrescriptionFormModal({ isOpen, onClose, onSave, prescription, pets, veterinarians }: PrescriptionFormModalProps) {
   const [formData, setFormData] = useState({
     petId: '',
     veterinarianId: '',
@@ -41,14 +43,14 @@ export function PrescriptionFormModal({ isOpen, onClose, onSave, prescription }:
   const [petSearch, setPetSearch] = useState('');
   const [vetSearch, setVetSearch] = useState('');
 
-  const filteredPets = mockPets.filter(pet => 
+  const filteredPets = pets.filter(pet => 
     pet.name.toLowerCase().includes(petSearch.toLowerCase()) ||
-    pet.ownerName.toLowerCase().includes(petSearch.toLowerCase())
+    (pet.owner ? `${pet.owner.firstName} ${pet.owner.lastName}`.toLowerCase().includes(petSearch.toLowerCase()) : false)
   );
 
-  const filteredVets = mockVeterinarians.filter(vet => 
-    vet.name.toLowerCase().includes(vetSearch.toLowerCase()) ||
-    vet.specialization.toLowerCase().includes(vetSearch.toLowerCase())
+  const filteredVets = veterinarians.filter(vet => 
+    (vet.name || '').toLowerCase().includes(vetSearch.toLowerCase()) ||
+    (vet.specialization || '').toLowerCase().includes(vetSearch.toLowerCase())
   );
 
   useEffect(() => {
@@ -65,8 +67,8 @@ export function PrescriptionFormModal({ isOpen, onClose, onSave, prescription }:
         notes: prescription.notes || '',
         status: prescription.status
       });
-      setSelectedPet(mockPets.find(p => p.id === prescription.petId) || null);
-      setSelectedVet(mockVeterinarians.find(v => v.id === prescription.veterinarianId) || null);
+      setSelectedPet(pets.find(p => p.id.toString() === prescription.petId) || null);
+      setSelectedVet(veterinarians.find(v => v.id.toString() === prescription.veterinarianId) || null);
     } else {
       setFormData({
         petId: '',
@@ -99,27 +101,27 @@ export function PrescriptionFormModal({ isOpen, onClose, onSave, prescription }:
   };
 
   const handlePetSelect = (petId: string) => {
-    const pet = mockPets.find(p => p.id === petId);
+    const pet = pets.find(p => p.id.toString() === petId);
     setSelectedPet(pet || null);
     setFormData(prev => ({ ...prev, petId }));
   };
 
   const handleVetSelect = (vetId: string) => {
-    const vet = mockVeterinarians.find(v => v.id === vetId);
+    const vet = veterinarians.find(v => v.id.toString() === vetId);
     setSelectedVet(vet || null);
     setFormData(prev => ({ ...prev, veterinarianId: vetId }));
   };
 
   return (
-    <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
-        <DialogHeader>
-          <DialogTitle>
+    <Sheet open={isOpen} onOpenChange={onClose}>
+      <SheetContent side="right" className="w-[40vw] min-w-[600px] overflow-y-auto">
+        <SheetHeader>
+          <SheetTitle>
             {prescription ? 'Edit Prescription' : 'New Prescription'}
-          </DialogTitle>
-        </DialogHeader>
+          </SheetTitle>
+        </SheetHeader>
 
-        <form onSubmit={handleSubmit} className="space-y-6">
+        <form onSubmit={handleSubmit} className="space-y-6 mt-6">
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div className="space-y-2">
               <Label htmlFor="pet">Pet *</Label>
@@ -130,6 +132,7 @@ export function PrescriptionFormModal({ isOpen, onClose, onSave, prescription }:
                     role="combobox"
                     aria-expanded={petSearchOpen}
                     className="w-full justify-between"
+                    disabled={!!prescription}
                   >
                     {selectedPet ? (
                       <div className="flex items-center gap-2">
@@ -138,7 +141,7 @@ export function PrescriptionFormModal({ isOpen, onClose, onSave, prescription }:
                           {selectedPet.species}
                         </Badge>
                         <span className="text-xs text-muted-foreground">
-                          ({selectedPet.ownerName})
+                          ({selectedPet.owner ? `${selectedPet.owner.firstName} ${selectedPet.owner.lastName}` : 'No owner'})
                         </span>
                       </div>
                     ) : (
@@ -159,9 +162,9 @@ export function PrescriptionFormModal({ isOpen, onClose, onSave, prescription }:
                         {filteredPets.map((pet) => (
                           <CommandItem
                             key={pet.id}
-                            value={pet.id}
+                            value={pet.id.toString()}
                             onSelect={() => {
-                              handlePetSelect(pet.id);
+                              handlePetSelect(pet.id.toString());
                               setPetSearchOpen(false);
                               setPetSearch('');
                             }}
@@ -172,7 +175,7 @@ export function PrescriptionFormModal({ isOpen, onClose, onSave, prescription }:
                                 {pet.species}
                               </Badge>
                               <span className="text-xs text-muted-foreground">
-                                ({pet.ownerName})
+                                ({pet.owner ? `${pet.owner.firstName} ${pet.owner.lastName}` : 'No owner'})
                               </span>
                             </div>
                           </CommandItem>
@@ -193,12 +196,13 @@ export function PrescriptionFormModal({ isOpen, onClose, onSave, prescription }:
                     role="combobox"
                     aria-expanded={vetSearchOpen}
                     className="w-full justify-between"
+                    disabled={!!prescription}
                   >
                     {selectedVet ? (
                       <div className="flex flex-col items-start">
                         <span>{selectedVet.name}</span>
                         <span className="text-xs text-muted-foreground">
-                          {selectedVet.specialization}
+                          {selectedVet.specialization || 'General Practice'}
                         </span>
                       </div>
                     ) : (
@@ -219,9 +223,9 @@ export function PrescriptionFormModal({ isOpen, onClose, onSave, prescription }:
                         {filteredVets.map((vet) => (
                           <CommandItem
                             key={vet.id}
-                            value={vet.id}
+                            value={vet.id.toString()}
                             onSelect={() => {
-                              handleVetSelect(vet.id);
+                              handleVetSelect(vet.id.toString());
                               setVetSearchOpen(false);
                               setVetSearch('');
                             }}
@@ -229,7 +233,7 @@ export function PrescriptionFormModal({ isOpen, onClose, onSave, prescription }:
                             <div className="flex flex-col">
                               <span>{vet.name}</span>
                               <span className="text-xs text-muted-foreground">
-                                {vet.specialization}
+                                {vet.specialization || 'General Practice'}
                               </span>
                             </div>
                           </CommandItem>
@@ -363,7 +367,7 @@ export function PrescriptionFormModal({ isOpen, onClose, onSave, prescription }:
             </Button>
           </div>
         </form>
-      </DialogContent>
-    </Dialog>
+      </SheetContent>
+    </Sheet>
   );
 }
