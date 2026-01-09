@@ -75,7 +75,12 @@ export default function LoginPage() {
               />
             </div>
             <div className="space-y-2">
-              <Label htmlFor="password">Password</Label>
+              <div className="flex items-center justify-between">
+                <Label htmlFor="password">Password</Label>
+                <a href="/forgot-password" className="text-sm text-primary hover:underline">
+                  Forgot password?
+                </a>
+              </div>
               <div className="relative">
                 <Input
                   id="password"
@@ -105,12 +110,7 @@ export default function LoginPage() {
               {loginMutation.isPending ? 'Signing in...' : 'Sign In'}
             </Button>
           </form>
-          <div className="mt-6 text-center text-sm text-muted-foreground">
-            <p>Demo credentials:</p>
-            <p>Admin: admin@pawcare.com / password</p>
-            <p>Vet: vet@pawcare.com / password</p>
-            <p>Owner: PID001 / password</p>
-          </div>
+
           <div className="mt-4 text-center text-sm">
             <p className="text-muted-foreground">
               Don't have an account?{' '}
