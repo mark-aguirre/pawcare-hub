@@ -61,8 +61,7 @@ export function useRecords(options: UseRecordsOptions = {}): UseRecordsReturn {
   const createRecord = async (record: Partial<MedicalRecord>): Promise<MedicalRecord> => {
     try {
       console.log('Creating record with data:', record);
-      const BACKEND_URL = process.env.NEXT_PUBLIC_BACKEND_URL || 'http://localhost:8082';
-      const response = await fetch(`${BACKEND_URL}/api/medical-records`, {
+      const response = await fetch('/api/records', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -72,17 +71,21 @@ export function useRecords(options: UseRecordsOptions = {}): UseRecordsReturn {
 
       if (!response.ok) {
         const errorText = await response.text();
-        console.error('Backend error response:', errorText);
-        throw new Error(`Backend responded with status: ${response.status}`);
+        console.error('API error response:', errorText);
+        throw new Error(`API responded with status: ${response.status}`);
       }
 
       const data = await response.json();
-      console.log('Backend response:', data);
+      console.log('API response:', data);
+      
+      if (!data.success) {
+        throw new Error(data.error || 'Failed to create record');
+      }
       
       const newRecord = {
-        ...data,
-        date: new Date(data.date),
-        createdAt: new Date(data.createdAt),
+        ...data.data,
+        date: new Date(data.data.date),
+        createdAt: new Date(data.data.createdAt),
       };
 
       setRecords(prev => [newRecord, ...prev]);
@@ -94,8 +97,7 @@ export function useRecords(options: UseRecordsOptions = {}): UseRecordsReturn {
 
   const updateRecord = async (id: string, record: Partial<MedicalRecord>): Promise<MedicalRecord> => {
     try {
-      const BACKEND_URL = process.env.NEXT_PUBLIC_BACKEND_URL || 'http://localhost:8082';
-      const response = await fetch(`${BACKEND_URL}/api/medical-records/${id}`, {
+      const response = await fetch(`/api/records/${id}`, {
         method: 'PUT',
         headers: {
           'Content-Type': 'application/json',
@@ -111,10 +113,14 @@ export function useRecords(options: UseRecordsOptions = {}): UseRecordsReturn {
 
       const data = await response.json();
       
+      if (!data.success) {
+        throw new Error(data.error || 'Failed to update record');
+      }
+      
       const updatedRecord = {
-        ...data,
-        date: new Date(data.date),
-        createdAt: new Date(data.createdAt),
+        ...data.data,
+        date: new Date(data.data.date),
+        createdAt: new Date(data.data.createdAt),
       };
 
       setRecords(prev => prev.map(r => r.id === id ? updatedRecord : r));

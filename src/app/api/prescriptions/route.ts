@@ -1,18 +1,25 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { apiClient } from '@/lib/api';
+
+const BACKEND_URL = process.env.BACKEND_URL || 'http://localhost:8082';
 
 export async function GET(request: NextRequest) {
   try {
     const { searchParams } = new URL(request.url);
     const petId = searchParams.get('petId');
     
-    let endpoint = '/api/prescriptions';
+    let url = `${BACKEND_URL}/api/prescriptions`;
     if (petId) {
-      endpoint = `/api/prescriptions/pet/${petId}`;
+      url += `?petId=${petId}`;
     }
     
-    const prescriptions = await apiClient.get(endpoint);
-    return NextResponse.json(prescriptions);
+    const response = await fetch(url);
+    
+    if (!response.ok) {
+      throw new Error(`Backend responded with status: ${response.status}`);
+    }
+    
+    const data = await response.json();
+    return NextResponse.json(data);
   } catch (error) {
     console.error('Error fetching prescriptions:', error);
     return NextResponse.json(
@@ -25,8 +32,21 @@ export async function GET(request: NextRequest) {
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json();
-    const prescription = await apiClient.post('/api/prescriptions', body);
-    return NextResponse.json(prescription);
+    
+    const response = await fetch(`${BACKEND_URL}/api/prescriptions`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify(body),
+    });
+    
+    if (!response.ok) {
+      throw new Error(`Backend responded with status: ${response.status}`);
+    }
+    
+    const data = await response.json();
+    return NextResponse.json(data);
   } catch (error) {
     console.error('Error creating prescription:', error);
     return NextResponse.json(

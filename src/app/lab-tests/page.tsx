@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import { MainLayout } from '@/components/layout/MainLayout';
 import { ProtectedRoute } from '@/components/auth/ProtectedRoute';
 import { LoadingWrapper } from '@/components/ui/loading-wrapper';
@@ -10,98 +10,42 @@ import { Input } from '@/components/ui/input';
 import { LabTestCard } from '@/components/lab-tests/LabTestCard';
 import { LabTestFormModal } from '@/components/lab-tests/LabTestFormModal';
 import { LabTestResultsModal } from '@/components/lab-tests/LabTestResultsModal';
-import { Search, TestTube, Clock, CheckCircle, AlertCircle, Plus } from 'lucide-react';
+import { Search, TestTube, Clock, CheckCircle, Plus, Download, Printer } from 'lucide-react';
 import { LabTest } from '@/types';
 import { toast } from '@/components/ui/use-toast';
-
-const initialLabTests: LabTest[] = [
-  {
-    id: 'lab-1',
-    petId: 'pet-1',
-    petName: 'Max',
-    testType: 'Complete Blood Count (CBC)',
-    requestedDate: new Date('2024-12-20'),
-    completedDate: new Date('2024-12-22'),
-    results: 'All values within normal limits.\nWBC: 7.2 (normal: 6.0-17.0)\nRBC: 6.8 (normal: 5.5-8.5)\nPlatelets: 350 (normal: 200-500)\nHematocrit: 42% (normal: 37-55%)\nHemoglobin: 14.2 g/dL (normal: 12-18)',
-    status: 'completed',
-    veterinarianId: 'vet-1',
-    veterinarianName: 'Dr. Sarah Chen',
-    notes: 'Annual health screening'
-  },
-  {
-    id: 'lab-2',
-    petId: 'pet-4',
-    petName: 'Whiskers',
-    testType: 'Blood Glucose',
-    requestedDate: new Date('2024-12-18'),
-    status: 'in-progress',
-    veterinarianId: 'vet-1',
-    veterinarianName: 'Dr. Sarah Chen',
-    notes: 'Diabetes monitoring - fasting glucose'
-  },
-  {
-    id: 'lab-3',
-    petId: 'pet-2',
-    petName: 'Luna',
-    testType: 'Urinalysis',
-    requestedDate: new Date('2024-12-25'),
-    status: 'requested',
-    veterinarianId: 'vet-1',
-    veterinarianName: 'Dr. Sarah Chen',
-    notes: 'Check for urinary tract infection'
-  },
-  {
-    id: 'lab-4',
-    petId: 'pet-5',
-    petName: 'Bella',
-    testType: 'X-Ray',
-    requestedDate: new Date('2024-12-15'),
-    completedDate: new Date('2024-12-16'),
-    results: 'Chest X-ray shows mild bronchial pattern consistent with respiratory condition. No signs of pneumonia or foreign objects. Heart size within normal limits.',
-    status: 'completed',
-    veterinarianId: 'vet-3',
-    veterinarianName: 'Dr. Emily Watson',
-    notes: 'Breathing issues follow-up'
-  },
-  {
-    id: 'lab-5',
-    petId: 'pet-3',
-    petName: 'Buddy',
-    testType: 'Blood Chemistry Panel',
-    requestedDate: new Date('2024-12-21'),
-    status: 'requested',
-    veterinarianId: 'vet-2',
-    veterinarianName: 'Dr. Michael Torres',
-    notes: 'Pre-surgical bloodwork'
-  }
-];
+import { useLabTests } from '@/hooks/use-lab-tests';
+import { exportLabTestsToCSV, printLabTestSummary } from '@/lib/lab-test-utils';
 
 export default function LabTestsPage() {
-  const [isLoading, setIsLoading] = useState(true);
   const [search, setSearch] = useState('');
   const [statusFilter, setStatusFilter] = useState<'all' | 'requested' | 'in-progress' | 'completed' | 'cancelled'>('all');
-  const [labTests, setLabTests] = useState<LabTest[]>(initialLabTests);
   const [isFormModalOpen, setIsFormModalOpen] = useState(false);
   const [isResultsModalOpen, setIsResultsModalOpen] = useState(false);
   const [selectedTest, setSelectedTest] = useState<LabTest | null>(null);
   const [editingTest, setEditingTest] = useState<LabTest | undefined>(undefined);
 
-  useEffect(() => {
-    const timer = setTimeout(() => setIsLoading(false), 1000);
-    return () => clearTimeout(timer);
-  }, []);
+  const {
+    labTests,
+    stats,
+    isLoading,
+    error,
+    createLabTest,
+    updateLabTest,
+    updateTestResults,
+    startTest
+  } = useLabTests({ status: statusFilter });
 
   const filteredTests = labTests.filter(test => {
     const matchesSearch = test.petName.toLowerCase().includes(search.toLowerCase()) ||
       test.testType.toLowerCase().includes(search.toLowerCase()) ||
       test.veterinarianName.toLowerCase().includes(search.toLowerCase());
-    const matchesStatus = statusFilter === 'all' || test.status === statusFilter;
-    return matchesSearch && matchesStatus;
+    return matchesSearch;
   });
 
-  const requestedCount = labTests.filter(t => t.status === 'requested').length;
-  const inProgressCount = labTests.filter(t => t.status === 'in-progress').length;
-  const completedCount = labTests.filter(t => t.status === 'completed').length;
+  const requestedCount = stats?.byStatus.requested || 0;
+  const inProgressCount = stats?.byStatus.inProgress || 0;
+  const completedCount = stats?.byStatus.completed || 0;
+  const totalCount = stats?.total || 0;
 
   const handleCreateTest = () => {
     setEditingTest(undefined);
@@ -118,70 +62,89 @@ export default function LabTestsPage() {
     setIsResultsModalOpen(true);
   };
 
-  const handleSaveTest = (testData: Omit<LabTest, 'id'>) => {
-    if (editingTest) {
-      setLabTests(prev => prev.map(t => 
-        t.id === editingTest.id 
-          ? { ...testData, id: editingTest.id }
-          : t
-      ));
+  const handleSaveTest = async (testData: Omit<LabTest, 'id' | 'requestedDate'>) => {
+    try {
+      if (editingTest) {
+        await updateLabTest(editingTest.id, testData);
+        toast({
+          title: "Lab Test Updated",
+          description: "The lab test has been successfully updated."
+        });
+      } else {
+        await createLabTest(testData);
+        toast({
+          title: "Lab Test Created",
+          description: "New lab test request has been created."
+        });
+      }
+      setIsFormModalOpen(false);
+    } catch (error) {
       toast({
-        title: "Lab Test Updated",
-        description: "The lab test has been successfully updated."
-      });
-    } else {
-      const newTest: LabTest = {
-        ...testData,
-        id: `lab-${Date.now()}`
-      };
-      setLabTests(prev => [newTest, ...prev]);
-      toast({
-        title: "Lab Test Created",
-        description: "New lab test request has been created."
+        title: "Error",
+        description: "Failed to save lab test. Please try again.",
+        variant: "destructive"
       });
     }
   };
 
-  const handleSaveResults = (testId: string, results: string) => {
-    setLabTests(prev => prev.map(t => 
-      t.id === testId 
-        ? { 
-            ...t, 
-            results, 
-            status: 'completed' as const,
-            completedDate: new Date()
-          }
-        : t
-    ));
-    setSelectedTest(prev => prev ? {
-      ...prev,
-      results,
-      status: 'completed',
-      completedDate: new Date()
-    } : null);
-    toast({
-      title: "Results Saved",
-      description: "Lab test results have been saved successfully."
-    });
+  const handleSaveResults = async (testId: string, results: string) => {
+    try {
+      await updateTestResults(testId, results);
+      setSelectedTest(prev => prev ? {
+        ...prev,
+        results,
+        status: 'completed',
+        completedDate: new Date()
+      } : null);
+      toast({
+        title: "Results Saved",
+        description: "Lab test results have been saved successfully."
+      });
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: "Failed to save results. Please try again.",
+        variant: "destructive"
+      });
+    }
   };
 
-  const handleStartTest = (test: LabTest) => {
-    setLabTests(prev => prev.map(t => 
-      t.id === test.id 
-        ? { ...t, status: 'in-progress' as const }
-        : t
-    ));
-    toast({
-      title: "Test Started",
-      description: `${test.testType} for ${test.petName} is now in progress.`
-    });
+  const handleStartTest = async (test: LabTest) => {
+    try {
+      await startTest(test.id);
+      toast({
+        title: "Test Started",
+        description: `${test.testType} for ${test.petName} is now in progress.`
+      });
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: "Failed to start test. Please try again.",
+        variant: "destructive"
+      });
+    }
   };
+
+  if (error) {
+    return (
+      <ProtectedRoute requiredPermissions={['lab-tests', 'records']}>
+        <MainLayout title="Laboratory Tests">
+          <Card>
+            <CardContent className="p-12 text-center">
+              <p className="text-destructive mb-4">Error loading lab tests: {error}</p>
+              <Button onClick={() => window.location.reload()}>Retry</Button>
+            </CardContent>
+          </Card>
+        </MainLayout>
+      </ProtectedRoute>
+    );
+  }
 
   return (
     <ProtectedRoute requiredPermissions={['lab-tests', 'records']}>
       <MainLayout
         title="Laboratory Tests"
-        subtitle={`${labTests.length} tests • ${requestedCount} requested • ${inProgressCount} in progress`}
+        subtitle={`${totalCount} tests • ${requestedCount} requested • ${inProgressCount} in progress`}
         action={{ label: 'New Test Request', onClick: handleCreateTest }}
       >
         <LoadingWrapper isLoading={isLoading} variant="list">
@@ -193,7 +156,7 @@ export default function LabTestsPage() {
                   <div className="flex items-center justify-between">
                     <div>
                       <p className="text-sm font-medium text-muted-foreground">Total Tests</p>
-                      <p className="text-2xl font-bold">{labTests.length}</p>
+                      <p className="text-2xl font-bold">{totalCount}</p>
                     </div>
                     <TestTube className="h-8 w-8 text-primary" />
                   </div>
@@ -257,6 +220,30 @@ export default function LabTestsPage() {
                     {status === 'in-progress' ? 'In Progress' : status}
                   </Button>
                 ))}
+              </div>
+              <div className="flex gap-2 ml-auto">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => {
+                    exportLabTestsToCSV(filteredTests);
+                    toast({
+                      title: "Export Complete",
+                      description: "Lab tests data has been exported to CSV."
+                    });
+                  }}
+                >
+                  <Download className="h-4 w-4 mr-2" />
+                  Export CSV
+                </Button>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => printLabTestSummary(filteredTests)}
+                >
+                  <Printer className="h-4 w-4 mr-2" />
+                  Print Summary
+                </Button>
               </div>
             </div>
 

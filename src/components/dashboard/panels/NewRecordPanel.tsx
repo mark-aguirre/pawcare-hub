@@ -9,8 +9,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Textarea } from '@/components/ui/textarea';
 import { Calendar } from '@/components/ui/calendar';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
-import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from '@/components/ui/command';
-import { CalendarIcon, FileText, Upload, Paperclip, Check, ChevronsUpDown } from 'lucide-react';
+import { CalendarIcon, FileText, Upload } from 'lucide-react';
 import { format } from 'date-fns';
 import { cn } from '@/lib/utils';
 import { useToast } from '@/components/ui/use-toast';
@@ -27,8 +26,6 @@ interface NewRecordPanelProps {
 
 export function NewRecordPanel({ open, onOpenChange, onRecordCreated, editRecord }: NewRecordPanelProps) {
   const [date, setDate] = useState<Date>(new Date());
-  const [openPetSelect, setOpenPetSelect] = useState(false);
-  const [openVetSelect, setOpenVetSelect] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [formData, setFormData] = useState({
     petId: '',
@@ -40,10 +37,8 @@ export function NewRecordPanel({ open, onOpenChange, onRecordCreated, editRecord
     attachments: '',
   });
   const [uploadedFiles, setUploadedFiles] = useState<{originalName: string, filename: string, path: string, size: number}[]>([]);
-  const { data: petsData, isLoading: petsLoading } = usePets();
-  const { data: vetsData, isLoading: vetsLoading } = useVeterinarians();
-  const pets = petsData || [];
-  const veterinarians = vetsData || [];
+  const { pets, isLoading: petsLoading } = usePets();
+  const { veterinarians, isLoading: vetsLoading } = useVeterinarians();
   const { toast } = useToast();
   const { createRecord, updateRecord } = useRecords();
 
@@ -272,122 +267,63 @@ export function NewRecordPanel({ open, onOpenChange, onRecordCreated, editRecord
               {/* Pet Selection */}
               <div className="space-y-2">
                 <Label htmlFor="pet">Pet *</Label>
-                <Popover open={openPetSelect} onOpenChange={setOpenPetSelect}>
-                  <PopoverTrigger asChild>
-                    <Button
-                      variant="outline"
-                      role="combobox"
-                      aria-expanded={openPetSelect}
-                      className="w-full justify-between"
-                      disabled={!!editRecord}
-                    >
-                      {formData.petId
-                        ? (() => {
-                            const pet = pets.find(p => p.id.toString() === formData.petId);
-                            return pet ? `${pet.name} (${pet.species}) - ${pet.ownerName}` : "Select a pet";
-                          })()
-                        : "Select a pet"}
-                      <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
-                    </Button>
-                  </PopoverTrigger>
-                  <PopoverContent className="w-full p-0">
-                    <Command>
-                      <CommandInput placeholder="Search pets..." />
-                      <CommandList>
-                        <CommandEmpty>No pet found.</CommandEmpty>
-                        <CommandGroup>
-                          {petsLoading ? (
-                            <CommandItem disabled>Loading pets...</CommandItem>
-                          ) : (
-                            pets.map((pet) => (
-                              <CommandItem
-                                key={pet.id}
-                                value={`${pet.name} ${pet.species} ${pet.ownerName}`}
-                                onSelect={() => {
-                                  setFormData(prev => ({ ...prev, petId: pet.id.toString() }));
-                                  setOpenPetSelect(false);
-                                }}
-                              >
-                                <Check
-                                  className={cn(
-                                    "mr-2 h-4 w-4",
-                                    formData.petId === pet.id.toString() ? "opacity-100" : "opacity-0"
-                                  )}
-                                />
-                                <div className="flex items-center gap-2">
-                                  <span className="text-lg">{pet.species === 'dog' ? '🐕' : pet.species === 'cat' ? '🐱' : '🐾'}</span>
-                                  <div>
-                                    <div className="font-medium">{pet.name} ({pet.species})</div>
-                                    <div className="text-xs text-muted-foreground">{pet.ownerName}</div>
-                                  </div>
-                                </div>
-                              </CommandItem>
-                            ))
-                          )}
-                        </CommandGroup>
-                      </CommandList>
-                    </Command>
-                  </PopoverContent>
-                </Popover>
+                <Select 
+                  value={formData.petId} 
+                  onValueChange={(value) => setFormData(prev => ({ ...prev, petId: value }))}
+                  disabled={!!editRecord}
+                >
+                  <SelectTrigger>
+                    <SelectValue placeholder="Select pet" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {petsLoading ? (
+                      <SelectItem value="loading" disabled>
+                        Loading pets...
+                      </SelectItem>
+                    ) : pets && pets.length > 0 ? (
+                      pets.map((pet) => (
+                        <SelectItem key={pet.id} value={pet.id.toString()}>
+                          {pet.name} ({pet.species}) - {pet.ownerName}
+                        </SelectItem>
+                      ))
+                    ) : (
+                      <SelectItem value="no-pets" disabled>
+                        No pets available
+                      </SelectItem>
+                    )}
+                  </SelectContent>
+                </Select>
               </div>
 
               {/* Veterinarian Selection */}
               <div className="space-y-2">
                 <Label htmlFor="veterinarian">Veterinarian *</Label>
-                <Popover open={openVetSelect} onOpenChange={setOpenVetSelect}>
-                  <PopoverTrigger asChild>
-                    <Button
-                      variant="outline"
-                      role="combobox"
-                      aria-expanded={openVetSelect}
-                      className="w-full justify-between"
-                      disabled={!!editRecord}
-                    >
-                      {formData.veterinarianId
-                        ? (() => {
-                            const vet = veterinarians.find(v => v.id.toString() === formData.veterinarianId);
-                            return vet ? `${vet.name} - ${vet.specialization}` : "Select veterinarian";
-                          })()
-                        : "Select veterinarian"}
-                      <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
-                    </Button>
-                  </PopoverTrigger>
-                  <PopoverContent className="w-full p-0">
-                    <Command>
-                      <CommandInput placeholder="Search veterinarians..." />
-                      <CommandList>
-                        <CommandEmpty>No veterinarian found.</CommandEmpty>
-                        <CommandGroup>
-                          {vetsLoading ? (
-                            <CommandItem disabled>Loading veterinarians...</CommandItem>
-                          ) : (
-                            veterinarians.map((vet) => (
-                              <CommandItem
-                                key={vet.id}
-                                value={`${vet.name} ${vet.specialization}`}
-                                onSelect={() => {
-                                  setFormData(prev => ({ ...prev, veterinarianId: vet.id.toString() }));
-                                  setOpenVetSelect(false);
-                                }}
-                              >
-                                <Check
-                                  className={cn(
-                                    "mr-2 h-4 w-4",
-                                    formData.veterinarianId === vet.id.toString() ? "opacity-100" : "opacity-0"
-                                  )}
-                                />
-                                <div>
-                                  <div className="font-medium">{vet.name}</div>
-                                  <div className="text-xs text-muted-foreground">{vet.specialization}</div>
-                                </div>
-                              </CommandItem>
-                            ))
-                          )}
-                        </CommandGroup>
-                      </CommandList>
-                    </Command>
-                  </PopoverContent>
-                </Popover>
+                <Select 
+                  value={formData.veterinarianId} 
+                  onValueChange={(value) => setFormData(prev => ({ ...prev, veterinarianId: value }))}
+                  disabled={!!editRecord}
+                >
+                  <SelectTrigger>
+                    <SelectValue placeholder="Select veterinarian" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {vetsLoading ? (
+                      <SelectItem value="loading" disabled>
+                        Loading veterinarians...
+                      </SelectItem>
+                    ) : veterinarians && veterinarians.length > 0 ? (
+                      veterinarians.map((vet) => (
+                        <SelectItem key={vet.id} value={vet.id.toString()}>
+                          {vet.name} - {vet.specialization}
+                        </SelectItem>
+                      ))
+                    ) : (
+                      <SelectItem value="no-vets" disabled>
+                        No veterinarians available
+                      </SelectItem>
+                    )}
+                  </SelectContent>
+                </Select>
               </div>
             </div>
           </div>

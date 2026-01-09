@@ -2,19 +2,13 @@ import type { Metadata } from "next";
 import { Inter } from "next/font/google";
 import "./globals.css";
 import { Toaster } from "@/components/ui/toaster";
-import { Toaster as Sonner } from "@/components/ui/sonner";
-import { TooltipProvider } from "@/components/ui/tooltip";
-import { ReactQueryProvider } from "./providers";
-import { AppSettingsProvider } from "@/contexts/AppSettingsContext";
 import { AuthProvider } from "@/contexts/AuthContext";
+import { AppSettingsProvider } from "@/contexts/AppSettingsContext";
 import { NotificationProvider } from "@/contexts/NotificationContext";
-import { ResourcePreloader } from "@/lib/preload";
-import { LoadingSpinner } from "@/components/ui/loading-spinner";
+import { ReactQueryProvider } from "./providers";
 
 const inter = Inter({ 
-  subsets: ["latin"],
-  display: 'swap',
-  preload: true
+  subsets: ["latin"]
 });
 
 export const metadata: Metadata = {
@@ -28,28 +22,18 @@ export default function RootLayout({
   children: React.ReactNode;
 }) {
   return (
-    <html lang="en">
-      <head>
-        <link rel="preconnect" href="https://fonts.googleapis.com" />
-        <link rel="dns-prefetch" href="https://fonts.googleapis.com" />
-      </head>
+    <html lang="en" data-scroll-behavior="smooth">
       <body className={inter.className} suppressHydrationWarning={true}>
-        <ResourcePreloader>
-          <ReactQueryProvider>
-            <AuthProvider>
-              <NotificationProvider>
-                <AppSettingsProvider>
-                  <TooltipProvider>
-                    <LoadingSpinner />
-                    <Toaster />
-                    <Sonner />
-                    {children}
-                  </TooltipProvider>
-                </AppSettingsProvider>
-              </NotificationProvider>
-            </AuthProvider>
-          </ReactQueryProvider>
-        </ResourcePreloader>
+        <ReactQueryProvider>
+          <AuthProvider>
+            <NotificationProvider>
+              <AppSettingsProvider>
+                <Toaster />
+                {children}
+              </AppSettingsProvider>
+            </NotificationProvider>
+          </AuthProvider>
+        </ReactQueryProvider>
       </body>
     </html>
   );

@@ -5,6 +5,8 @@ import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Textarea } from '@/components/ui/textarea';
 import { Vaccination, Pet, Veterinarian } from '@/types';
+import { PetSelector } from '@/components/ui/PetSelector';
+import { VeterinarianSelector } from '@/components/ui/VeterinarianSelector';
 
 interface VaccinationFormModalProps {
   isOpen: boolean;
@@ -56,24 +58,14 @@ export function VaccinationFormModal({
           </DialogTitle>
         </DialogHeader>
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          <div className="space-y-2">
-            <Label htmlFor="pet">Pet *</Label>
-            <Select 
-              value={formData.petId.toString()} 
-              onValueChange={(value) => setFormData({...formData, petId: parseInt(value)})}
-            >
-              <SelectTrigger>
-                <SelectValue placeholder="Select pet" />
-              </SelectTrigger>
-              <SelectContent>
-                {pets.map((pet) => (
-                  <SelectItem key={pet.id} value={pet.id.toString()}>
-                    {pet.name} ({pet.species})
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </div>
+          <PetSelector
+            pets={pets}
+            selectedPetId={formData.petId.toString()}
+            onPetSelect={(petId) => setFormData({...formData, petId: parseInt(petId)})}
+            label="Pet"
+            required
+          />
+          
           <div className="space-y-2">
             <Label htmlFor="vaccine">Vaccine Type *</Label>
             <Select 
@@ -92,6 +84,7 @@ export function VaccinationFormModal({
               </SelectContent>
             </Select>
           </div>
+          
           <div className="space-y-2">
             <Label htmlFor="administered">Administered Date *</Label>
             <Input
@@ -100,6 +93,7 @@ export function VaccinationFormModal({
               onChange={(e) => setFormData({...formData, administeredDate: e.target.value})}
             />
           </div>
+          
           <div className="space-y-2">
             <Label htmlFor="nextDue">Next Due Date *</Label>
             <Input
@@ -108,24 +102,15 @@ export function VaccinationFormModal({
               onChange={(e) => setFormData({...formData, nextDueDate: e.target.value})}
             />
           </div>
-          <div className="space-y-2">
-            <Label htmlFor="vet">Veterinarian *</Label>
-            <Select 
-              value={formData.veterinarianId.toString()} 
-              onValueChange={(value) => setFormData({...formData, veterinarianId: parseInt(value)})}
-            >
-              <SelectTrigger>
-                <SelectValue placeholder="Select veterinarian" />
-              </SelectTrigger>
-              <SelectContent>
-                {veterinarians.map((vet) => (
-                  <SelectItem key={vet.id} value={vet.id.toString()}>
-                    {vet.firstName} {vet.lastName}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </div>
+          
+          <VeterinarianSelector
+            veterinarians={veterinarians}
+            selectedVetId={formData.veterinarianId.toString()}
+            onVetSelect={(vetId) => setFormData({...formData, veterinarianId: parseInt(vetId)})}
+            label="Veterinarian"
+            required
+          />
+          
           <div className="space-y-2">
             <Label htmlFor="batch">Batch Number</Label>
             <Input

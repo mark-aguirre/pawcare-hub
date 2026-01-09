@@ -1,4 +1,4 @@
-const API_BASE_URL = process.env.NODE_ENV === 'production' ? '' : 'http://localhost:8082';
+const API_BASE_URL = process.env.NODE_ENV === 'production' ? '' : '';
 
 class ApiClient {
   private baseURL: string;

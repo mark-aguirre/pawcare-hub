@@ -3,8 +3,10 @@
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
 import { LabTest } from '@/types';
-import { TestTube, Calendar, Clock, CheckCircle, AlertCircle, Eye, Edit, Upload, Play } from 'lucide-react';
+import { TestTube, Calendar, Clock, CheckCircle, AlertCircle, Eye, Edit, Upload, Play, MoreHorizontal, Printer, Download } from 'lucide-react';
+import { printLabTestReport } from '@/lib/lab-test-utils';
 
 interface LabTestCardProps {
   labTest: LabTest;
@@ -15,12 +17,17 @@ interface LabTestCardProps {
 }
 
 export function LabTestCard({ labTest, onView, onEdit, onUploadResults, onStartTest }: LabTestCardProps) {
-  const formatDate = (date: Date) => {
+  const formatDate = (date: Date | string) => {
+    if (!date) return 'Invalid Date';
+    const dateObj = new Date(date);
+    if (isNaN(dateObj.getTime())) {
+      return 'Invalid Date';
+    }
     return new Intl.DateTimeFormat('en-US', {
       month: 'short',
       day: 'numeric',
       year: 'numeric'
-    }).format(date);
+    }).format(dateObj);
   };
 
   const getStatusVariant = (status: string) => {
@@ -146,6 +153,19 @@ export function LabTestCard({ labTest, onView, onEdit, onUploadResults, onStartT
                 {labTest.results ? 'Update' : 'Upload'}
               </Button>
             )}
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button size="sm" variant="ghost">
+                  <MoreHorizontal className="h-4 w-4" />
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end">
+                <DropdownMenuItem onClick={() => printLabTestReport(labTest)}>
+                  <Printer className="h-4 w-4 mr-2" />
+                  Print Report
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
           </div>
         </div>
       </CardContent>

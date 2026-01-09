@@ -74,8 +74,8 @@ export function LabTestFormModal({ isOpen, onClose, onSave, labTest }: LabTestFo
         notes: labTest.notes || '',
         status: labTest.status
       });
-      setSelectedPet(mockPets.find(p => p.id === labTest.petId) || null);
-      setSelectedVet(mockVeterinarians.find(v => v.id === labTest.veterinarianId) || null);
+      setSelectedPet(mockPets.find(p => p.id.toString() === labTest.petId) || null);
+      setSelectedVet(mockVeterinarians.find(v => v.id.toString() === labTest.veterinarianId) || null);
       if (!commonTestTypes.includes(labTest.testType)) {
         setCustomTestType(labTest.testType);
         setFormData(prev => ({ ...prev, testType: 'Other' }));
@@ -104,20 +104,20 @@ export function LabTestFormModal({ isOpen, onClose, onSave, labTest }: LabTestFo
       ...formData,
       testType: finalTestType,
       petName: selectedPet.name,
-      veterinarianName: selectedVet.name,
+      veterinarianName: `${selectedVet.firstName} ${selectedVet.lastName}`,
       requestedDate: new Date()
     });
     onClose();
   };
 
   const handlePetSelect = (petId: string) => {
-    const pet = mockPets.find(p => p.id === petId);
+    const pet = mockPets.find(p => p.id.toString() === petId);
     setSelectedPet(pet || null);
     setFormData(prev => ({ ...prev, petId }));
   };
 
   const handleVetSelect = (vetId: string) => {
-    const vet = mockVeterinarians.find(v => v.id === vetId);
+    const vet = mockVeterinarians.find(v => v.id.toString() === vetId);
     setSelectedVet(vet || null);
     setFormData(prev => ({ ...prev, veterinarianId: vetId }));
   };
@@ -171,9 +171,9 @@ export function LabTestFormModal({ isOpen, onClose, onSave, labTest }: LabTestFo
                         {filteredPets.map((pet) => (
                           <CommandItem
                             key={pet.id}
-                            value={pet.id}
+                            value={pet.id.toString()}
                             onSelect={() => {
-                              handlePetSelect(pet.id);
+                              handlePetSelect(pet.id.toString());
                               setPetSearchOpen(false);
                               setPetSearch('');
                             }}
@@ -208,7 +208,7 @@ export function LabTestFormModal({ isOpen, onClose, onSave, labTest }: LabTestFo
                   >
                     {selectedVet ? (
                       <div className="flex flex-col items-start">
-                        <span>{selectedVet.name}</span>
+                        <span>{selectedVet.firstName} {selectedVet.lastName}</span>
                         <span className="text-xs text-muted-foreground">
                           {selectedVet.specialization}
                         </span>
@@ -231,15 +231,15 @@ export function LabTestFormModal({ isOpen, onClose, onSave, labTest }: LabTestFo
                         {filteredVets.map((vet) => (
                           <CommandItem
                             key={vet.id}
-                            value={vet.id}
+                            value={vet.id.toString()}
                             onSelect={() => {
-                              handleVetSelect(vet.id);
+                              handleVetSelect(vet.id.toString());
                               setVetSearchOpen(false);
                               setVetSearch('');
                             }}
                           >
                             <div className="flex flex-col">
-                              <span>{vet.name}</span>
+                              <span>{vet.firstName} {vet.lastName}</span>
                               <span className="text-xs text-muted-foreground">
                                 {vet.specialization}
                               </span>

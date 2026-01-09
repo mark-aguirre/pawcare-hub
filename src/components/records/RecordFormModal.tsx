@@ -4,17 +4,18 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from '@/components/ui/command';
 import { Textarea } from '@/components/ui/textarea';
 import { Calendar } from '@/components/ui/calendar';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Badge } from '@/components/ui/badge';
-import { CalendarIcon, FileText, Upload, X, Check, ChevronsUpDown } from 'lucide-react';
+import { CalendarIcon, FileText, Upload, X } from 'lucide-react';
 import { format } from 'date-fns';
 import { cn } from '@/lib/utils';
 import { useToast } from '@/components/ui/use-toast';
 import { MedicalRecord } from '@/types';
 import { useRecords } from '@/hooks/use-records';
+import { PetSelector } from '@/components/ui/PetSelector';
+import { VeterinarianSelector } from '@/components/ui/VeterinarianSelector';
 
 interface RecordFormModalProps {
   open: boolean;
@@ -37,8 +38,6 @@ export function RecordFormModal({ open, onOpenChange, record, mode = 'create', p
   });
   const [attachments, setAttachments] = useState<string[]>(record?.attachments || []);
   const [newAttachment, setNewAttachment] = useState('');
-  const [petSearchOpen, setPetSearchOpen] = useState(false);
-  const [vetSearchOpen, setVetSearchOpen] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const { toast } = useToast();
   const { createRecord, updateRecord } = useRecords();
@@ -191,16 +190,11 @@ export function RecordFormModal({ open, onOpenChange, record, mode = 'create', p
     setAttachments([]);
     setNewAttachment('');
     setDate(new Date());
-    setPetSearchOpen(false);
-    setVetSearchOpen(false);
   };
 
   const handleClose = () => {
     if (mode === 'create') {
       resetForm();
-    } else {
-      setPetSearchOpen(false);
-      setVetSearchOpen(false);
     }
     onOpenChange(false);
   };
@@ -217,148 +211,23 @@ export function RecordFormModal({ open, onOpenChange, record, mode = 'create', p
 
         <form onSubmit={handleSubmit} className="space-y-6">
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div className="space-y-2">
-              <Label htmlFor="pet">Pet *</Label>
-              <Popover open={petSearchOpen} onOpenChange={setPetSearchOpen}>
-                <PopoverTrigger asChild>
-                  <Button
-                    variant="outline"
-                    role="combobox"
-                    aria-expanded={petSearchOpen}
-                    className="w-full justify-between"
-                    onClick={() => {
-                      console.log('Pet dropdown clicked, fetching pets...');
-                      if (pets.length === 0) {
-                        setPetsLoading(true);
-                        fetch('/api/pets')
-                          .then(res => res.json())
-                          .then(data => {
-                            console.log('Pets data:', data);
-                            setPets(data);
-                            setPetsLoading(false);
-                          })
-                          .catch(err => {
-                            console.error('Failed to fetch pets:', err);
-                            setPetsLoading(false);
-                          });
-                      }
-                    }}
-                  >
-                    {formData.petId
-                      ? (() => {
-                          const pet = pets.find(p => p.id.toString() === formData.petId);
-                          return pet ? `${pet.name} (${pet.species}) - ${pet.ownerName}` : "Select a pet";
-                        })()
-                      : "Select a pet"}
-                    <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
-                  </Button>
-                </PopoverTrigger>
-                <PopoverContent className="w-full p-0">
-                  <Command>
-                    <CommandInput placeholder="Search pets..." />
-                    <CommandList>
-                      <CommandEmpty>No pet found.</CommandEmpty>
-                      <CommandGroup>
-                        {petsLoading ? (
-                          <CommandItem disabled>Loading pets...</CommandItem>
-                        ) : (
-                          pets.map((pet) => (
-                            <CommandItem
-                              key={pet.id}
-                              value={`${pet.name} ${pet.species} ${pet.ownerName}`}
-                              onSelect={() => {
-                                setFormData(prev => ({ ...prev, petId: pet.id.toString() }));
-                                setPetSearchOpen(false);
-                              }}
-                            >
-                              <Check
-                                className={cn(
-                                  "mr-2 h-4 w-4",
-                                  formData.petId === pet.id.toString() ? "opacity-100" : "opacity-0"
-                                )}
-                              />
-                              <div className="flex items-center gap-2">
-                                <span className="text-lg">
-                                  {pet.species === 'dog' ? '🐕' : pet.species === 'cat' ? '🐱' : pet.species === 'bird' ? '🐦' : pet.species === 'rabbit' ? '🐰' : pet.species === 'hamster' ? '🐹' : '🐾'}
-                                </span>
-                                <div>
-                                  <div className="font-medium">{pet.name}</div>
-                                  <div className="text-sm text-muted-foreground">
-                                    {pet.species} • {pet.breed} • {pet.ownerName}
-                                  </div>
-                                </div>
-                              </div>
-                            </CommandItem>
-                          ))
-                        )}
-                      </CommandGroup>
-                    </CommandList>
-                  </Command>
-                </PopoverContent>
-              </Popover>
-            </div>
+            <PetSelector
+              pets={pets}
+              selectedPetId={formData.petId}
+              onPetSelect={(petId) => setFormData(prev => ({ ...prev, petId }))}
+              loading={petsLoading}
+              label="Pet"
+              required
+            />
 
-            <div className="space-y-2">
-              <Label htmlFor="veterinarian">Veterinarian *</Label>
-              <Popover open={vetSearchOpen} onOpenChange={setVetSearchOpen}>
-                <PopoverTrigger asChild>
-                  <Button
-                    variant="outline"
-                    role="combobox"
-                    aria-expanded={vetSearchOpen}
-                    className="w-full justify-between"
-                  >
-                    {formData.veterinarianId
-                      ? (() => {
-                          const vet = veterinarians.find(v => v.id.toString() === formData.veterinarianId);
-                          return vet ? `${vet.name} - ${vet.specialization}` : "Select veterinarian";
-                        })()
-                      : "Select veterinarian"}
-                    <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
-                  </Button>
-                </PopoverTrigger>
-                <PopoverContent className="w-full p-0">
-                  <Command>
-                    <CommandInput placeholder="Search veterinarians..." />
-                    <CommandList>
-                      <CommandEmpty>No veterinarian found.</CommandEmpty>
-                      <CommandGroup>
-                        {vetsLoading ? (
-                          <CommandItem disabled>Loading veterinarians...</CommandItem>
-                        ) : (
-                          veterinarians.map((vet) => (
-                            <CommandItem
-                              key={vet.id}
-                              value={`${vet.name} ${vet.specialization}`}
-                              onSelect={() => {
-                                setFormData(prev => ({ ...prev, veterinarianId: vet.id.toString() }));
-                                setVetSearchOpen(false);
-                              }}
-                            >
-                              <Check
-                                className={cn(
-                                  "mr-2 h-4 w-4",
-                                  formData.veterinarianId === vet.id.toString() ? "opacity-100" : "opacity-0"
-                                )}
-                              />
-                              <div className="flex items-center gap-3">
-                                <div className="flex items-center justify-center w-8 h-8 rounded-full bg-primary/10 text-primary font-semibold text-sm">
-                                  {vet.name.split(' ').map(n => n[0]).join('')}
-                                </div>
-                                <div>
-                                  <div className="font-medium">{vet.name}</div>
-                                  <div className="text-sm text-muted-foreground">{vet.specialization}</div>
-                                </div>
-                              </div>
-                            </CommandItem>
-                          ))
-                        )}
-                      </CommandGroup>
-                    </CommandList>
-                  </Command>
-                </PopoverContent>
-              </Popover>
-            </div>
+            <VeterinarianSelector
+              veterinarians={veterinarians}
+              selectedVetId={formData.veterinarianId}
+              onVetSelect={(vetId) => setFormData(prev => ({ ...prev, veterinarianId: vetId }))}
+              loading={vetsLoading}
+              label="Veterinarian"
+              required
+            />
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">

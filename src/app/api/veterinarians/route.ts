@@ -1,42 +1,26 @@
 import { NextRequest, NextResponse } from 'next/server';
 
-const veterinarians = [
-  {
-    id: 1,
-    name: 'Dr. Sarah Chen',
-    specialization: 'General Practice',
-    email: 'sarah.chen@pawcare.com',
-    phone: '+1 (555) 123-4567',
-    createdAt: '2024-01-01T00:00:00Z',
-    updatedAt: '2024-01-01T00:00:00Z'
-  },
-  {
-    id: 2,
-    name: 'Dr. Michael Torres',
-    specialization: 'Surgery',
-    email: 'michael.torres@pawcare.com',
-    phone: '+1 (555) 234-5678',
-    createdAt: '2024-01-01T00:00:00Z',
-    updatedAt: '2024-01-01T00:00:00Z'
-  },
-  {
-    id: 3,
-    name: 'Dr. Emily Watson',
-    specialization: 'Dermatology',
-    email: 'emily.watson@pawcare.com',
-    phone: '+1 (555) 345-6789',
-    createdAt: '2024-01-01T00:00:00Z',
-    updatedAt: '2024-01-01T00:00:00Z'
-  },
-];
+const BACKEND_URL = process.env.BACKEND_URL || 'http://localhost:8082';
 
 export async function GET(request: NextRequest) {
   try {
-    return NextResponse.json(veterinarians);
+    const response = await fetch(`${BACKEND_URL}/api/veterinarians`, {
+      method: 'GET',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+    });
+
+    if (!response.ok) {
+      throw new Error(`Backend responded with status: ${response.status}`);
+    }
+
+    const data = await response.json();
+    return NextResponse.json(data);
   } catch (error) {
-    console.error('Error fetching veterinarians:', error);
+    console.error('API Error:', error);
     return NextResponse.json(
-      { success: false, error: 'Failed to fetch veterinarians' },
+      { error: 'Failed to fetch veterinarians' },
       { status: 500 }
     );
   }

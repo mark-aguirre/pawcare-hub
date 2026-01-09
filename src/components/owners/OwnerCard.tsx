@@ -19,83 +19,64 @@ export function OwnerCard({ owner, delay = 0, onClick }: OwnerCardProps) {
 
   return (
     <div
-      className="group relative rounded-2xl border border-border bg-card overflow-hidden transition-all duration-300 hover:border-primary/30 hover:shadow-xl hover:shadow-primary/5 animate-slide-up cursor-pointer"
+      className="group relative rounded-lg border bg-card overflow-hidden transition-all duration-200 hover:border-primary/30 hover:shadow-md cursor-pointer"
       style={{ animationDelay: `${delay}ms` }}
       onClick={onClick}
     >
-      {/* Top gradient bar */}
-      <div className="absolute top-0 left-0 right-0 h-1 bg-gradient-accent opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
-      
-      <div className="p-6">
-        <div className="flex items-start justify-between mb-5">
-          <div className="flex items-center gap-4">
+      <div className="p-4">
+        <div className="flex items-center justify-between mb-3">
+          <div className="flex items-center gap-3">
             <div className="relative">
-              <Avatar className="h-16 w-16 border-3 border-primary/20 bg-gradient-primary ring-4 ring-primary/10">
-                <AvatarFallback className="text-lg font-bold text-primary-foreground bg-transparent">{initials}</AvatarFallback>
+              <Avatar className="h-10 w-10">
+                <AvatarFallback className="text-sm font-semibold">{initials}</AvatarFallback>
               </Avatar>
-              {/* Pet count badge */}
-              <div className="absolute -bottom-1 -right-1 h-6 w-6 rounded-full bg-accent border-2 border-card flex items-center justify-center">
-                <span className="text-[10px] font-bold text-accent-foreground">{ownerPets.length}</span>
-              </div>
+              {ownerPets.length > 0 && (
+                <div className="absolute -bottom-1 -right-1 h-5 w-5 rounded-full bg-primary border-2 border-card flex items-center justify-center">
+                  <span className="text-[10px] font-bold text-primary-foreground">{ownerPets.length}</span>
+                </div>
+              )}
             </div>
             <div>
-              <h3 className="text-xl font-display font-bold text-foreground group-hover:text-primary transition-colors">{fullName}</h3>
+              <h3 className="font-semibold text-foreground">{fullName}</h3>
               <p className="text-xs text-muted-foreground">
-                Customer since {createdDate.toLocaleDateString('en-US', { month: 'short', year: 'numeric' })}
+                Since {createdDate.toLocaleDateString('en-US', { month: 'short', year: 'numeric' })}
               </p>
             </div>
           </div>
-          <Button variant="ghost" size="icon" className="opacity-0 group-hover:opacity-100 transition-opacity -mt-1 -mr-2 hover:bg-secondary">
+          <Button variant="ghost" size="sm" className="opacity-0 group-hover:opacity-100 transition-opacity h-8 w-8 p-0">
             <MoreHorizontal className="h-4 w-4" />
           </Button>
         </div>
 
-        <div className="space-y-2.5 mb-5">
-          <div className="flex items-center gap-3 text-sm text-muted-foreground group/item hover:text-foreground transition-colors cursor-pointer">
-            <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-secondary/80">
-              <Mail className="h-4 w-4" />
-            </div>
+        <div className="space-y-1 mb-3">
+          <div className="flex items-center gap-2 text-xs text-muted-foreground">
+            <Mail className="h-3 w-3" />
             <span className="truncate">{owner.email}</span>
           </div>
           {owner.phone && (
-            <div className="flex items-center gap-3 text-sm text-muted-foreground group/item hover:text-foreground transition-colors cursor-pointer">
-              <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-secondary/80">
-                <Phone className="h-4 w-4" />
-              </div>
+            <div className="flex items-center gap-2 text-xs text-muted-foreground">
+              <Phone className="h-3 w-3" />
               <span>{owner.phone}</span>
-            </div>
-          )}
-          {owner.address && (
-            <div className="flex items-center gap-3 text-sm text-muted-foreground">
-              <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-secondary/80">
-                <MapPin className="h-4 w-4" />
-              </div>
-              <span className="truncate">{owner.address}</span>
             </div>
           )}
         </div>
 
-        <div className="pt-4 border-t border-border">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-2">
-              <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-primary/10">
-                <PawPrint className="h-4 w-4 text-primary" />
-              </div>
-              <span className="text-sm font-semibold text-foreground">{ownerPets.length} pet{ownerPets.length !== 1 ? 's' : ''}</span>
-            </div>
-            <div className="flex -space-x-2">
-              {ownerPets.slice(0, 3).map((pet) => (
-                <Avatar key={pet.id} className="h-9 w-9 border-2 border-card hover:z-10 hover:scale-110 transition-all cursor-pointer">
-                  <AvatarFallback className="text-xs bg-secondary font-semibold">{pet.name[0]}</AvatarFallback>
+        <div className="flex items-center justify-between pt-2 border-t">
+          <span className="text-xs text-muted-foreground">{ownerPets.length} pet{ownerPets.length !== 1 ? 's' : ''}</span>
+          {ownerPets.length > 0 && (
+            <div className="flex -space-x-1">
+              {ownerPets.slice(0, 2).map((pet) => (
+                <Avatar key={pet.id} className="h-6 w-6 border border-card">
+                  <AvatarFallback className="text-[10px]">{pet.name[0]}</AvatarFallback>
                 </Avatar>
               ))}
-              {ownerPets.length > 3 && (
-                <div className="flex h-9 w-9 items-center justify-center rounded-full border-2 border-card bg-primary text-xs font-bold text-primary-foreground hover:scale-110 transition-all cursor-pointer">
-                  +{ownerPets.length - 3}
+              {ownerPets.length > 2 && (
+                <div className="flex h-6 w-6 items-center justify-center rounded-full border border-card bg-muted text-[10px] font-semibold">
+                  +{ownerPets.length - 2}
                 </div>
               )}
             </div>
-          </div>
+          )}
         </div>
       </div>
     </div>
