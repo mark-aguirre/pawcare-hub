@@ -36,7 +36,6 @@ const navigation = [
   { name: 'Inventory', href: '/inventory', icon: Package, permissions: ['inventory'] },
   { name: 'Billing', href: '/billing', icon: Receipt, permissions: ['billing'] },
   { name: 'Reports', href: '/reports', icon: BarChart3, permissions: ['reports'] },
-  { name: 'Pet Portal', href: '/portal', icon: Globe, permissions: ['portal'] },
 ];
 
 const bottomNavigation = [
@@ -83,7 +82,6 @@ export function Sidebar() {
             .filter(item => {
               if (!user) return false;
               if (user.role === 'ADMINISTRATOR') return true;
-              if (user.role === 'RECEPTIONIST') return item.href === '/portal';
               return item.permissions.length === 0 || 
                      (item.permissions.includes('pets') && user.role === 'VETERINARIAN') ||
                      (item.permissions.includes('appointments') && ['VETERINARIAN', 'NURSE', 'TECHNICIAN'].includes(user.role));

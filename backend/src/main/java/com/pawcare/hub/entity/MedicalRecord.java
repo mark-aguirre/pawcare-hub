@@ -13,13 +13,13 @@ public class MedicalRecord {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    @ManyToOne(fetch = FetchType.LAZY)
+    @ManyToOne(fetch = FetchType.EAGER)
     @JoinColumn(name = "pet_id")
     @NotNull
     @JsonBackReference("pet-medicalrecords")
     private Pet pet;
 
-    @ManyToOne(fetch = FetchType.LAZY)
+    @ManyToOne(fetch = FetchType.EAGER)
     @JoinColumn(name = "veterinarian_id")
     @NotNull
     @JsonBackReference("vet-medicalrecords")

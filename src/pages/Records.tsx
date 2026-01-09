@@ -69,16 +69,12 @@ export default function Records() {
 
   // Transform backend data to match frontend expectations
   const transformedRecords = allRecords.map(record => {
-    // Find pet and vet data from APIs since backend doesn't include them
-    const pet = allPets.find(p => p.id === 1) || allPets[0]; // Fallback to first pet
-    const vet = allVeterinarians.find(v => v.id === 1) || allVeterinarians[0]; // Fallback to first vet
-    
     return {
       ...record,
-      petName: pet?.name || 'Unknown Pet',
-      petSpecies: pet?.species || 'unknown',
-      ownerName: pet?.ownerName || 'Unknown Owner',
-      veterinarianName: vet?.name || 'Unknown Vet',
+      petName: record.pet?.name || 'Unknown Pet',
+      petSpecies: record.pet?.species || 'unknown',
+      ownerName: record.pet?.owner ? `${record.pet.owner.firstName} ${record.pet.owner.lastName}` : 'Unknown Owner',
+      veterinarianName: record.veterinarian?.name || 'Unknown Vet',
       status: record.status?.toLowerCase() || 'pending',
       type: record.type?.toLowerCase().replace('_', '-') || 'unknown',
       date: new Date(record.date),

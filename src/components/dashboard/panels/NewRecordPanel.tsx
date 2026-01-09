@@ -192,12 +192,8 @@ export function NewRecordPanel({ open, onOpenChange, onRecordCreated, editRecord
         }
 
         const recordData = {
-          pet: {
-            id: parseInt(formData.petId)
-          },
-          veterinarian: {
-            id: parseInt(formData.veterinarianId)
-          },
+          petId: formData.petId,
+          veterinarianId: formData.veterinarianId,
           date: date.toISOString().split('T')[0],
           type: formData.type.toUpperCase().replace('-', '_'),
           title: formData.title,

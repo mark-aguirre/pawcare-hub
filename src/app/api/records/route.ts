@@ -96,50 +96,30 @@ export async function GET(request: NextRequest) {
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json();
+    const BACKEND_URL = process.env.BACKEND_URL || 'http://localhost:8082';
     
-    // Validate required fields
-    if (!body.petId || !body.veterinarianId || !body.type || !body.title || !body.description) {
+    // Forward the request to the backend
+    const response = await fetch(`${BACKEND_URL}/api/medical-records`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify(body),
+    });
+
+    if (!response.ok) {
+      const errorText = await response.text();
+      console.error('Backend error response:', errorText);
       return NextResponse.json(
-        { success: false, error: 'Missing required fields' },
-        { status: 400 }
+        { success: false, error: `Backend error: ${response.status}` },
+        { status: response.status }
       );
     }
 
-    // Transform frontend data to backend format
-    const newRecord = {
-      id: records.length + 1,
-      date: body.date || new Date().toISOString().split('T')[0],
-      type: body.type.toUpperCase().replace('-', '_'),
-      title: body.title,
-      description: body.description,
-      notes: body.notes || null,
-      attachments: body.attachments || null,
-      status: (body.status || 'pending').toUpperCase(),
-      createdAt: new Date().toISOString(),
-      updatedAt: new Date().toISOString(),
-      pet: {
-        id: parseInt(body.petId),
-        name: body.petName,
-        species: body.petSpecies,
-        owner: {
-          id: parseInt(body.ownerId),
-          firstName: body.ownerName?.split(' ')[0] || 'Unknown',
-          lastName: body.ownerName?.split(' ').slice(1).join(' ') || 'Owner'
-        }
-      },
-      veterinarian: {
-        id: parseInt(body.veterinarianId),
-        firstName: body.veterinarianName?.split(' ')[0] || 'Dr.',
-        lastName: body.veterinarianName?.split(' ').slice(1).join(' ') || 'Unknown',
-        specialization: 'General Practice'
-      }
-    };
-
-    records.push(newRecord);
-
+    const data = await response.json();
     return NextResponse.json({
       success: true,
-      data: newRecord,
+      data,
       message: 'Medical record created successfully'
     });
   } catch (error) {

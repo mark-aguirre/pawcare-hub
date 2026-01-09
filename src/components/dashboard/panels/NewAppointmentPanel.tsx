@@ -24,8 +24,8 @@ interface NewAppointmentPanelProps {
 }
 
 export function NewAppointmentPanel({ open, onOpenChange }: NewAppointmentPanelProps) {
-  const { data: pets = [] } = usePets();
-  const { data: veterinarians = [] } = useVeterinarians();
+  const { pets = [], isLoading: petsLoading } = usePets();
+  const { veterinarians = [], isLoading: vetsLoading } = useVeterinarians();
   const createAppointment = useCreateAppointment();
   const [date, setDate] = useState<Date>();
   const [openPetSelect, setOpenPetSelect] = useState(false);
@@ -132,7 +132,7 @@ export function NewAppointmentPanel({ open, onOpenChange }: NewAppointmentPanelP
                     >
                       {formData.petId
                         ? pets.find((pet) => pet.id.toString() === formData.petId)?.name + " (" + pets.find((pet) => pet.id.toString() === formData.petId)?.species + ") - " + pets.find((pet) => pet.id.toString() === formData.petId)?.ownerName
-                        : "Select a pet"}
+                        : "Select pet"}
                       <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
                     </Button>
                   </PopoverTrigger>
@@ -142,27 +142,37 @@ export function NewAppointmentPanel({ open, onOpenChange }: NewAppointmentPanelP
                       <CommandList>
                         <CommandEmpty>No pet found.</CommandEmpty>
                         <CommandGroup>
-                          {pets.map((pet) => (
-                            <CommandItem
-                              key={pet.id}
-                              value={`${pet.name} ${pet.species} ${pet.ownerName}`}
-                              onSelect={() => {
-                                setFormData(prev => ({ ...prev, petId: pet.id.toString() }));
-                                setOpenPetSelect(false);
-                              }}
-                            >
-                              <Check
-                                className={cn(
-                                  "mr-2 h-4 w-4",
-                                  formData.petId === pet.id.toString() ? "opacity-100" : "opacity-0"
-                                )}
-                              />
-                              <div className="flex items-center gap-2">
-                                <span className="text-lg">{pet.species === 'Dog' ? '🐕' : pet.species === 'Cat' ? '🐱' : '🐾'}</span>
-                                <span>{pet.name} ({pet.species}) - {pet.ownerName}</span>
-                              </div>
+                          {petsLoading ? (
+                            <CommandItem value="loading" disabled>
+                              Loading pets...
                             </CommandItem>
-                          ))}
+                          ) : pets && pets.length > 0 ? (
+                            pets.map((pet) => (
+                              <CommandItem
+                                key={pet.id}
+                                value={`${pet.name} ${pet.species} ${pet.ownerName}`}
+                                onSelect={() => {
+                                  setFormData(prev => ({ ...prev, petId: pet.id.toString() }));
+                                  setOpenPetSelect(false);
+                                }}
+                              >
+                                <Check
+                                  className={cn(
+                                    "mr-2 h-4 w-4",
+                                    formData.petId === pet.id.toString() ? "opacity-100" : "opacity-0"
+                                  )}
+                                />
+                                <div className="flex items-center gap-2">
+                                  <span className="text-lg">{pet.species === 'Dog' ? '🐕' : pet.species === 'Cat' ? '🐱' : '🐾'}</span>
+                                  <span>{pet.name} ({pet.species}) - {pet.ownerName}</span>
+                                </div>
+                              </CommandItem>
+                            ))
+                          ) : (
+                            <CommandItem value="no-pets" disabled>
+                              No pets available
+                            </CommandItem>
+                          )}
                         </CommandGroup>
                       </CommandList>
                     </Command>
@@ -193,27 +203,37 @@ export function NewAppointmentPanel({ open, onOpenChange }: NewAppointmentPanelP
                       <CommandList>
                         <CommandEmpty>No veterinarian found.</CommandEmpty>
                         <CommandGroup>
-                          {veterinarians.map((vet) => (
-                            <CommandItem
-                              key={vet.id}
-                              value={`${vet.name} ${vet.specialization}`}
-                              onSelect={() => {
-                                setFormData(prev => ({ ...prev, veterinarianId: vet.id.toString() }));
-                                setOpenVetSelect(false);
-                              }}
-                            >
-                              <Check
-                                className={cn(
-                                  "mr-2 h-4 w-4",
-                                  formData.veterinarianId === vet.id.toString() ? "opacity-100" : "opacity-0"
-                                )}
-                              />
-                              <div>
-                                <div className="font-medium">{vet.name}</div>
-                                <div className="text-xs text-muted-foreground">{vet.specialization}</div>
-                              </div>
+                          {vetsLoading ? (
+                            <CommandItem value="loading" disabled>
+                              Loading veterinarians...
                             </CommandItem>
-                          ))}
+                          ) : veterinarians && veterinarians.length > 0 ? (
+                            veterinarians.map((vet) => (
+                              <CommandItem
+                                key={vet.id}
+                                value={`${vet.name} ${vet.specialization}`}
+                                onSelect={() => {
+                                  setFormData(prev => ({ ...prev, veterinarianId: vet.id.toString() }));
+                                  setOpenVetSelect(false);
+                                }}
+                              >
+                                <Check
+                                  className={cn(
+                                    "mr-2 h-4 w-4",
+                                    formData.veterinarianId === vet.id.toString() ? "opacity-100" : "opacity-0"
+                                  )}
+                                />
+                                <div>
+                                  <div className="font-medium">{vet.name}</div>
+                                  <div className="text-xs text-muted-foreground">{vet.specialization}</div>
+                                </div>
+                              </CommandItem>
+                            ))
+                          ) : (
+                            <CommandItem value="no-vets" disabled>
+                              No veterinarians available
+                            </CommandItem>
+                          )}
                         </CommandGroup>
                       </CommandList>
                     </Command>
