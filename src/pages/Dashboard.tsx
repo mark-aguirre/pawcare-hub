@@ -18,12 +18,11 @@ const UpcomingAppointments = lazy(() => import('@/components/dashboard/UpcomingA
 const LowStockAlert = lazy(() => import('@/components/dashboard/LowStockAlert').then(m => ({ default: m.LowStockAlert })));
 const RecentActivity = lazy(() => import('@/components/dashboard/RecentActivity').then(m => ({ default: m.RecentActivity })));
 const WelcomeMessage = lazy(() => import('@/components/dashboard/WelcomeMessage').then(m => ({ default: m.WelcomeMessage })));
-const PerformanceSummary = lazy(() => import('@/components/dashboard/PerformanceSummary').then(m => ({ default: m.PerformanceSummary })));
 
 const ComponentSkeleton = ({ className }: { className?: string }) => (
-  <div className={`rounded-xl border border-border bg-card p-5 ${className || ''}`}>
-    <Skeleton className="h-6 w-32 mb-4" />
-    <Skeleton className="h-24 w-full" />
+  <div className={`rounded-xl border border-border bg-card p-3 ${className || ''}`}>
+    <Skeleton className="h-4 w-24 mb-3" />
+    <Skeleton className="h-16 w-full" />
   </div>
 );
 
@@ -48,12 +47,12 @@ export default function Dashboard() {
       subtitle={today.toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric', year: 'numeric' })}
     >
       {/* Welcome Message for new users */}
-      <Suspense fallback={<Skeleton className="h-20 w-full mb-6" />}>
+      <Suspense fallback={<Skeleton className="h-16 w-full mb-4" />}>
         <WelcomeMessage userName="Dr. Smith" isFirstTime={isFirstTime} />
       </Suspense>
 
       {/* Stats Grid */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-3 mb-4">
         <StatCard
           title="Today's Appointments"
           value={statsLoading ? '...' : (stats?.todayAppointments || 0)}
@@ -84,21 +83,21 @@ export default function Dashboard() {
       </div>
 
       {/* Main Content Grid */}
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-6">
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 mb-4">
         {/* Today's Appointments */}
         <div className="lg:col-span-2">
-          <div className="rounded-xl border border-border bg-card p-5 animate-slide-up">
-            <div className="flex items-center justify-between mb-4">
-              <h3 className="text-lg font-semibold text-foreground">Today's Appointments</h3>
-              <span className="text-sm text-muted-foreground">
+          <div className="rounded-xl border border-border bg-card p-4 animate-slide-up">
+            <div className="flex items-center justify-between mb-3">
+              <h3 className="text-base font-semibold text-foreground">Today's Appointments</h3>
+              <span className="text-xs text-muted-foreground">
                 {appointmentsLoading ? '...' : `${todayAppointments.length} scheduled`}
               </span>
             </div>
-            <div className="space-y-3">
+            <div className="space-y-2">
               {appointmentsLoading ? (
-                <div className="space-y-3">
+                <div className="space-y-2">
                   {[1, 2, 3].map((i) => (
-                    <Skeleton key={i} className="h-16 w-full" />
+                    <Skeleton key={i} className="h-12 w-full" />
                   ))}
                 </div>
               ) : todayAppointments.length > 0 ? (
@@ -110,9 +109,9 @@ export default function Dashboard() {
                   />
                 ))
               ) : (
-                <div className="text-center py-8 text-muted-foreground">
-                  <Calendar className="h-12 w-12 mx-auto mb-2 opacity-50" />
-                  <p>No appointments scheduled for today</p>
+                <div className="text-center py-6 text-muted-foreground">
+                  <Calendar className="h-8 w-8 mx-auto mb-2 opacity-50" />
+                  <p className="text-sm">No appointments scheduled for today</p>
                 </div>
               )}
             </div>
@@ -125,15 +124,8 @@ export default function Dashboard() {
         </div>
       </div>
 
-      {/* Performance Summary */}
-      <div className="mb-6">
-        <Suspense fallback={<ComponentSkeleton />}>
-          <PerformanceSummary />
-        </Suspense>
-      </div>
-
       {/* Secondary Content Grid */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-6 mb-6">
+      <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-4 mb-4">
         <Suspense fallback={<ComponentSkeleton />}>
           <RevenueChart />
         </Suspense>
@@ -146,7 +138,7 @@ export default function Dashboard() {
       </div>
 
       {/* Bottom Content Grid */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
         <Suspense fallback={<ComponentSkeleton />}>
           <RecentActivity />
         </Suspense>

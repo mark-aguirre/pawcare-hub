@@ -37,6 +37,15 @@ public class SettingsController {
         return ResponseEntity.ok(users);
     }
 
+    @PutMapping("/users")
+    public ResponseEntity<User> updateUserRole(@RequestBody Map<String, Object> request) {
+        Long userId = Long.valueOf(request.get("userId").toString());
+        String role = request.get("role").toString();
+        
+        User updatedUser = settingsService.updateUserRole(userId, role);
+        return ResponseEntity.ok(updatedUser);
+    }
+
     @GetMapping("/permissions")
     public ResponseEntity<?> getUserPermissions(@RequestParam(required = false) Long userId) {
         if (userId != null) {

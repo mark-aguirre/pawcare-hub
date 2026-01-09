@@ -55,10 +55,10 @@ export function useUpdateUserPermissions() {
   const queryClient = useQueryClient();
   
   return useMutation({
-    mutationFn: ({ userId, permissions }: { userId: string; permissions: UserPermissions['permissions'] }) =>
+    mutationFn: ({ userId, permissions }: { userId: number; permissions: any }) =>
       apiClient.put<UserPermissions>('/api/settings/permissions', { userId, permissions }),
-    onSuccess: (data) => {
-      queryClient.setQueryData(settingsKeys.userPermissions(data.userId), data);
+    onSuccess: (data, variables) => {
+      queryClient.setQueryData(settingsKeys.userPermissions(variables.userId.toString()), data);
       queryClient.invalidateQueries({ queryKey: settingsKeys.permissions() });
     },
   });

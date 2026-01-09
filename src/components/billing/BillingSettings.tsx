@@ -10,16 +10,12 @@ import { Separator } from '@/components/ui/separator';
 import { Badge } from '@/components/ui/badge';
 import { 
   Settings, 
-  Building, 
   Percent,
   Calendar,
   Hash,
   Save,
   AlertTriangle,
-  CheckCircle,
-  Mail,
-  Phone,
-  Globe
+  CheckCircle
 } from 'lucide-react';
 import { mockBillingSettings } from '@/data/mockData';
 import { BillingSettings as BillingSettingsType } from '@/types';
@@ -37,15 +33,6 @@ export function BillingSettings({ className }: BillingSettingsProps) {
 
   const updateSettings = (field: keyof BillingSettingsType, value: any) => {
     setSettings(prev => ({ ...prev, [field]: value }));
-    setHasChanges(true);
-    setSaveSuccess(false);
-  };
-
-  const updateCompanyInfo = (field: keyof BillingSettingsType['companyInfo'], value: string) => {
-    setSettings(prev => ({
-      ...prev,
-      companyInfo: { ...prev.companyInfo, [field]: value }
-    }));
     setHasChanges(true);
     setSaveSuccess(false);
   };
@@ -97,88 +84,6 @@ export function BillingSettings({ className }: BillingSettingsProps) {
           </CardContent>
         </Card>
       )}
-
-      {/* Company Information */}
-      <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <Building className="h-5 w-5" />
-            Company Information
-          </CardTitle>
-        </CardHeader>
-        <CardContent className="space-y-4">
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div className="space-y-2">
-              <Label htmlFor="companyName">Company Name *</Label>
-              <Input
-                id="companyName"
-                value={settings.companyInfo.name}
-                onChange={(e) => updateCompanyInfo('name', e.target.value)}
-              />
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="taxId">Tax ID</Label>
-              <Input
-                id="taxId"
-                value={settings.companyInfo.taxId || ''}
-                onChange={(e) => updateCompanyInfo('taxId', e.target.value)}
-                placeholder="Optional"
-              />
-            </div>
-          </div>
-
-          <div className="space-y-2">
-            <Label htmlFor="address">Address *</Label>
-            <Textarea
-              id="address"
-              value={settings.companyInfo.address}
-              onChange={(e) => updateCompanyInfo('address', e.target.value)}
-              rows={3}
-            />
-          </div>
-
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-            <div className="space-y-2">
-              <Label htmlFor="phone">Phone *</Label>
-              <div className="relative">
-                <Phone className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-                <Input
-                  id="phone"
-                  value={settings.companyInfo.phone}
-                  onChange={(e) => updateCompanyInfo('phone', e.target.value)}
-                  className="pl-10"
-                />
-              </div>
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="email">Email *</Label>
-              <div className="relative">
-                <Mail className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-                <Input
-                  id="email"
-                  type="email"
-                  value={settings.companyInfo.email}
-                  onChange={(e) => updateCompanyInfo('email', e.target.value)}
-                  className="pl-10"
-                />
-              </div>
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="website">Website</Label>
-              <div className="relative">
-                <Globe className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-                <Input
-                  id="website"
-                  value={settings.companyInfo.website || ''}
-                  onChange={(e) => updateCompanyInfo('website', e.target.value)}
-                  placeholder="Optional"
-                  className="pl-10"
-                />
-              </div>
-            </div>
-          </div>
-        </CardContent>
-      </Card>
 
       {/* Invoice Settings */}
       <Card>

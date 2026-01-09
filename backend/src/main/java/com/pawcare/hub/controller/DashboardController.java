@@ -246,6 +246,70 @@ public class DashboardController {
         return revenue;
     }
     
+    @GetMapping("/upcoming-appointments")
+    public List<Map<String, Object>> getUpcomingAppointments() {
+        LocalDate today = LocalDate.now();
+        LocalDate nextWeek = today.plusDays(7);
+        
+        return appointmentService.getAllAppointments().stream()
+            .filter(apt -> !apt.getDate().isBefore(today) && !apt.getDate().isAfter(nextWeek))
+            .filter(apt -> apt.getStatus() != com.pawcare.hub.entity.Appointment.AppointmentStatus.COMPLETED &&
+                          apt.getStatus() != com.pawcare.hub.entity.Appointment.AppointmentStatus.CANCELLED)
+            .sorted((a, b) -> {
+                int dateCompare = a.getDate().compareTo(b.getDate());
+                return dateCompare != 0 ? dateCompare : a.getTime().compareTo(b.getTime());
+            })
+            .limit(10)
+            .map(apt -> {
+                Map<String, Object> aptData = new HashMap<>();
+                aptData.put("id", apt.getId());
+                aptData.put("petName", apt.getPet().getName());
+                aptData.put("ownerName", apt.getPet().getOwner().getFirstName() + " " + apt.getPet().getOwner().getLastName());
+                aptData.put("date", apt.getDate().toString());
+                aptData.put("time", apt.getTime().toString());
+                aptData.put("type", apt.getType() != null ? apt.getType().toString() : "CHECKUP");
+                aptData.put("status", apt.getStatus().toString().toLowerCase());
+                return aptData;
+            })
+            .toList();
+    }
+
+    @GetMapping("/inventory-alerts")
+    public List<Map<String, Object>> getInventoryAlerts() {
+        return inventoryService.getLowStockItems().stream()
+            .map(item -> {
+                Map<String, Object> alert = new HashMap<>();
+                alert.put("id", item.getId());
+                alert.put("item", item.getName());
+                alert.put("currentStock", item.getCurrentStock());
+                alert.put("minStock", item.getMinStock());
+                alert.put("status", item.getCurrentStock() <= item.getMinStock() / 2 ? "critical" : "low");
+                return alert;
+            })
+            .toList();
+    }
+
+    @GetMapping("/recent-pets")
+    public List<Map<String, Object>> getRecentPets() {
+        LocalDate weekAgo = LocalDate.now().minusDays(7);
+        
+        return petService.getAllPets().stream()
+            .filter(pet -> pet.getCreatedAt() != null && pet.getCreatedAt().toLocalDate().isAfter(weekAgo))
+            .sorted((a, b) -> b.getCreatedAt().compareTo(a.getCreatedAt()))
+            .limit(10)
+            .map(pet -> {
+                Map<String, Object> petData = new HashMap<>();
+                petData.put("id", pet.getId());
+                petData.put("name", pet.getName());
+                petData.put("species", pet.getSpecies());
+                petData.put("breed", pet.getBreed());
+                petData.put("owner", pet.getOwner().getFirstName() + " " + pet.getOwner().getLastName());
+                petData.put("registrationDate", pet.getCreatedAt().toLocalDate().toString());
+                return petData;
+            })
+            .toList();
+    }
+    
     private int getDailyRevenue(LocalDate date) {
         return invoiceService.getAllInvoices().stream()
             .filter(invoice -> invoice.getPaidDate() != null && invoice.getPaidDate().equals(date))

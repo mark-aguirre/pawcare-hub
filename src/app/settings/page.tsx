@@ -22,7 +22,8 @@ import { ClinicSettings } from '@/types';
 
 export default function SettingsPage() {
   const { settings: appSettings, updateSettings: updateAppSettings } = useAppSettings();
-  const [selectedUser, setSelectedUser] = useState('');
+  const [selectedUser, setSelectedUser] = useState<number | null>(null);
+  const [selectedUserRole, setSelectedUserRole] = useState<string>('');
   const [openUserSelect, setOpenUserSelect] = useState(false);
 
   // Backend hooks
@@ -54,10 +55,21 @@ export default function SettingsPage() {
     }
   }, [clinicSettings]);
 
+  // Update user role when user is selected
+  useEffect(() => {
+    if (selectedUser && users) {
+      const user = users.find(u => u.id === selectedUser);
+      setSelectedUserRole(user?.role || '');
+    } else {
+      setSelectedUserRole('');
+    }
+  }, [selectedUser, users]);
+
   // Update user access when user permissions load
   useEffect(() => {
-    if (userPermissions && 'permissions' in userPermissions) {
-      setUserAccess(userPermissions.permissions);
+    if (userPermissions) {
+      const { appointments, pets, owners, records, inventory, billing, reports, settings } = userPermissions as UserPermissions;
+      setUserAccess({ appointments, pets, owners, records, inventory, billing, reports, settings });
     }
   }, [userPermissions]);
 
@@ -100,18 +112,30 @@ export default function SettingsPage() {
     }
 
     try {
+      // Update permissions
       await updatePermissionsMutation.mutateAsync({
         userId: selectedUser,
         permissions: userAccess
       });
+      
+      // Update user role if changed
+      const currentUser = users?.find(u => u.id === selectedUser);
+      if (currentUser && selectedUserRole !== currentUser.role) {
+        await fetch('/api/settings/users', {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ userId: selectedUser, role: selectedUserRole })
+        });
+      }
+      
       toast({
-        title: 'Permissions updated',
-        description: 'User permissions have been updated successfully.',
+        title: 'Settings updated',
+        description: 'User permissions and role have been updated successfully.',
       });
     } catch (error) {
       toast({
         title: 'Error',
-        description: 'Failed to update permissions. Please try again.',
+        description: 'Failed to update settings. Please try again.',
         variant: 'destructive',
       });
     }
@@ -460,51 +484,75 @@ export default function SettingsPage() {
               </CardDescription>
             </CardHeader>
             <CardContent className="space-y-6">
-              <div className="space-y-2">
-                <Label htmlFor="userSelect">Select User</Label>
-                <Popover open={openUserSelect} onOpenChange={setOpenUserSelect}>
-                  <PopoverTrigger asChild>
-                    <Button
-                      variant="outline"
-                      role="combobox"
-                      aria-expanded={openUserSelect}
-                      className="w-full justify-between"
-                    >
-                      {selectedUser
-                        ? users?.find((user) => user.id === selectedUser)?.firstName + ' ' + users?.find((user) => user.id === selectedUser)?.lastName + ' (' + users?.find((user) => user.id === selectedUser)?.role + ')'
-                        : "Choose a user to configure access..."}
-                      <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
-                    </Button>
-                  </PopoverTrigger>
-                  <PopoverContent className="w-[--radix-popover-trigger-width] p-0">
-                    <Command>
-                      <CommandInput placeholder="Search users..." />
-                      <CommandList>
-                        <CommandEmpty>No user found.</CommandEmpty>
-                        <CommandGroup>
-                          {users?.map((user) => (
-                            <CommandItem
-                              key={user.id}
-                              value={user.id}
-                              onSelect={(currentValue) => {
-                                setSelectedUser(currentValue === selectedUser ? "" : currentValue);
-                                setOpenUserSelect(false);
-                              }}
-                            >
-                              <Check
-                                className={cn(
-                                  "mr-2 h-4 w-4",
-                                  selectedUser === user.id ? "opacity-100" : "opacity-0"
-                                )}
-                              />
-                              {user.firstName} {user.lastName} ({user.role})
-                            </CommandItem>
-                          ))}
-                        </CommandGroup>
-                      </CommandList>
-                    </Command>
-                  </PopoverContent>
-                </Popover>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <Label htmlFor="userSelect">Select User</Label>
+                  <Popover open={openUserSelect} onOpenChange={setOpenUserSelect}>
+                    <PopoverTrigger asChild>
+                      <Button
+                        variant="outline"
+                        role="combobox"
+                        aria-expanded={openUserSelect}
+                        className="w-full justify-between"
+                      >
+                        {selectedUser
+                          ? users?.find((user) => user.id === selectedUser)?.firstName + ' ' + users?.find((user) => user.id === selectedUser)?.lastName + ' (' + users?.find((user) => user.id === selectedUser)?.role + ')'
+                          : "Choose a user to configure access..."}
+                        <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+                      </Button>
+                    </PopoverTrigger>
+                    <PopoverContent className="w-[--radix-popover-trigger-width] p-0">
+                      <Command>
+                        <CommandInput placeholder="Search users..." />
+                        <CommandList>
+                          <CommandEmpty>No user found.</CommandEmpty>
+                          <CommandGroup>
+                            {users?.map((user) => (
+                              <CommandItem
+                                key={user.id}
+                                value={user.id.toString()}
+                                onSelect={(currentValue) => {
+                                  const userId = parseInt(currentValue);
+                                  setSelectedUser(userId === selectedUser ? null : userId);
+                                  setOpenUserSelect(false);
+                                }}
+                              >
+                                <Check
+                                  className={cn(
+                                    "mr-2 h-4 w-4",
+                                    selectedUser === user.id ? "opacity-100" : "opacity-0"
+                                  )}
+                                />
+                                {user.firstName} {user.lastName} ({user.role})
+                              </CommandItem>
+                            ))}
+                          </CommandGroup>
+                        </CommandList>
+                      </Command>
+                    </PopoverContent>
+                  </Popover>
+                </div>
+                
+                <div className="space-y-2">
+                  <Label htmlFor="userRole">User Role</Label>
+                  <Select
+                    value={selectedUserRole}
+                    onValueChange={setSelectedUserRole}
+                    disabled={!selectedUser}
+                  >
+                    <SelectTrigger>
+                      <SelectValue placeholder="Select user role" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="ADMINISTRATOR">Administrator</SelectItem>
+                      <SelectItem value="VETERINARIAN">Veterinarian</SelectItem>
+                      <SelectItem value="NURSE">Nurse</SelectItem>
+                      <SelectItem value="RECEPTIONIST">Receptionist</SelectItem>
+                      <SelectItem value="TECHNICIAN">Technician</SelectItem>
+                      <SelectItem value="OWNER">Owner</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
               </div>
               
               <div className="space-y-4">

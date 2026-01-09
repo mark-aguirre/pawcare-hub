@@ -56,6 +56,14 @@ public class SettingsService {
         return userRepository.findByIsActiveTrue();
     }
 
+    public User updateUserRole(Long userId, String role) {
+        User user = userRepository.findById(userId)
+                .orElseThrow(() -> new RuntimeException("User not found"));
+        
+        user.setRole(User.UserRole.valueOf(role));
+        return userRepository.save(user);
+    }
+
     public UserPermissions getUserPermissions(Long userId) {
         User user = userRepository.findById(userId)
                 .orElseThrow(() -> new RuntimeException("User not found"));

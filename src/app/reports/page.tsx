@@ -6,10 +6,11 @@ import { LoadingWrapper } from '@/components/ui/loading-wrapper';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Button } from '@/components/ui/button';
 import { ChartContainer, ChartTooltip, ChartTooltipContent } from '@/components/ui/chart';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, ResponsiveContainer, PieChart, Pie, Cell, LineChart, Line, Area, AreaChart } from 'recharts';
-import { mockInvoices, mockAppointments, mockPets, mockMedicalRecords } from '@/data/mockData';
-import { Calendar, DollarSign, Users, Activity, TrendingUp, PieChart as PieChartIcon } from 'lucide-react';
+import { useBilling } from '@/hooks/use-billing';
+import { Calendar, DollarSign, Users, Activity, TrendingUp, PieChart as PieChartIcon, Download, RefreshCw } from 'lucide-react';
 import { useState, useEffect } from 'react';
 
 const COLORS = ['#0088FE', '#00C49F', '#FFBB28', '#FF8042', '#8884D8', '#82CA9D'];
@@ -17,19 +18,78 @@ const COLORS = ['#0088FE', '#00C49F', '#FFBB28', '#FF8042', '#8884D8', '#82CA9D'
 export default function ReportsPage() {
   const [isLoading, setIsLoading] = useState(true);
   const [dateRange, setDateRange] = useState('30');
+  const [refreshing, setRefreshing] = useState(false);
+  
+  const { invoices, payments, fetchInvoices, fetchPayments, fetchAnalytics } = useBilling();
+
+  const loadData = async () => {
+    setIsLoading(true);
+    try {
+      await Promise.all([
+        fetchInvoices(),
+        fetchPayments(),
+        fetchAnalytics()
+      ]);
+    } catch (error) {
+      console.error('Failed to load reports data:', error);
+    } finally {
+      setIsLoading(false);
+    }
+  };
 
   useEffect(() => {
-    // Simulate loading time
-    const timer = setTimeout(() => {
-      setIsLoading(false);
-    }, 1600);
-
-    return () => clearTimeout(timer);
+    loadData();
   }, []);
 
+  const handleRefresh = async () => {
+    setRefreshing(true);
+    await loadData();
+    setRefreshing(false);
+  };
+
+  const handleExport = () => {
+    const data = {
+      revenue: monthlyRevenue,
+      appointments: appointmentTypeData,
+      demographics: speciesData,
+      services: serviceRevenueData,
+      summary: {
+        totalRevenue,
+        totalInvoices: invoices.length,
+        paidInvoices: invoices.filter(inv => inv.status === 'paid').length,
+        pendingAmount: invoices.filter(inv => inv.status === 'sent' || inv.status === 'overdue').reduce((sum, inv) => sum + inv.total, 0)
+      }
+    };
+    
+    const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `pawcare-reports-${new Date().toISOString().split('T')[0]}.json`;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+  };
+
+  // Filter data based on date range
+  const filterByDateRange = (items: any[], dateField: string) => {
+    const days = parseInt(dateRange);
+    const cutoffDate = new Date();
+    cutoffDate.setDate(cutoffDate.getDate() - days);
+    
+    return items.filter(item => {
+      const itemDate = new Date(item[dateField]);
+      return itemDate >= cutoffDate;
+    });
+  };
+
+  const filteredInvoices = filterByDateRange(invoices, 'issueDate');
+  const filteredPayments = filterByDateRange(payments, 'paidDate');
+
   // Revenue Analytics
-  const revenueData = mockInvoices
-    .filter(inv => inv.status === 'paid')
+  const revenueData = filteredInvoices
+    .filter(inv => inv.status === 'paid' && inv.paidDate)
     .reduce((acc, inv) => {
       const month = inv.paidDate?.toLocaleDateString('en-US', { month: 'short' }) || 'Unknown';
       acc[month] = (acc[month] || 0) + inv.total;
@@ -41,9 +101,10 @@ export default function ReportsPage() {
     revenue: Math.round(revenue)
   }));
 
-  // Appointment Statistics
-  const appointmentsByType = mockAppointments.reduce((acc, apt) => {
-    acc[apt.type] = (acc[apt.type] || 0) + 1;
+  // Appointment Statistics (using invoice data as proxy)
+  const appointmentsByType = filteredInvoices.reduce((acc, inv) => {
+    const type = inv.items[0]?.category || 'general';
+    acc[type] = (acc[type] || 0) + 1;
     return acc;
   }, {} as Record<string, number>);
 
@@ -53,9 +114,10 @@ export default function ReportsPage() {
     value: count
   }));
 
-  // Pet Demographics
-  const petsBySpecies = mockPets.reduce((acc, pet) => {
-    acc[pet.species] = (acc[pet.species] || 0) + 1;
+  // Pet Demographics (using invoice pet data)
+  const petsBySpecies = filteredInvoices.reduce((acc, inv) => {
+    const species = inv.petSpecies || 'unknown';
+    acc[species] = (acc[species] || 0) + 1;
     return acc;
   }, {} as Record<string, number>);
 
@@ -66,7 +128,7 @@ export default function ReportsPage() {
   }));
 
   // Service Revenue
-  const serviceRevenue = mockInvoices
+  const serviceRevenue = filteredInvoices
     .filter(inv => inv.status === 'paid')
     .flatMap(inv => inv.items)
     .reduce((acc, item) => {
@@ -80,10 +142,10 @@ export default function ReportsPage() {
   }));
 
   // Key Metrics
-  const totalRevenue = mockInvoices.filter(inv => inv.status === 'paid').reduce((sum, inv) => sum + inv.total, 0);
-  const totalAppointments = mockAppointments.length;
-  const totalPets = mockPets.length;
-  const completedRecords = mockMedicalRecords.filter(record => record.status === 'completed').length;
+  const totalRevenue = filteredInvoices.filter(inv => inv.status === 'paid').reduce((sum, inv) => sum + inv.total, 0);
+  const totalInvoices = filteredInvoices.length;
+  const paidInvoices = filteredInvoices.filter(inv => inv.status === 'paid').length;
+  const completedRecords = filteredInvoices.filter(inv => inv.status === 'paid').length;
 
   const chartConfig = {
     revenue: {
@@ -100,7 +162,7 @@ export default function ReportsPage() {
     <ProtectedRoute requiredPermissions={['reports']}>
       <MainLayout title="Reports & Analytics" subtitle="Comprehensive insights and performance metrics">
         <LoadingWrapper isLoading={isLoading} variant="billing">
-      <div className="space-y-6">
+      <div className="space-y-4">
         {/* Header Controls */}
         <div className="flex justify-between items-center">
           <div className="flex items-center space-x-4">
@@ -116,54 +178,73 @@ export default function ReportsPage() {
               </SelectContent>
             </Select>
           </div>
+          <div className="flex items-center space-x-2">
+            <Button 
+              variant="outline" 
+              size="sm" 
+              onClick={handleRefresh}
+              disabled={refreshing}
+            >
+              <RefreshCw className={`h-4 w-4 mr-2 ${refreshing ? 'animate-spin' : ''}`} />
+              Refresh
+            </Button>
+            <Button 
+              variant="outline" 
+              size="sm" 
+              onClick={handleExport}
+            >
+              <Download className="h-4 w-4 mr-2" />
+              Export
+            </Button>
+          </div>
         </div>
 
         {/* Key Metrics */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-3">
           <Card>
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">Total Revenue</CardTitle>
-              <DollarSign className="h-4 w-4 text-muted-foreground" />
+              <CardTitle className="text-xs font-medium">Total Revenue</CardTitle>
+              <DollarSign className="h-3 w-3 text-muted-foreground" />
             </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold">${totalRevenue.toLocaleString()}</div>
+            <CardContent className="pt-0">
+              <div className="text-lg font-bold">${totalRevenue.toLocaleString()}</div>
               <p className="text-xs text-muted-foreground">+12% from last month</p>
             </CardContent>
           </Card>
           <Card>
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">Total Appointments</CardTitle>
-              <Calendar className="h-4 w-4 text-muted-foreground" />
+              <CardTitle className="text-xs font-medium">Total Invoices</CardTitle>
+              <Calendar className="h-3 w-3 text-muted-foreground" />
             </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold">{totalAppointments}</div>
-              <p className="text-xs text-muted-foreground">+8% from last month</p>
+            <CardContent className="pt-0">
+              <div className="text-lg font-bold">{totalInvoices}</div>
+              <p className="text-xs text-muted-foreground">+{Math.round((paidInvoices / totalInvoices) * 100) || 0}% completion rate</p>
             </CardContent>
           </Card>
           <Card>
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">Active Pets</CardTitle>
-              <Users className="h-4 w-4 text-muted-foreground" />
+              <CardTitle className="text-xs font-medium">Active Invoices</CardTitle>
+              <Users className="h-3 w-3 text-muted-foreground" />
             </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold">{totalPets}</div>
-              <p className="text-xs text-muted-foreground">+3 new this month</p>
+            <CardContent className="pt-0">
+              <div className="text-lg font-bold">{invoices.filter(inv => inv.status !== 'cancelled').length}</div>
+              <p className="text-xs text-muted-foreground">{invoices.filter(inv => inv.status === 'draft').length} drafts pending</p>
             </CardContent>
           </Card>
           <Card>
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">Completed Records</CardTitle>
-              <Activity className="h-4 w-4 text-muted-foreground" />
+              <CardTitle className="text-xs font-medium">Paid Invoices</CardTitle>
+              <Activity className="h-3 w-3 text-muted-foreground" />
             </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold">{completedRecords}</div>
-              <p className="text-xs text-muted-foreground">+15% completion rate</p>
+            <CardContent className="pt-0">
+              <div className="text-lg font-bold">{paidInvoices}</div>
+              <p className="text-xs text-muted-foreground">{Math.round((paidInvoices / totalInvoices) * 100) || 0}% of total invoices</p>
             </CardContent>
           </Card>
         </div>
 
         {/* Charts */}
-        <Tabs defaultValue="revenue" className="space-y-4">
+        <Tabs defaultValue="revenue" className="space-y-3">
           <TabsList>
             <TabsTrigger value="revenue">Revenue Analysis</TabsTrigger>
             <TabsTrigger value="appointments">Appointments</TabsTrigger>
@@ -171,18 +252,18 @@ export default function ReportsPage() {
             <TabsTrigger value="services">Service Performance</TabsTrigger>
           </TabsList>
 
-          <TabsContent value="revenue" className="space-y-4">
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+          <TabsContent value="revenue" className="space-y-3">
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
               <Card>
-                <CardHeader>
-                  <CardTitle className="flex items-center gap-2">
-                    <TrendingUp className="h-5 w-5" />
+                <CardHeader className="pb-2">
+                  <CardTitle className="flex items-center gap-2 text-sm">
+                    <TrendingUp className="h-4 w-4" />
                     Monthly Revenue Trend
                   </CardTitle>
-                  <CardDescription>Revenue performance over time</CardDescription>
+                  <CardDescription className="text-xs">Revenue performance over time</CardDescription>
                 </CardHeader>
-                <CardContent>
-                  <ChartContainer config={chartConfig}>
+                <CardContent className="pt-0">
+                  <ChartContainer config={chartConfig} className="h-[200px]">
                     <AreaChart data={monthlyRevenue}>
                       <CartesianGrid strokeDasharray="3 3" />
                       <XAxis dataKey="month" />
@@ -195,12 +276,12 @@ export default function ReportsPage() {
               </Card>
 
               <Card>
-                <CardHeader>
-                  <CardTitle>Service Revenue Breakdown</CardTitle>
-                  <CardDescription>Revenue by service category</CardDescription>
+                <CardHeader className="pb-2">
+                  <CardTitle className="text-sm">Service Revenue Breakdown</CardTitle>
+                  <CardDescription className="text-xs">Revenue by service category</CardDescription>
                 </CardHeader>
-                <CardContent>
-                  <ChartContainer config={chartConfig}>
+                <CardContent className="pt-0">
+                  <ChartContainer config={chartConfig} className="h-[200px]">
                     <BarChart data={serviceRevenueData}>
                       <CartesianGrid strokeDasharray="3 3" />
                       <XAxis dataKey="service" />
