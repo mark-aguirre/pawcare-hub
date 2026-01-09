@@ -1,51 +1,65 @@
 'use client';
 
 import { useState } from 'react';
-import { useAuth } from '@/contexts/AuthContext';
-import { useLogin } from '@/hooks/use-auth';
+import { useRouter } from 'next/navigation';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { PawPrint, Eye, EyeOff } from 'lucide-react';
-import { useRouter } from 'next/navigation';
 import { toast } from '@/hooks/use-toast';
+import Link from 'next/link';
 
-export default function LoginPage() {
-  const [identifier, setIdentifier] = useState('');
+export default function SignupPage() {
+  const [clinicCode, setClinicCode] = useState('');
+  const [name, setName] = useState('');
+  const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
-  const { login } = useAuth();
+  const [isLoading, setIsLoading] = useState(false);
   const router = useRouter();
-  const loginMutation = useLogin();
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    setIsLoading(true);
     
     try {
-      const response = await loginMutation.mutateAsync({ identifier, password });
-      
-      if (response.success && response.user) {
-        login(response.user);
+      const response = await fetch('/api/auth/signup', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          clinicCode,
+          name,
+          email,
+          password,
+        }),
+      });
+
+      const data = await response.json();
+
+      if (data.success) {
         toast({
-          title: 'Login successful',
-          description: `Welcome back, ${response.user.firstName}!`,
+          title: 'Registration successful',
+          description: 'Your account has been created. Please login.',
         });
-        router.push(response.user.role === 'OWNER' ? '/portal' : '/');
+        router.push('/login');
       } else {
         toast({
-          title: 'Login failed',
-          description: response.message || 'Invalid credentials',
+          title: 'Registration failed',
+          description: data.message || 'Unable to create account',
           variant: 'destructive',
         });
       }
-    } catch (error: any) {
-      console.error('Login error:', error);
+    } catch (error) {
       toast({
-        title: 'Login failed',
-        description: error?.message || 'Unable to connect to server',
+        title: 'Registration failed',
+        description: 'Unable to connect to server',
         variant: 'destructive',
       });
+    } finally {
+      setIsLoading(false);
     }
   };
 
@@ -58,19 +72,41 @@ export default function LoginPage() {
               <PawPrint className="h-8 w-8 text-primary-foreground" />
             </div>
           </div>
-          <CardTitle className="text-2xl">Welcome to PawCare</CardTitle>
-          <CardDescription>Sign in to your account</CardDescription>
+          <CardTitle className="text-2xl">Join PawCare</CardTitle>
+          <CardDescription>Create your account</CardDescription>
         </CardHeader>
         <CardContent>
           <form onSubmit={handleSubmit} className="space-y-4">
             <div className="space-y-2">
-              <Label htmlFor="identifier">PID / Email / Phone</Label>
+              <Label htmlFor="clinicCode">Clinic Code</Label>
               <Input
-                id="identifier"
+                id="clinicCode"
                 type="text"
-                value={identifier}
-                onChange={(e) => setIdentifier(e.target.value)}
-                placeholder="Enter your PID, email, or phone"
+                value={clinicCode}
+                onChange={(e) => setClinicCode(e.target.value)}
+                placeholder="Enter clinic code"
+                required
+              />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="name">Full Name</Label>
+              <Input
+                id="name"
+                type="text"
+                value={name}
+                onChange={(e) => setName(e.target.value)}
+                placeholder="Enter your full name"
+                required
+              />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="email">Email</Label>
+              <Input
+                id="email"
+                type="email"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                placeholder="Enter your email"
                 required
               />
             </div>
@@ -96,27 +132,16 @@ export default function LoginPage() {
                 </Button>
               </div>
             </div>
-            {loginMutation.error && (
-              <div className="text-sm text-destructive">
-                Login failed. Please check your credentials.
-              </div>
-            )}
-            <Button type="submit" className="w-full" disabled={loginMutation.isPending}>
-              {loginMutation.isPending ? 'Signing in...' : 'Sign In'}
+            <Button type="submit" className="w-full" disabled={isLoading}>
+              {isLoading ? 'Creating Account...' : 'Sign Up'}
             </Button>
           </form>
-          <div className="mt-6 text-center text-sm text-muted-foreground">
-            <p>Demo credentials:</p>
-            <p>Admin: admin@pawcare.com / password</p>
-            <p>Vet: vet@pawcare.com / password</p>
-            <p>Owner: PID001 / password</p>
-          </div>
-          <div className="mt-4 text-center text-sm">
+          <div className="mt-6 text-center text-sm">
             <p className="text-muted-foreground">
-              Don't have an account?{' '}
-              <a href="/signup" className="text-primary hover:underline">
-                Sign up
-              </a>
+              Already have an account?{' '}
+              <Link href="/login" className="text-primary hover:underline">
+                Sign in
+              </Link>
             </p>
           </div>
         </CardContent>

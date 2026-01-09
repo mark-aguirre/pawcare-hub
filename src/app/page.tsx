@@ -14,12 +14,12 @@ export default function Home() {
   const router = useRouter();
 
   useEffect(() => {
-    if (user?.role === 'pet-owner') {
+    if (user?.role === 'OWNER') {
       router.replace('/portal');
     }
   }, [user, router]);
 
-  if (user?.role === 'pet-owner') {
+  if (user?.role === 'OWNER') {
     return null;
   }
 

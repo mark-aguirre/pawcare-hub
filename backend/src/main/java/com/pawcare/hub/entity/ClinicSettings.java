@@ -23,6 +23,9 @@ public class ClinicSettings {
     @Column(nullable = false)
     private String email;
 
+    @Column(unique = true, nullable = false, length = 20)
+    private String clinicCode;
+
     @Column(nullable = false)
     private String timezone;
 
@@ -95,6 +98,9 @@ public class ClinicSettings {
 
     public String getEmail() { return email; }
     public void setEmail(String email) { this.email = email; }
+
+    public String getClinicCode() { return clinicCode; }
+    public void setClinicCode(String clinicCode) { this.clinicCode = clinicCode; }
 
     public String getTimezone() { return timezone; }
     public void setTimezone(String timezone) { this.timezone = timezone; }

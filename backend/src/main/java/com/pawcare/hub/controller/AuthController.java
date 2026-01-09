@@ -35,4 +35,26 @@ public class AuthController {
             ));
         }
     }
+    
+    @PostMapping("/signup")
+    public ResponseEntity<?> signup(@RequestBody Map<String, String> signupData) {
+        try {
+            String clinicCode = signupData.get("clinicCode");
+            String name = signupData.get("name");
+            String email = signupData.get("email");
+            String password = signupData.get("password");
+            
+            User user = authService.signup(clinicCode, name, email, password);
+            return ResponseEntity.ok(Map.of(
+                "success", true,
+                "user", user,
+                "message", "Registration successful"
+            ));
+        } catch (Exception e) {
+            return ResponseEntity.badRequest().body(Map.of(
+                "success", false,
+                "message", e.getMessage()
+            ));
+        }
+    }
 }
