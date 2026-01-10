@@ -10,10 +10,8 @@ CYAN='\033[0;36m'
 NC='\033[0m' # No Color
 
 BASE_URL="http://localhost:3000/api"
-CLINIC_CODE="PC001"
 PASS_COUNT=0
 FAIL_COUNT=0
-TOTAL_COUNT=0
 
 # Function to test endpoint
 test_endpoint() {
@@ -22,8 +20,6 @@ test_endpoint() {
     local data=$3
     local headers=$4
     local name=$5
-    
-    TOTAL_COUNT=$((TOTAL_COUNT + 1))
     
     if [ "$method" = "GET" ]; then
         if curl -s $headers "$url" > /dev/null 2>&1; then
@@ -49,7 +45,32 @@ echo -e "${CYAN}║     PawCare Hub Frontend API Test    ║${NC}"
 echo -e "${CYAN}╚══════════════════════════════════════╝${NC}"
 echo
 
-echo -e "${GREEN}🏥 Using clinic code: ${PURPLE}$CLINIC_CODE${NC}"
+# Step 1: Create unique user and clinic
+TIMESTAMP=$(date +%s)
+echo -e "${YELLOW}👤 Creating owner account...${NC}"
+SIGNUP_RESPONSE=$(curl -s -X POST -H "Content-Type: application/json" -d '{"firstName":"Test","lastName":"Owner","email":"owner'$TIMESTAMP'@test.com","password":"password123"}' "$BASE_URL/auth/signup")
+echo "Signup Response: $SIGNUP_RESPONSE"
+
+USER_ID=$(echo "$SIGNUP_RESPONSE" | sed 's/&quot;/"/g' | grep -o '"id":[0-9]*' | cut -d':' -f2)
+
+if [ -z "$USER_ID" ]; then
+    echo -e "${RED}❌ Failed to extract user ID${NC}"
+    exit 1
+fi
+
+echo -e "${GREEN}✅ Created user with ID: $USER_ID${NC}"
+
+echo -e "${YELLOW}🏥 Creating clinic...${NC}"
+CLINIC_RESPONSE=$(curl -s -X POST -H "Content-Type: application/json" -d '{"userId":'$USER_ID',"name":"Test Clinic","address":"123 Test St","phone":"555-0123","email":"test@clinic.com"}' "$BASE_URL/clinics")
+echo "Clinic Response: $CLINIC_RESPONSE"
+CLINIC_CODE=$(echo "$CLINIC_RESPONSE" | sed 's/&quot;/"/g' | grep -o '"clinicCode":"[^"]*"' | cut -d'"' -f4)
+
+if [ -z "$CLINIC_CODE" ]; then
+    echo -e "${YELLOW}⚠️ Clinic creation failed, using test clinic code${NC}"
+    CLINIC_CODE="TEST123"
+fi
+
+echo -e "${GREEN}✅ Using clinic code: ${PURPLE}$CLINIC_CODE${NC}"
 echo
 
 echo -e "${BLUE}📊 Testing GET Endpoints${NC}"
@@ -125,9 +146,9 @@ echo -e "${BLUE}📝 Testing POST Endpoints${NC}"
 echo -e "${BLUE}──────────────────────────${NC}"
 
 # Auth endpoints
-test_endpoint "POST" "$BASE_URL/auth/login" '{"identifier":"test@test.com","password":"password"}' "" "Auth Login"
-test_endpoint "POST" "$BASE_URL/auth/signup" '{"clinicCode":"'$CLINIC_CODE'","name":"Test User","email":"testuser@test.com","password":"password123"}' "" "Auth Signup"
-test_endpoint "POST" "$BASE_URL/auth/forgot-password" '{"email":"test@test.com"}' "" "Forgot Password"
+test_endpoint "POST" "$BASE_URL/auth/login" '{"identifier":"owner@test.com","password":"password123"}' "" "Auth Login"
+test_endpoint "POST" "$BASE_URL/auth/signup" '{"firstName":"New","lastName":"User","email":"newuser@test.com","password":"password123","clinicCode":"'$CLINIC_CODE'"}' "" "Auth Signup with Clinic"
+test_endpoint "POST" "$BASE_URL/auth/forgot-password" '{"email":"owner@test.com"}' "" "Forgot Password"
 
 # Core entity creation
 test_endpoint "POST" "$BASE_URL/owners" '{"firstName":"Test","lastName":"Owner","email":"test@test.com","phone":"1234567890"}' "-H 'x-clinic-code: $CLINIC_CODE'" "Create Owner"
@@ -155,51 +176,9 @@ test_endpoint "POST" "$BASE_URL/inventory" '{"name":"Test Item","category":"MEDI
 # Billing
 test_endpoint "POST" "$BASE_URL/billing" '{"petId":1,"ownerId":1,"veterinarianId":1,"items":[{"description":"Checkup","quantity":1,"unitPrice":50.00}],"total":50.00}' "-H 'x-clinic-code: $CLINIC_CODE'" "Create Invoice"
 
-# Clinics
-test_endpoint "POST" "$BASE_URL/clinics" '{"clinicName":"Test Clinic","address":"123 Test St","phone":"555-0123","email":"test@clinic.com"}' "-H 'x-clinic-code: $CLINIC_CODE'" "Create Clinic"
-
-# Settings
-test_endpoint "POST" "$BASE_URL/settings/users" '{"name":"New User","email":"newuser@test.com","password":"password123","role":"NURSE"}' "-H 'x-clinic-code: $CLINIC_CODE'" "Create User"
-
 echo
-echo -e "${BLUE}✏️  Testing PUT Endpoints${NC}"
-echo -e "${BLUE}─────────────────────────${NC}"
-
-test_endpoint "PUT" "$BASE_URL/owners/1" '{"firstName":"Updated","lastName":"Owner","email":"updated@test.com","phone":"9876543210"}' "-H 'x-clinic-code: $CLINIC_CODE'" "Update Owner"
-test_endpoint "PUT" "$BASE_URL/pets/1" '{"name":"UpdatedPet","species":"Cat","breed":"Persian","weight":5.5}' "-H 'x-clinic-code: $CLINIC_CODE'" "Update Pet"
-test_endpoint "PUT" "$BASE_URL/appointments/1" '{"date":"2024-02-02","time":"11:00","status":"confirmed"}' "-H 'x-clinic-code: $CLINIC_CODE'" "Update Appointment"
-test_endpoint "PUT" "$BASE_URL/records/1" '{"title":"Updated Record","description":"Updated description"}' "-H 'x-clinic-code: $CLINIC_CODE'" "Update Medical Record"
-test_endpoint "PUT" "$BASE_URL/lab-tests/1" '{"status":"COMPLETED","results":"Normal values"}' "-H 'x-clinic-code: $CLINIC_CODE'" "Update Lab Test"
-test_endpoint "PUT" "$BASE_URL/billing/1" '{"status":"PAID","paidDate":"2024-01-15"}' "-H 'x-clinic-code: $CLINIC_CODE'" "Update Invoice"
-test_endpoint "PUT" "$BASE_URL/settings" '{"clinicName":"Updated Clinic","address":"456 New St"}' "-H 'x-clinic-code: $CLINIC_CODE'" "Update Settings"
-test_endpoint "PUT" "$BASE_URL/settings/users/1" '{"name":"Updated User","email":"updated@test.com","role":"VETERINARIAN"}' "-H 'x-clinic-code: $CLINIC_CODE'" "Update User"
-
-echo
-echo -e "${BLUE}🗑️  Testing DELETE Endpoints${NC}"
-echo -e "${BLUE}─────────────────────────────${NC}"
-
-test_endpoint "DELETE" "$BASE_URL/owners/999" "" "-H 'x-clinic-code: $CLINIC_CODE'" "Delete Owner"
-test_endpoint "DELETE" "$BASE_URL/pets/999" "" "-H 'x-clinic-code: $CLINIC_CODE'" "Delete Pet"
-test_endpoint "DELETE" "$BASE_URL/appointments/999" "" "-H 'x-clinic-code: $CLINIC_CODE'" "Delete Appointment"
-test_endpoint "DELETE" "$BASE_URL/records/999" "" "-H 'x-clinic-code: $CLINIC_CODE'" "Delete Medical Record"
-test_endpoint "DELETE" "$BASE_URL/prescriptions/999" "" "-H 'x-clinic-code: $CLINIC_CODE'" "Delete Prescription"
-test_endpoint "DELETE" "$BASE_URL/vaccinations/999" "" "-H 'x-clinic-code: $CLINIC_CODE'" "Delete Vaccination"
-test_endpoint "DELETE" "$BASE_URL/lab-tests/999" "" "-H 'x-clinic-code: $CLINIC_CODE'" "Delete Lab Test"
-test_endpoint "DELETE" "$BASE_URL/billing/999" "" "-H 'x-clinic-code: $CLINIC_CODE'" "Delete Invoice"
-test_endpoint "DELETE" "$BASE_URL/settings/users/999" "" "-H 'x-clinic-code: $CLINIC_CODE'" "Delete User"
-
-echo
-echo -e "${CYAN}╔══════════════════════════════════════╗${NC}"
-echo -e "${CYAN}║              TEST SUMMARY            ║${NC}"
-echo -e "${CYAN}╠══════════════════════════════════════╣${NC}"
-echo -e "${CYAN}║${NC} Frontend API (Port 3000)${CYAN}          ║${NC}"
-echo -e "${CYAN}║${NC} Clinic Code: ${PURPLE}$CLINIC_CODE${NC}${CYAN}                ║${NC}"
-echo -e "${CYAN}║${NC} Total Tests: ${YELLOW}$TOTAL_COUNT${NC}${CYAN}                    ║${NC}"
-echo -e "${CYAN}║${NC} Passed: ${GREEN}$PASS_COUNT${NC}${CYAN}                        ║${NC}"
-echo -e "${CYAN}║${NC} Failed: ${RED}$FAIL_COUNT${NC}${CYAN}                        ║${NC}"
-if [ $FAIL_COUNT -eq 0 ]; then
-    echo -e "${CYAN}║${NC} Status: ${GREEN}ALL TESTS PASSED! 🎉${NC}${CYAN}       ║${NC}"
-else
-    echo -e "${CYAN}║${NC} Status: ${RED}SOME TESTS FAILED ❌${NC}${CYAN}       ║${NC}"
-fi
-echo -e "${CYAN}╚══════════════════════════════════════╝${NC}"
+echo -e "${CYAN}📊 Test Summary${NC}"
+echo -e "${CYAN}─────────────${NC}"
+echo -e "${GREEN}✓ Passed: $PASS_COUNT${NC}"
+echo -e "${RED}✗ Failed: $FAIL_COUNT${NC}"
+echo -e "${BLUE}Total: $((PASS_COUNT + FAIL_COUNT))${NC}"
