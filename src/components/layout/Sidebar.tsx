@@ -16,7 +16,6 @@ import {
   Receipt,
   BarChart3,
   Settings,
-  LogOut,
   Sparkles,
   Syringe,
   Pill,
@@ -45,7 +44,7 @@ const bottomNavigation = [
 export function Sidebar() {
   const pathname = usePathname();
   const { settings } = useAppSettings();
-  const { user, logout } = useAuth();
+  const { user } = useAuth();
   const { preloadOnHover } = useRoutePreload();
 
   return (
@@ -146,14 +145,6 @@ export function Sidebar() {
                 </Link>
               );
             })}
-          
-          <button 
-            className="group flex w-full items-center gap-3 rounded-xl px-4 py-3 text-sm font-medium text-sidebar-foreground/70 transition-all duration-200 hover:bg-destructive/20 hover:text-destructive"
-            onClick={logout}
-          >
-            <LogOut className="h-5 w-5 transition-transform group-hover:-translate-x-1" />
-            Logout
-          </button>
         </div>
       </div>
     </aside>

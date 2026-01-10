@@ -15,7 +15,7 @@ export async function GET(request: NextRequest) {
     const params = new URLSearchParams();
     
     if (ownerId) params.append('ownerId', ownerId);
-    if (status) url = `${BACKEND_URL}/api/invoices/status/${status}`;
+    if (status) url = `${BACKEND_URL}/api/invoices/status/${status.toUpperCase()}`;
     if (petId) url = `${BACKEND_URL}/api/invoices/pet/${petId}`;
     if (startDate && endDate) {
       url = `${BACKEND_URL}/api/invoices/date-range`;

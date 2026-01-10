@@ -1,7 +1,15 @@
-import { Bell, Search, Plus, Sparkles } from 'lucide-react';
+import { Bell, Search, Plus, Sparkles, LogOut, User, Settings } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu';
 import { useAuth } from '@/contexts/AuthContext';
 import { NotificationBell } from '@/components/notifications/NotificationBell';
 
@@ -15,7 +23,7 @@ interface HeaderProps {
 }
 
 export function Header({ title, subtitle, action }: HeaderProps) {
-  const { user } = useAuth();
+  const { user, logout } = useAuth();
   return (
     <header className="sticky top-0 z-30 flex h-20 items-center justify-between border-b border-border bg-background/80 backdrop-blur-xl px-6">
       <div className="animate-slide-in-left">
@@ -50,16 +58,44 @@ export function Header({ title, subtitle, action }: HeaderProps) {
         {/* Notifications */}
         <NotificationBell />
 
-        {/* User Avatar */}
-        <div className="relative group cursor-pointer">
-          <div className="absolute -inset-1 rounded-2xl bg-gradient-primary opacity-0 group-hover:opacity-100 blur transition-all duration-300" />
-          <Avatar className="relative h-11 w-11 border-2 border-primary/20 ring-2 ring-transparent group-hover:ring-primary/20 transition-all">
-            <AvatarImage src="https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?w=44&h=44&fit=crop&crop=face" />
-            <AvatarFallback className="bg-gradient-primary text-primary-foreground font-semibold">
-              {user?.name?.split(' ').map(n => n[0]).join('') || 'U'}
-            </AvatarFallback>
-          </Avatar>
-        </div>
+        {/* User Profile Dropdown */}
+        <DropdownMenu>
+          <DropdownMenuTrigger asChild>
+            <div className="relative group cursor-pointer">
+              <div className="absolute -inset-1 rounded-2xl bg-gradient-primary opacity-0 group-hover:opacity-100 blur transition-all duration-300" />
+              <Avatar className="relative h-11 w-11 border-2 border-primary/20 ring-2 ring-transparent group-hover:ring-primary/20 transition-all">
+                <AvatarImage src="https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?w=44&h=44&fit=crop&crop=face" />
+                <AvatarFallback className="bg-gradient-primary text-primary-foreground font-semibold">
+                  {user?.name?.split(' ').map(n => n[0]).join('') || 'U'}
+                </AvatarFallback>
+              </Avatar>
+            </div>
+          </DropdownMenuTrigger>
+          <DropdownMenuContent className="w-56" align="end" forceMount>
+            <DropdownMenuLabel className="font-normal">
+              <div className="flex flex-col space-y-1">
+                <p className="text-sm font-medium leading-none">{user?.name || 'User'}</p>
+                <p className="text-xs leading-none text-muted-foreground">
+                  {user?.email || 'user@example.com'}
+                </p>
+              </div>
+            </DropdownMenuLabel>
+            <DropdownMenuSeparator />
+            <DropdownMenuItem>
+              <User className="mr-2 h-4 w-4" />
+              <span>Profile</span>
+            </DropdownMenuItem>
+            <DropdownMenuItem>
+              <Settings className="mr-2 h-4 w-4" />
+              <span>Settings</span>
+            </DropdownMenuItem>
+            <DropdownMenuSeparator />
+            <DropdownMenuItem onClick={logout} className="text-red-600 focus:text-red-600">
+              <LogOut className="mr-2 h-4 w-4" />
+              <span>Log out</span>
+            </DropdownMenuItem>
+          </DropdownMenuContent>
+        </DropdownMenu>
       </div>
     </header>
   );

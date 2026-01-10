@@ -1,4 +1,4 @@
-const API_BASE_URL = process.env.NODE_ENV === 'production' ? '' : 'http://localhost:8082';
+const API_BASE_URL = process.env.NODE_ENV === 'production' ? '' : '';
 
 class ApiClient {
   private baseURL: string;
@@ -24,7 +24,20 @@ class ApiClient {
       if (!response.ok) {
         const errorText = await response.text();
         console.error('API Error:', response.status, errorText);
-        throw new Error(`HTTP error! status: ${response.status}, message: ${errorText}`);
+        
+        // Try to parse error response for better error messages
+        let errorMessage = `HTTP error! status: ${response.status}`;
+        try {
+          const errorData = JSON.parse(errorText);
+          if (errorData.message) {
+            errorMessage = errorData.message;
+          }
+        } catch {
+          // If parsing fails, use the raw error text or default message
+          errorMessage = errorText || errorMessage;
+        }
+        
+        throw new Error(errorMessage);
       }
       
       return await response.json();

@@ -5,7 +5,7 @@ export async function GET(request: NextRequest) {
     const { searchParams } = new URL(request.url);
     const limit = parseInt(searchParams.get('limit') || '10');
     
-    const response = await fetch(`http://localhost:8080/api/activities/recent?limit=${limit}`, {
+    const response = await fetch(`http://localhost:8082/api/activities/recent?limit=${limit}`, {
       method: 'GET',
       headers: {
         'Content-Type': 'application/json',
