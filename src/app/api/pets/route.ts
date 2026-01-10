@@ -4,10 +4,13 @@ const BACKEND_URL = process.env.BACKEND_URL || 'http://localhost:8082';
 
 export async function GET(request: NextRequest) {
   try {
+    const clinicCode = request.headers.get('x-clinic-code');
+    
     const response = await fetch(`${BACKEND_URL}/api/pets`, {
       method: 'GET',
       headers: {
         'Content-Type': 'application/json',
+        'x-clinic-code': clinicCode || '-'
       },
     });
 

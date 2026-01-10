@@ -20,6 +20,7 @@ export async function GET(request: NextRequest) {
       method: 'GET',
       headers: {
         'Content-Type': 'application/json',
+        'X-Clinic-Code': request.headers.get('X-Clinic-Code') || '00000000'
       },
     });
 
@@ -46,6 +47,7 @@ export async function POST(request: NextRequest) {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
+        'X-Clinic-Code': request.headers.get('X-Clinic-Code') || '00000000'
       },
       body: JSON.stringify(body),
     });

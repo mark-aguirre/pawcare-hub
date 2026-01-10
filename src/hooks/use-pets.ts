@@ -26,18 +26,15 @@ export function usePets() {
   const query = useQuery({
     queryKey: petKeys.lists(),
     queryFn: async () => {
-      const response = await fetch('/api/pets?t=' + Date.now());
-      if (!response.ok) {
-        throw new Error('Failed to fetch pets');
-      }
-      return await response.json();
+      return await apiClient.get('/api/pets');
     },
-    staleTime: 0,
-    cacheTime: 0,
+    staleTime: 5 * 60 * 1000, // 5 minutes
+    cacheTime: 10 * 60 * 1000, // 10 minutes
   });
 
   return {
     pets: query.data || [],
+    data: query.data || [],
     isLoading: query.isLoading,
     error: query.error,
     fetchPets: query.refetch

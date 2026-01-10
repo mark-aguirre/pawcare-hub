@@ -4,6 +4,7 @@ const BACKEND_URL = process.env.BACKEND_URL || 'http://localhost:8082';
 
 export async function GET(request: NextRequest) {
   try {
+    const clinicCode = request.headers.get('X-Clinic-Code');
     const { searchParams } = new URL(request.url);
     const name = searchParams.get('name');
     const email = searchParams.get('email');
@@ -20,6 +21,7 @@ export async function GET(request: NextRequest) {
       method: 'GET',
       headers: {
         'Content-Type': 'application/json',
+        ...(clinicCode && { 'X-Clinic-Code': clinicCode }),
       },
     });
 
@@ -40,12 +42,14 @@ export async function GET(request: NextRequest) {
 
 export async function POST(request: NextRequest) {
   try {
+    const clinicCode = request.headers.get('X-Clinic-Code');
     const body = await request.json();
     
     const response = await fetch(`${BACKEND_URL}/api/owners`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
+        ...(clinicCode && { 'X-Clinic-Code': clinicCode }),
       },
       body: JSON.stringify(body),
     });

@@ -2,21 +2,39 @@ const API_BASE_URL = process.env.NODE_ENV === 'production' ? '' : '';
 
 class ApiClient {
   private baseURL: string;
+  private getClinicCode: () => string | null;
 
   constructor(baseURL: string) {
     this.baseURL = baseURL;
+    this.getClinicCode = () => {
+      if (typeof window !== 'undefined') {
+        const clinic = localStorage.getItem('pawcare_clinic');
+        if (clinic) {
+          try {
+            return JSON.parse(clinic).code;
+          } catch {
+            return null;
+          }
+        }
+      }
+      return '00000000'; // Default clinic code fallback
+    };
   }
 
   private async request<T>(endpoint: string, options: RequestInit = {}): Promise<T> {
-    const url = `${this.baseURL}${endpoint}`;
+    const url = endpoint.startsWith('http') ? endpoint : `${this.baseURL}${endpoint}`;
+    const clinicCode = this.getClinicCode();
+    console.log('API Request - Clinic Code:', clinicCode);
     
     const config: RequestInit = {
       headers: {
         'Content-Type': 'application/json',
+        'x-clinic-code': clinicCode,
         ...options.headers,
       },
       ...options,
     };
+    console.log('API Request Headers:', config.headers);
 
     try {
       const response = await fetch(url, config);

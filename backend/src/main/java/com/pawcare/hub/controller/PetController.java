@@ -18,12 +18,12 @@ public class PetController {
     private PetService petService;
 
     @GetMapping
-    public List<PetDTO> getAllPets(@RequestParam(required = false) Long ownerId) {
+    public List<PetDTO> getAllPets(@RequestHeader("x-clinic-code") String clinicCode, @RequestParam(required = false) Long ownerId) {
         List<Pet> pets;
         if (ownerId != null) {
-            pets = petService.getPetsByOwnerId(ownerId);
+            pets = petService.getPetsByOwnerIdAndClinic(ownerId, clinicCode);
         } else {
-            pets = petService.getAllPets();
+            pets = petService.getAllPetsByClinic(clinicCode);
         }
         return pets.stream()
                 .map(this::convertToDTO)

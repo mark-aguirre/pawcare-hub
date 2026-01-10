@@ -17,6 +17,10 @@ public class VeterinarianService {
         return veterinarianRepository.findAll();
     }
 
+    public List<Veterinarian> getAllVeterinariansByClinic(String clinicCode) {
+        return veterinarianRepository.findByClinicCode(clinicCode);
+    }
+
     public Optional<Veterinarian> getVeterinarianById(Long id) {
         return veterinarianRepository.findById(id);
     }

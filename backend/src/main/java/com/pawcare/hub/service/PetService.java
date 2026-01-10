@@ -15,16 +15,28 @@ public class PetService {
     
     @Autowired
     private ActivityService activityService;
+    
+    @Autowired
+    private ClinicContextService clinicContextService;
 
     public List<Pet> getAllPets() {
-        return petRepository.findAll();
+        String clinicCode = clinicContextService.getClinicCode();
+        return petRepository.findByClinicCode(clinicCode);
+    }
+
+    public List<Pet> getAllPetsByClinic(String clinicCode) {
+        return petRepository.findByClinicCode(clinicCode);
     }
 
     public Optional<Pet> getPetById(Long id) {
-        return petRepository.findById(id);
+        String clinicCode = clinicContextService.getClinicCode();
+        return petRepository.findByIdAndClinicCode(id, clinicCode);
     }
 
     public Pet savePet(Pet pet) {
+        String clinicCode = clinicContextService.getClinicCode();
+        pet.setClinicCode(clinicCode);
+        
         boolean isNew = pet.getId() == null;
         Pet saved = petRepository.save(pet);
         String action = isNew ? "CREATE" : "UPDATE";
@@ -34,23 +46,31 @@ public class PetService {
     }
 
     public void deletePet(Long id) {
-        Optional<Pet> pet = petRepository.findById(id);
+        String clinicCode = clinicContextService.getClinicCode();
+        Optional<Pet> pet = petRepository.findByIdAndClinicCode(id, clinicCode);
         if (pet.isPresent()) {
             String petName = pet.get().getName();
-            petRepository.deleteById(id);
+            petRepository.deleteByIdAndClinicCode(id, clinicCode);
             activityService.logActivity("DELETE", "PET", id, petName, "Pet removed from system");
         }
     }
 
     public List<Pet> getPetsByOwnerId(Long ownerId) {
-        return petRepository.findByOwnerId(ownerId);
+        String clinicCode = clinicContextService.getClinicCode();
+        return petRepository.findByOwnerIdAndClinicCode(ownerId, clinicCode);
+    }
+
+    public List<Pet> getPetsByOwnerIdAndClinic(Long ownerId, String clinicCode) {
+        return petRepository.findByOwnerIdAndClinicCode(ownerId, clinicCode);
     }
 
     public List<Pet> searchPetsByName(String name) {
-        return petRepository.findByNameContaining(name);
+        String clinicCode = clinicContextService.getClinicCode();
+        return petRepository.findByNameContainingAndClinicCode(name, clinicCode);
     }
 
     public List<Pet> getPetsBySpecies(String species) {
-        return petRepository.findBySpecies(species);
+        String clinicCode = clinicContextService.getClinicCode();
+        return petRepository.findBySpeciesAndClinicCode(species, clinicCode);
     }
 }

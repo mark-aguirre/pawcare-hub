@@ -27,16 +27,24 @@ public class AppointmentService {
     
     @Autowired
     private ActivityService activityService;
+    
+    @Autowired
+    private ClinicContextService clinicContextService;
 
     public List<Appointment> getAllAppointments() {
-        return appointmentRepository.findAll();
+        String clinicCode = clinicContextService.getClinicCode();
+        return appointmentRepository.findByClinicCode(clinicCode);
     }
 
     public Optional<Appointment> getAppointmentById(Long id) {
-        return appointmentRepository.findById(id);
+        String clinicCode = clinicContextService.getClinicCode();
+        return appointmentRepository.findByIdAndClinicCode(id, clinicCode);
     }
 
     public Appointment saveAppointment(Appointment appointment) {
+        String clinicCode = clinicContextService.getClinicCode();
+        appointment.setClinicCode(clinicCode);
+        
         Appointment saved = appointmentRepository.save(appointment);
         String petName = saved.getPet() != null ? saved.getPet().getName() : "Unknown Pet";
         activityService.logActivity("UPDATE", "APPOINTMENT", saved.getId(), 
@@ -45,37 +53,44 @@ public class AppointmentService {
     }
 
     public void deleteAppointment(Long id) {
-        Optional<Appointment> appointment = appointmentRepository.findById(id);
+        String clinicCode = clinicContextService.getClinicCode();
+        Optional<Appointment> appointment = appointmentRepository.findByIdAndClinicCode(id, clinicCode);
         if (appointment.isPresent()) {
             String petName = appointment.get().getPet() != null ? appointment.get().getPet().getName() : "Unknown Pet";
-            appointmentRepository.deleteById(id);
+            appointmentRepository.deleteByIdAndClinicCode(id, clinicCode);
             activityService.logActivity("DELETE", "APPOINTMENT", id, 
                 "Appointment for " + petName, "Appointment cancelled");
         }
     }
 
     public List<Appointment> getAppointmentsByPet(Long petId) {
-        return appointmentRepository.findByPetId(petId);
+        String clinicCode = clinicContextService.getClinicCode();
+        return appointmentRepository.findByPetIdAndClinicCode(petId, clinicCode);
     }
 
     public List<Appointment> getAppointmentsByOwner(Long ownerId) {
-        return appointmentRepository.findByPetOwnerId(ownerId);
+        String clinicCode = clinicContextService.getClinicCode();
+        return appointmentRepository.findByPetOwnerIdAndClinicCode(ownerId, clinicCode);
     }
 
     public List<Appointment> getUpcomingAppointments() {
-        return appointmentRepository.findUpcomingAppointments(LocalDate.now());
+        String clinicCode = clinicContextService.getClinicCode();
+        return appointmentRepository.findUpcomingAppointmentsByClinicCode(LocalDate.now(), clinicCode);
     }
 
     public List<Appointment> getAppointmentsByDateRange(LocalDate start, LocalDate end) {
-        return appointmentRepository.findByDateBetween(start, end);
+        String clinicCode = clinicContextService.getClinicCode();
+        return appointmentRepository.findByDateBetweenAndClinicCode(start, end, clinicCode);
     }
 
     public List<Appointment> getAppointmentsByDate(LocalDate date) {
-        return appointmentRepository.findByDate(date);
+        String clinicCode = clinicContextService.getClinicCode();
+        return appointmentRepository.findByDateAndClinicCode(date, clinicCode);
     }
 
     public Appointment updateAppointmentStatus(Long id, AppointmentStatus status) {
-        Optional<Appointment> appointment = appointmentRepository.findById(id);
+        String clinicCode = clinicContextService.getClinicCode();
+        Optional<Appointment> appointment = appointmentRepository.findByIdAndClinicCode(id, clinicCode);
         if (appointment.isPresent()) {
             appointment.get().setStatus(status);
             Appointment saved = appointmentRepository.save(appointment.get());
@@ -88,6 +103,8 @@ public class AppointmentService {
     }
     
     public Appointment createAppointment(CreateAppointmentRequest request) {
+        String clinicCode = clinicContextService.getClinicCode();
+        
         Appointment appointment = new Appointment();
         appointment.setDate(request.getDate());
         appointment.setTime(LocalTime.parse(request.getTime()));
@@ -95,6 +112,7 @@ public class AppointmentService {
         appointment.setType(Appointment.AppointmentType.valueOf(request.getType().toUpperCase()));
         appointment.setStatus(AppointmentStatus.valueOf(request.getStatus().toUpperCase()));
         appointment.setNotes(request.getNotes());
+        appointment.setClinicCode(clinicCode);
         
         // Set pet and veterinarian
         Pet pet = petService.getPetById(request.getPetId()).orElse(null);

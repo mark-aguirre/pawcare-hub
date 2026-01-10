@@ -53,7 +53,7 @@ export default function Records() {
   const [currentPage, setCurrentPage] = useState(1);
   const recordsPerPage = 10;
 
-  // Use the records API hook
+  // Use the records API hook - only pass server-side filters
   const { 
     records: allRecords, 
     loading: isLoading, 
@@ -113,7 +113,7 @@ export default function Records() {
     specialization: vet.specialization || 'General Practice'
   }));
 
-  // Apply frontend search filter
+  // Apply client-side search filter (no API call needed)
   const filteredRecords = search ? transformedRecords.filter(record => 
     record.title?.toLowerCase().includes(search.toLowerCase()) ||
     record.description?.toLowerCase().includes(search.toLowerCase()) ||

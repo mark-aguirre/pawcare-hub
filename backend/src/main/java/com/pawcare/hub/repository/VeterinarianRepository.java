@@ -12,6 +12,8 @@ public interface VeterinarianRepository extends JpaRepository<Veterinarian, Long
     
     List<Veterinarian> findByNameContainingIgnoreCase(String name);
     
+    List<Veterinarian> findByClinicCode(String clinicCode);
+    
     List<Veterinarian> findBySpecializationContainingIgnoreCase(String specialization);
     
     @Query("SELECT v FROM Veterinarian v WHERE v.email = :email")

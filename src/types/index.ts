@@ -229,6 +229,7 @@ export interface DashboardStats {
 
 export interface ClinicSettings {
   id: string;
+  clinicCode: string;
   clinicName: string;
   address: string;
   phone: string;
@@ -262,6 +263,22 @@ export interface UserPermissions {
   updatedAt: string;
 }
 
+export interface Clinic {
+  id: string;
+  code: string;
+  name: string;
+  address: string;
+  phone: string;
+  email: string;
+  website?: string;
+  logo?: string;
+  ownerId: number;
+  subscription: 'BASIC' | 'PREMIUM' | 'ENTERPRISE';
+  isActive: boolean;
+  createdAt: string;
+  updatedAt: string;
+}
+
 export interface User {
   id: number;
   firstName: string;
@@ -272,6 +289,8 @@ export interface User {
   phone?: string;
   role: 'ADMINISTRATOR' | 'VETERINARIAN' | 'NURSE' | 'RECEPTIONIST' | 'TECHNICIAN' | 'OWNER';
   permissions?: string[];
+  clinicCode?: string;
+  clinic?: Clinic;
   isActive: boolean;
   createdAt: string;
   updatedAt: string;

@@ -8,6 +8,7 @@ export async function GET(request: NextRequest) {
       method: 'GET',
       headers: {
         'Content-Type': 'application/json',
+        'x-clinic-code': request.headers.get('x-clinic-code') || '-'
       },
     });
 

@@ -3,6 +3,7 @@
 import { lazy, Suspense } from 'react';
 import { ProtectedRoute } from '@/components/auth/ProtectedRoute';
 import { PageSkeleton } from '@/components/ui/page-skeleton';
+import { AppWrapper } from '@/components/AppWrapper';
 import { useAuth } from '@/contexts/AuthContext';
 import { useRouter } from 'next/navigation';
 import { useEffect } from 'react';
@@ -24,10 +25,12 @@ export default function Home() {
   }
 
   return (
-    <ProtectedRoute>
-      <Suspense fallback={<PageSkeleton />}>
-        <Dashboard />
-      </Suspense>
-    </ProtectedRoute>
+    <AppWrapper>
+      <ProtectedRoute>
+        <Suspense fallback={<PageSkeleton />}>
+          <Dashboard />
+        </Suspense>
+      </ProtectedRoute>
+    </AppWrapper>
   );
 }

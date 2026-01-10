@@ -73,7 +73,11 @@ export async function GET(request: NextRequest) {
       backendUrl = `${BACKEND_URL}/api/medical-records?${searchParams.toString()}`;
     }
     
-    const response = await fetch(backendUrl);
+    const response = await fetch(backendUrl, {
+      headers: {
+        'x-clinic-code': request.headers.get('x-clinic-code') || '-'
+      }
+    });
     if (!response.ok) {
       throw new Error(`Backend responded with status: ${response.status}`);
     }
@@ -103,6 +107,7 @@ export async function POST(request: NextRequest) {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
+        'x-clinic-code': request.headers.get('x-clinic-code') || '-'
       },
       body: JSON.stringify(body),
     });

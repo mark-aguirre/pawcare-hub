@@ -13,8 +13,15 @@ public interface MedicalRecordRepository extends JpaRepository<MedicalRecord, Lo
     
     List<MedicalRecord> findByPetId(Long petId);
     
+    List<MedicalRecord> findByClinicCode(String clinicCode);
+    
+    List<MedicalRecord> findByPetIdAndClinicCode(Long petId, String clinicCode);
+    
     @Query("SELECT mr FROM MedicalRecord mr WHERE mr.pet.owner.id = :ownerId")
     List<MedicalRecord> findByPetOwnerId(@Param("ownerId") Long ownerId);
+    
+    @Query("SELECT mr FROM MedicalRecord mr WHERE mr.pet.owner.id = :ownerId AND mr.clinicCode = :clinicCode")
+    List<MedicalRecord> findByPetOwnerIdAndClinicCode(@Param("ownerId") Long ownerId, @Param("clinicCode") String clinicCode);
     
     List<MedicalRecord> findByType(MedicalRecord.RecordType type);
     
@@ -36,4 +43,10 @@ public interface MedicalRecordRepository extends JpaRepository<MedicalRecord, Lo
            "LOWER(mr.title) LIKE LOWER(CONCAT('%', :search, '%')) OR " +
            "LOWER(mr.description) LIKE LOWER(CONCAT('%', :search, '%'))")
     List<MedicalRecord> searchByMultipleFields(@Param("search") String search);
+    
+    @Query("SELECT mr FROM MedicalRecord mr WHERE mr.clinicCode = :clinicCode AND (" +
+           "LOWER(mr.pet.name) LIKE LOWER(CONCAT('%', :search, '%')) OR " +
+           "LOWER(mr.title) LIKE LOWER(CONCAT('%', :search, '%')) OR " +
+           "LOWER(mr.description) LIKE LOWER(CONCAT('%', :search, '%')))")
+    List<MedicalRecord> searchByMultipleFieldsAndClinicCode(@Param("search") String search, @Param("clinicCode") String clinicCode);
 }

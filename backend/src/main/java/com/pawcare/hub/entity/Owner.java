@@ -34,6 +34,9 @@ public class Owner {
     private String state;
     private String zipCode;
 
+    @Column(name = "clinic_code", nullable = false, length = 20)
+    private String clinicCode;
+
     @OneToMany(mappedBy = "owner", cascade = CascadeType.ALL, fetch = FetchType.LAZY)
     private List<Pet> pets;
 
@@ -93,6 +96,9 @@ public class Owner {
 
     public String getZipCode() { return zipCode; }
     public void setZipCode(String zipCode) { this.zipCode = zipCode; }
+
+    public String getClinicCode() { return clinicCode; }
+    public void setClinicCode(String clinicCode) { this.clinicCode = clinicCode; }
 
     public List<Pet> getPets() { return pets; }
     public void setPets(List<Pet> pets) { this.pets = pets; }

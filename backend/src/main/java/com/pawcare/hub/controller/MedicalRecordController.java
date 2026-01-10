@@ -30,18 +30,19 @@ public class MedicalRecordController {
 
     @GetMapping
     public List<Map<String, Object>> getAllMedicalRecords(
+            @RequestHeader("x-clinic-code") String clinicCode,
             @RequestParam(required = false) Long ownerId,
             @RequestParam(required = false) Long petId,
             @RequestParam(required = false) String search) {
         List<MedicalRecord> records;
         if (search != null && !search.trim().isEmpty()) {
-            records = medicalRecordService.searchMedicalRecords(search.trim());
+            records = medicalRecordService.searchMedicalRecordsByClinic(search.trim(), clinicCode);
         } else if (petId != null) {
-            records = medicalRecordService.getMedicalRecordsByPet(petId);
+            records = medicalRecordService.getMedicalRecordsByPetAndClinic(petId, clinicCode);
         } else if (ownerId != null) {
-            records = medicalRecordService.getMedicalRecordsByOwner(ownerId);
+            records = medicalRecordService.getMedicalRecordsByOwnerAndClinic(ownerId, clinicCode);
         } else {
-            records = medicalRecordService.getAllMedicalRecords();
+            records = medicalRecordService.getAllMedicalRecordsByClinic(clinicCode);
         }
         
         return records.stream().map(this::convertToResponse).collect(java.util.stream.Collectors.toList());

@@ -34,10 +34,13 @@ export function useVeterinarians() {
         return [];
       }
     },
+    staleTime: 5 * 60 * 1000, // 5 minutes
+    cacheTime: 10 * 60 * 1000, // 10 minutes
   });
 
   return {
     veterinarians: query.data || [],
+    data: query.data || [],
     isLoading: query.isLoading,
     error: query.error,
     fetchVeterinarians: query.refetch

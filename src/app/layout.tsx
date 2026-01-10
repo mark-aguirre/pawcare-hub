@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { Inter } from "next/font/google";
 import "./globals.css";
 import { Toaster } from "@/components/ui/toaster";
+import { ClinicProvider } from "@/contexts/ClinicContext";
 import { AuthProvider } from "@/contexts/AuthContext";
 import { AppSettingsProvider } from "@/contexts/AppSettingsContext";
 import { NotificationProvider } from "@/contexts/NotificationContext";
@@ -25,14 +26,16 @@ export default function RootLayout({
     <html lang="en" data-scroll-behavior="smooth">
       <body className={inter.className} suppressHydrationWarning={true}>
         <ReactQueryProvider>
-          <AuthProvider>
-            <NotificationProvider>
-              <AppSettingsProvider>
-                <Toaster />
-                {children}
-              </AppSettingsProvider>
-            </NotificationProvider>
-          </AuthProvider>
+          <ClinicProvider>
+            <AuthProvider>
+              <NotificationProvider>
+                <AppSettingsProvider>
+                  <Toaster />
+                  {children}
+                </AppSettingsProvider>
+              </NotificationProvider>
+            </AuthProvider>
+          </ClinicProvider>
         </ReactQueryProvider>
       </body>
     </html>

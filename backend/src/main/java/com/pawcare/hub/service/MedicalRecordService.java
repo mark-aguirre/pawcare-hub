@@ -20,6 +20,10 @@ public class MedicalRecordService {
         return medicalRecordRepository.findAll();
     }
 
+    public List<MedicalRecord> getAllMedicalRecordsByClinic(String clinicCode) {
+        return medicalRecordRepository.findByClinicCode(clinicCode);
+    }
+
     public Optional<MedicalRecord> getMedicalRecordById(Long id) {
         return medicalRecordRepository.findById(id);
     }
@@ -49,8 +53,16 @@ public class MedicalRecordService {
         return medicalRecordRepository.findByPetOwnerId(ownerId);
     }
 
+    public List<MedicalRecord> getMedicalRecordsByOwnerAndClinic(Long ownerId, String clinicCode) {
+        return medicalRecordRepository.findByPetOwnerIdAndClinicCode(ownerId, clinicCode);
+    }
+
     public List<MedicalRecord> getMedicalRecordsByPet(Long petId) {
         return medicalRecordRepository.findByPetId(petId);
+    }
+
+    public List<MedicalRecord> getMedicalRecordsByPetAndClinic(Long petId, String clinicCode) {
+        return medicalRecordRepository.findByPetIdAndClinicCode(petId, clinicCode);
     }
 
     public List<MedicalRecord> getMedicalRecordsByType(MedicalRecord.RecordType type) {
@@ -63,6 +75,15 @@ public class MedicalRecordService {
             return medicalRecordRepository.findByPetId(petId);
         } catch (NumberFormatException e) {
             return medicalRecordRepository.searchByMultipleFields(search);
+        }
+    }
+
+    public List<MedicalRecord> searchMedicalRecordsByClinic(String search, String clinicCode) {
+        try {
+            Long petId = Long.parseLong(search);
+            return medicalRecordRepository.findByPetIdAndClinicCode(petId, clinicCode);
+        } catch (NumberFormatException e) {
+            return medicalRecordRepository.searchByMultipleFieldsAndClinicCode(search, clinicCode);
         }
     }
 }

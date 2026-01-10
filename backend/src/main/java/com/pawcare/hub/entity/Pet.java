@@ -1,5 +1,6 @@
 package com.pawcare.hub.entity;
 
+import com.pawcare.hub.config.ClinicCodeEntityListener;
 import com.fasterxml.jackson.annotation.JsonBackReference;
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import com.fasterxml.jackson.annotation.JsonManagedReference;
@@ -12,6 +13,7 @@ import java.util.List;
 
 @Entity
 @Table(name = "pets")
+@EntityListeners(ClinicCodeEntityListener.class)
 public class Pet {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
@@ -29,6 +31,9 @@ public class Pet {
     private String gender;
     private Double weight;
     private String microchipId;
+
+    @Column(name = "clinic_code", nullable = false, length = 20)
+    private String clinicCode;
 
     @ManyToOne(fetch = FetchType.EAGER)
     @JoinColumn(name = "owner_id")
@@ -97,6 +102,9 @@ public class Pet {
 
     public String getMicrochipId() { return microchipId; }
     public void setMicrochipId(String microchipId) { this.microchipId = microchipId; }
+
+    public String getClinicCode() { return clinicCode; }
+    public void setClinicCode(String clinicCode) { this.clinicCode = clinicCode; }
 
     public Owner getOwner() { return owner; }
     public void setOwner(Owner owner) { this.owner = owner; }

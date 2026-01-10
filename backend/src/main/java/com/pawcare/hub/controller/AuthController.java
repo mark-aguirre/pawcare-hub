@@ -43,8 +43,9 @@ public class AuthController {
             String name = signupData.get("name");
             String email = signupData.get("email");
             String password = signupData.get("password");
+            String role = signupData.get("role");
             
-            User user = authService.signup(clinicCode, name, email, password);
+            User user = authService.signup(clinicCode, name, email, password, role);
             return ResponseEntity.ok(Map.of(
                 "success", true,
                 "user", user,

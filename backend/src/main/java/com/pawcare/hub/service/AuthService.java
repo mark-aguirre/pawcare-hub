@@ -21,11 +21,15 @@ public class AuthService {
     
     @Autowired
     private ClinicSettingsRepository clinicSettingsRepository;
+    
+    @Autowired
+    private ClinicContextService clinicContextService;
 
     private BCryptPasswordEncoder passwordEncoder = new BCryptPasswordEncoder();
 
     public User authenticate(String email, String password) {
         try {
+            // First try to find user by email regardless of clinic code
             User user = userRepository.findByEmail(email).orElse(null);
             
             if (user != null && user.getIsActive()) {
@@ -46,10 +50,13 @@ public class AuthService {
     
     public User authenticateByIdentifier(String identifier, String password) {
         try {
+            // Get default clinic code
+            String clinicCode = getDefaultClinicCode();
+            
             // First try to find owner by PID, email, or phone
-            Owner owner = ownerRepository.findByPid(identifier)
-                .or(() -> ownerRepository.findByEmail(identifier))
-                .or(() -> ownerRepository.findByPhone(identifier))
+            Owner owner = ownerRepository.findByPidAndClinicCode(identifier, clinicCode)
+                .or(() -> ownerRepository.findByEmailAndClinicCode(identifier, clinicCode))
+                .or(() -> ownerRepository.findByPhoneAndClinicCode(identifier, clinicCode))
                 .orElse(null);
             
             if (owner != null && "password".equals(password)) {
@@ -73,17 +80,43 @@ public class AuthService {
         return null;
     }
     
-    public User signup(String clinicCode, String name, String email, String password) {
+    private String getDefaultClinicCode() {
+        // First try to get from context
+        String clinicCode = clinicContextService.getClinicCode();
+        if (clinicCode != null) {
+            return clinicCode;
+        }
+        
+        // Fallback to database lookup
+        return clinicSettingsRepository.findAll()
+            .stream()
+            .findFirst()
+            .map(ClinicSettings::getClinicCode)
+            .orElse("00000000");
+    }
+    
+    public User signup(String clinicCode, String name, String email, String password, String role) {
         try {
-            // Validate clinic code
-            ClinicSettings clinic = clinicSettingsRepository.findByClinicCode(clinicCode).orElse(null);
-            if (clinic == null) {
-                throw new RuntimeException("Invalid clinic code");
+            // For ADMINISTRATOR role, allow null clinic code (clinic owners)
+            if ("ADMINISTRATOR".equals(role) && (clinicCode == null || clinicCode.trim().isEmpty())) {
+                clinicCode = null; // Allow null for clinic owners
+            } else {
+                // Validate clinic code for other roles
+                ClinicSettings clinic = clinicSettingsRepository.findByClinicCode(clinicCode).orElse(null);
+                if (clinic == null) {
+                    throw new RuntimeException("Invalid clinic code");
+                }
             }
             
-            // Check if email already exists
-            if (userRepository.findByEmail(email).isPresent()) {
-                throw new RuntimeException("Email already registered");
+            // Check if email already exists (skip clinic code check for administrators)
+            if ("ADMINISTRATOR".equals(role)) {
+                if (userRepository.findByEmail(email).isPresent()) {
+                    throw new RuntimeException("Email already registered");
+                }
+            } else {
+                if (userRepository.findByEmailAndClinicCode(email, clinicCode).isPresent()) {
+                    throw new RuntimeException("Email already registered");
+                }
             }
             
             // Create new user
@@ -93,7 +126,15 @@ public class AuthService {
             user.setLastName(nameParts.length > 1 ? nameParts[1] : "");
             user.setEmail(email);
             user.setPassword(passwordEncoder.encode(password));
-            user.setRole(User.UserRole.VETERINARIAN);
+            user.setClinicCode(clinicCode);
+            
+            // Set role based on parameter
+            if ("ADMINISTRATOR".equals(role)) {
+                user.setRole(User.UserRole.ADMINISTRATOR);
+            } else {
+                user.setRole(User.UserRole.VETERINARIAN);
+            }
+            
             user.setIsActive(true);
             
             User savedUser = userRepository.save(user);

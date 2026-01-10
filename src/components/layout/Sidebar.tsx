@@ -21,6 +21,7 @@ import {
   Pill,
   TestTube,
   Globe,
+  Building2,
 } from 'lucide-react';
 
 const navigation = [
@@ -38,6 +39,7 @@ const navigation = [
 ];
 
 const bottomNavigation = [
+  { name: 'Clinics', href: '/clinics', icon: Globe, permissions: ['clinics'] },
   { name: 'Settings', href: '/settings', icon: Settings, permissions: ['settings'] },
 ];
 

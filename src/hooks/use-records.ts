@@ -1,5 +1,6 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import { MedicalRecord } from '@/types';
+import { apiClient } from '@/lib/api';
 
 interface UseRecordsOptions {
   search?: string;
@@ -23,21 +24,34 @@ export function useRecords(options: UseRecordsOptions = {}): UseRecordsReturn {
   const [records, setRecords] = useState<MedicalRecord[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const abortControllerRef = useRef<AbortController | null>(null);
+  const lastOptionsRef = useRef<string>('');
 
-  const fetchRecords = async () => {
+  const fetchRecords = useCallback(async () => {
+    // Cancel previous request if still pending
+    if (abortControllerRef.current) {
+      abortControllerRef.current.abort();
+    }
+
+    // Create new abort controller for this request
+    abortControllerRef.current = new AbortController();
+
     try {
       setLoading(true);
       setError(null);
 
       const params = new URLSearchParams();
-      if (options.search) params.append('search', options.search);
       if (options.status) params.append('status', options.status);
       if (options.type) params.append('type', options.type);
       if (options.petId) params.append('petId', options.petId);
       if (options.limit) params.append('limit', options.limit.toString());
 
-      const response = await fetch(`/api/records?${params.toString()}`);
-      const data = await response.json();
+      const data = await apiClient.get<{success: boolean, data: any[], error?: string}>(`/api/records?${params.toString()}`);
+
+      // Check if request was aborted
+      if (abortControllerRef.current?.signal.aborted) {
+        return;
+      }
 
       if (!data.success) {
         throw new Error(data.error || 'Failed to fetch records');
@@ -52,30 +66,19 @@ export function useRecords(options: UseRecordsOptions = {}): UseRecordsReturn {
 
       setRecords(recordsWithDates);
     } catch (err) {
+      if (err instanceof Error && err.name === 'AbortError') {
+        return; // Request was cancelled, don't update state
+      }
       setError(err instanceof Error ? err.message : 'An error occurred');
     } finally {
       setLoading(false);
     }
-  };
+  }, [options.status, options.type, options.petId, options.limit]);
 
   const createRecord = async (record: Partial<MedicalRecord>): Promise<MedicalRecord> => {
     try {
       console.log('Creating record with data:', record);
-      const response = await fetch('/api/records', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify(record),
-      });
-
-      if (!response.ok) {
-        const errorText = await response.text();
-        console.error('API error response:', errorText);
-        throw new Error(`API responded with status: ${response.status}`);
-      }
-
-      const data = await response.json();
+      const data = await apiClient.post<{success: boolean, data: any, error?: string}>('/api/records', record);
       console.log('API response:', data);
       
       if (!data.success) {
@@ -97,21 +100,7 @@ export function useRecords(options: UseRecordsOptions = {}): UseRecordsReturn {
 
   const updateRecord = async (id: string, record: Partial<MedicalRecord>): Promise<MedicalRecord> => {
     try {
-      const response = await fetch(`/api/records/${id}`, {
-        method: 'PUT',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify(record),
-      });
-
-      if (!response.ok) {
-        const errorText = await response.text();
-        console.error('Update error response:', errorText);
-        throw new Error(`Failed to update record: ${response.status}`);
-      }
-
-      const data = await response.json();
+      const data = await apiClient.put<{success: boolean, data: any, error?: string}>(`/api/records/${id}`, record);
       
       if (!data.success) {
         throw new Error(data.error || 'Failed to update record');
@@ -132,11 +121,7 @@ export function useRecords(options: UseRecordsOptions = {}): UseRecordsReturn {
 
   const deleteRecord = async (id: string): Promise<void> => {
     try {
-      const response = await fetch(`/api/records/${id}`, {
-        method: 'DELETE',
-      });
-
-      const data = await response.json();
+      const data = await apiClient.delete<{success: boolean, error?: string}>(`/api/records/${id}`);
 
       if (!data.success) {
         throw new Error(data.error || 'Failed to delete record');
@@ -148,13 +133,34 @@ export function useRecords(options: UseRecordsOptions = {}): UseRecordsReturn {
     }
   };
 
-  const refetch = () => {
+  const refetch = useCallback(() => {
     fetchRecords();
-  };
+  }, [fetchRecords]);
 
+  // Only fetch when server-side filter options change, not search
   useEffect(() => {
-    fetchRecords();
-  }, [options.search, options.status, options.type, options.petId, options.limit]);
+    const currentOptions = JSON.stringify({
+      status: options.status,
+      type: options.type,
+      petId: options.petId,
+      limit: options.limit
+    });
+    
+    // Only fetch if options actually changed
+    if (currentOptions !== lastOptionsRef.current) {
+      lastOptionsRef.current = currentOptions;
+      fetchRecords();
+    }
+  }, [fetchRecords, options.status, options.type, options.petId, options.limit]);
+
+  // Cleanup on unmount
+  useEffect(() => {
+    return () => {
+      if (abortControllerRef.current) {
+        abortControllerRef.current.abort();
+      }
+    };
+  }, []);
 
   return {
     records,

@@ -17,8 +17,8 @@ public class VeterinarianController {
     private VeterinarianService veterinarianService;
 
     @GetMapping
-    public List<Veterinarian> getAllVeterinarians() {
-        return veterinarianService.getAllVeterinarians();
+    public List<Veterinarian> getAllVeterinarians(@RequestHeader("x-clinic-code") String clinicCode) {
+        return veterinarianService.getAllVeterinariansByClinic(clinicCode);
     }
 
     @GetMapping("/{id}")

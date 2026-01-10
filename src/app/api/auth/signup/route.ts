@@ -6,17 +6,24 @@ export async function POST(request: NextRequest) {
   try {
     const body = await request.json();
     
+    // Convert frontend format to backend format
+    const userData = {
+      name: `${body.firstName} ${body.lastName}`,
+      email: body.email,
+      password: body.password,
+      role: body.clinicCode ? (body.role || 'VETERINARIAN') : 'ADMINISTRATOR',
+      clinicCode: body.clinicCode || null
+    };
+    
     const response = await fetch(`${BACKEND_URL}/api/auth/signup`, {
       method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({ ...body, role: 'OWNER' }),
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(userData),
     });
-
-    const data = await response.json();
     
+    const data = await response.json();
     return NextResponse.json(data, { status: response.status });
+    
   } catch (error) {
     console.error('Signup API Error:', error);
     return NextResponse.json(

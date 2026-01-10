@@ -41,6 +41,9 @@ public class Veterinarian {
     @Column(name = "updated_at")
     private LocalDateTime updatedAt;
 
+    @Column(name = "clinic_code")
+    private String clinicCode;
+
     @PrePersist
     protected void onCreate() {
         createdAt = LocalDateTime.now();
@@ -91,4 +94,7 @@ public class Veterinarian {
 
     public LocalDateTime getUpdatedAt() { return updatedAt; }
     public void setUpdatedAt(LocalDateTime updatedAt) { this.updatedAt = updatedAt; }
+
+    public String getClinicCode() { return clinicCode; }
+    public void setClinicCode(String clinicCode) { this.clinicCode = clinicCode; }
 }

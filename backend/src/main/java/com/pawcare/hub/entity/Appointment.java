@@ -42,6 +42,9 @@ public class Appointment {
 
     private String notes;
 
+    @Column(name = "clinic_code", nullable = false, length = 20)
+    private String clinicCode;
+
     @Column(name = "created_at")
     private LocalDateTime createdAt;
 
@@ -108,6 +111,9 @@ public class Appointment {
 
     public String getNotes() { return notes; }
     public void setNotes(String notes) { this.notes = notes; }
+
+    public String getClinicCode() { return clinicCode; }
+    public void setClinicCode(String clinicCode) { this.clinicCode = clinicCode; }
 
     public LocalDateTime getCreatedAt() { return createdAt; }
     public void setCreatedAt(LocalDateTime createdAt) { this.createdAt = createdAt; }

@@ -19,6 +19,12 @@ public class SettingsController {
     @Autowired
     private SettingsService settingsService;
 
+    @PostMapping
+    public ResponseEntity<ClinicSettings> createClinicSettings(@RequestBody ClinicSettings settings) {
+        ClinicSettings createdSettings = settingsService.createClinicSettings(settings);
+        return ResponseEntity.ok(createdSettings);
+    }
+
     @GetMapping
     public ResponseEntity<ClinicSettings> getClinicSettings() {
         ClinicSettings settings = settingsService.getClinicSettings();
@@ -29,6 +35,12 @@ public class SettingsController {
     public ResponseEntity<ClinicSettings> updateClinicSettings(@RequestBody ClinicSettings settings) {
         ClinicSettings updatedSettings = settingsService.updateClinicSettings(settings);
         return ResponseEntity.ok(updatedSettings);
+    }
+
+    @DeleteMapping
+    public ResponseEntity<Void> deleteClinicSettings() {
+        settingsService.deleteClinicSettings();
+        return ResponseEntity.ok().build();
     }
 
     @GetMapping("/users")

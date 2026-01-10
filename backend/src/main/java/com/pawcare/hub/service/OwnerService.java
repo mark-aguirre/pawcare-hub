@@ -15,16 +15,24 @@ public class OwnerService {
     
     @Autowired
     private ActivityService activityService;
+    
+    @Autowired
+    private ClinicContextService clinicContextService;
 
     public List<Owner> getAllOwners() {
-        return ownerRepository.findAll();
+        String clinicCode = clinicContextService.getClinicCode();
+        return ownerRepository.findByClinicCode(clinicCode);
     }
 
     public Optional<Owner> getOwnerById(Long id) {
-        return ownerRepository.findById(id);
+        String clinicCode = clinicContextService.getClinicCode();
+        return ownerRepository.findByIdAndClinicCode(id, clinicCode);
     }
 
     public Owner saveOwner(Owner owner) {
+        String clinicCode = clinicContextService.getClinicCode();
+        owner.setClinicCode(clinicCode);
+        
         boolean isNew = owner.getId() == null;
         Owner saved = ownerRepository.save(owner);
         String action = isNew ? "CREATE" : "UPDATE";
@@ -34,19 +42,22 @@ public class OwnerService {
     }
 
     public void deleteOwner(Long id) {
-        Optional<Owner> owner = ownerRepository.findById(id);
+        String clinicCode = clinicContextService.getClinicCode();
+        Optional<Owner> owner = ownerRepository.findByIdAndClinicCode(id, clinicCode);
         if (owner.isPresent()) {
             String ownerName = owner.get().getName();
-            ownerRepository.deleteById(id);
+            ownerRepository.deleteByIdAndClinicCode(id, clinicCode);
             activityService.logActivity("DELETE", "OWNER", id, ownerName, "Client removed from system");
         }
     }
 
     public Optional<Owner> getOwnerByEmail(String email) {
-        return ownerRepository.findByEmail(email);
+        String clinicCode = clinicContextService.getClinicCode();
+        return ownerRepository.findByEmailAndClinicCode(email, clinicCode);
     }
 
     public List<Owner> searchOwnersByName(String name) {
-        return ownerRepository.findByNameContaining(name);
+        String clinicCode = clinicContextService.getClinicCode();
+        return ownerRepository.findByNameContainingAndClinicCode(name, clinicCode);
     }
 }

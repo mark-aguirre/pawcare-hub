@@ -6,16 +6,21 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
-import { PawPrint, Eye, EyeOff, Info } from 'lucide-react';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { PawPrint, Eye, EyeOff, Building2, Users } from 'lucide-react';
 import { toast } from '@/hooks/use-toast';
 import Link from 'next/link';
 
 export default function SignupPage() {
-  const [clinicCode, setClinicCode] = useState('');
-  const [name, setName] = useState('');
-  const [email, setEmail] = useState('');
-  const [password, setPassword] = useState('');
+  const [activeTab, setActiveTab] = useState('owner');
+  const [formData, setFormData] = useState({
+    clinicCode: '',
+    firstName: '',
+    lastName: '',
+    email: '',
+    password: '',
+    role: 'ADMINISTRATOR'
+  });
   const [showPassword, setShowPassword] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const router = useRouter();
@@ -31,10 +36,9 @@ export default function SignupPage() {
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
-          clinicCode,
-          name,
-          email,
-          password,
+          ...formData,
+          // For clinic owners, don't require clinic code
+          clinicCode: activeTab === 'owner' ? null : formData.clinicCode
         }),
       });
 
@@ -43,7 +47,9 @@ export default function SignupPage() {
       if (data.success) {
         toast({
           title: 'Registration successful',
-          description: 'Your account has been created. Please login.',
+          description: activeTab === 'owner' 
+            ? 'Account created! You can now setup your clinic.' 
+            : 'Account created! Please login.',
         });
         router.push('/login');
       } else {
@@ -77,61 +83,86 @@ export default function SignupPage() {
           <CardDescription>Create your account</CardDescription>
         </CardHeader>
         <CardContent>
+          <Tabs value={activeTab} onValueChange={setActiveTab} className="mb-6">
+            <TabsList className="grid w-full grid-cols-2">
+              <TabsTrigger value="owner" className="flex items-center gap-2">
+                <Building2 className="h-4 w-4" />
+                Clinic Owner
+              </TabsTrigger>
+              <TabsTrigger value="staff" className="flex items-center gap-2">
+                <Users className="h-4 w-4" />
+                Staff Member
+              </TabsTrigger>
+            </TabsList>
+            
+            <TabsContent value="owner" className="mt-4">
+              <p className="text-sm text-muted-foreground mb-4">
+                Create your own veterinary practice hub
+              </p>
+            </TabsContent>
+            
+            <TabsContent value="staff" className="mt-4">
+              <p className="text-sm text-muted-foreground mb-4">
+                Join an existing clinic with a clinic code
+              </p>
+            </TabsContent>
+          </Tabs>
+
           <form onSubmit={handleSubmit} className="space-y-4">
-            <div className="space-y-2">
-              <div className="flex items-center gap-2">
+            {activeTab === 'staff' && (
+              <div className="space-y-2">
                 <Label htmlFor="clinicCode">Clinic Code</Label>
-                <TooltipProvider>
-                  <Tooltip>
-                    <TooltipTrigger asChild>
-                      <Info className="h-4 w-4 text-muted-foreground cursor-help" />
-                    </TooltipTrigger>
-                    <TooltipContent>
-                      <p>For demo, use: C12345</p>
-                    </TooltipContent>
-                  </Tooltip>
-                </TooltipProvider>
+                <Input
+                  id="clinicCode"
+                  type="text"
+                  value={formData.clinicCode}
+                  onChange={(e) => setFormData(prev => ({...prev, clinicCode: e.target.value}))}
+                  placeholder="Enter clinic code (e.g., 00000000)"
+                  required
+                />
               </div>
-              <Input
-                id="clinicCode"
-                type="text"
-                value={clinicCode}
-                onChange={(e) => setClinicCode(e.target.value)}
-                placeholder="Enter clinic code"
-                required
-              />
+            )}
+            
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label htmlFor="firstName">First Name</Label>
+                <Input
+                  id="firstName"
+                  value={formData.firstName}
+                  onChange={(e) => setFormData(prev => ({...prev, firstName: e.target.value}))}
+                  required
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="lastName">Last Name</Label>
+                <Input
+                  id="lastName"
+                  value={formData.lastName}
+                  onChange={(e) => setFormData(prev => ({...prev, lastName: e.target.value}))}
+                  required
+                />
+              </div>
             </div>
-            <div className="space-y-2">
-              <Label htmlFor="name">Full Name</Label>
-              <Input
-                id="name"
-                type="text"
-                value={name}
-                onChange={(e) => setName(e.target.value)}
-                placeholder="Enter your full name"
-                required
-              />
-            </div>
+            
             <div className="space-y-2">
               <Label htmlFor="email">Email</Label>
               <Input
                 id="email"
                 type="email"
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-                placeholder="Enter your email"
+                value={formData.email}
+                onChange={(e) => setFormData(prev => ({...prev, email: e.target.value}))}
                 required
               />
             </div>
+            
             <div className="space-y-2">
               <Label htmlFor="password">Password</Label>
               <div className="relative">
                 <Input
                   id="password"
                   type={showPassword ? 'text' : 'password'}
-                  value={password}
-                  onChange={(e) => setPassword(e.target.value)}
-                  placeholder="Enter your password"
+                  value={formData.password}
+                  onChange={(e) => setFormData(prev => ({...prev, password: e.target.value}))}
                   required
                 />
                 <Button
@@ -145,10 +176,13 @@ export default function SignupPage() {
                 </Button>
               </div>
             </div>
+            
             <Button type="submit" className="w-full" disabled={isLoading}>
-              {isLoading ? 'Creating Account...' : 'Sign Up'}
+              {isLoading ? 'Creating Account...' : 
+               activeTab === 'owner' ? 'Create Clinic Account' : 'Join Clinic'}
             </Button>
           </form>
+          
           <div className="mt-6 text-center text-sm">
             <p className="text-muted-foreground">
               Already have an account?{' '}
