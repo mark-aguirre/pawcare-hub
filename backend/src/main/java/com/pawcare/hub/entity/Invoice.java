@@ -70,6 +70,9 @@ public class Invoice {
     @Column(name = "updated_at")
     private LocalDateTime updatedAt;
 
+    @Column(name = "clinic_code")
+    private String clinicCode;
+
     public enum InvoiceStatus {
         DRAFT, SENT, PAID, OVERDUE, CANCELLED
     }
@@ -152,4 +155,7 @@ public class Invoice {
 
     public LocalDateTime getUpdatedAt() { return updatedAt; }
     public void setUpdatedAt(LocalDateTime updatedAt) { this.updatedAt = updatedAt; }
+
+    public String getClinicCode() { return clinicCode; }
+    public void setClinicCode(String clinicCode) { this.clinicCode = clinicCode; }
 }

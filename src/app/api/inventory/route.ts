@@ -5,24 +5,17 @@ const BACKEND_URL = process.env.BACKEND_URL || 'http://localhost:8082';
 export async function GET(request: NextRequest) {
   try {
     const { searchParams } = new URL(request.url);
-    const ownerId = searchParams.get('ownerId');
+    const category = searchParams.get('category');
     const status = searchParams.get('status');
-    const petId = searchParams.get('petId');
-    const startDate = searchParams.get('startDate');
-    const endDate = searchParams.get('endDate');
+    const search = searchParams.get('search');
     const clinicCode = request.headers.get('x-clinic-code');
     
-    let url = `${BACKEND_URL}/api/invoices`;
+    let url = `${BACKEND_URL}/api/inventory`;
     const params = new URLSearchParams();
     
-    if (ownerId) params.append('ownerId', ownerId);
-    if (status) url = `${BACKEND_URL}/api/invoices/status/${status.toUpperCase()}`;
-    if (petId) url = `${BACKEND_URL}/api/invoices/pet/${petId}`;
-    if (startDate && endDate) {
-      url = `${BACKEND_URL}/api/invoices/date-range`;
-      params.append('startDate', startDate);
-      params.append('endDate', endDate);
-    }
+    if (category) params.append('category', category);
+    if (status) params.append('status', status);
+    if (search) params.append('search', search);
     
     if (params.toString()) {
       url += `?${params.toString()}`;
@@ -45,7 +38,7 @@ export async function GET(request: NextRequest) {
   } catch (error) {
     console.error('API Error:', error);
     return NextResponse.json(
-      { error: 'Failed to fetch invoices' },
+      { error: 'Failed to fetch inventory items' },
       { status: 500 }
     );
   }
@@ -55,9 +48,8 @@ export async function POST(request: NextRequest) {
   try {
     const body = await request.json();
     const clinicCode = request.headers.get('x-clinic-code');
-    console.log('Frontend request body:', JSON.stringify(body, null, 2));
     
-    const response = await fetch(`${BACKEND_URL}/api/invoices`, {
+    const response = await fetch(`${BACKEND_URL}/api/inventory`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
@@ -67,9 +59,6 @@ export async function POST(request: NextRequest) {
     });
 
     if (!response.ok) {
-      const errorText = await response.text();
-      console.error('Backend error response:', errorText);
-      console.error('Backend status:', response.status);
       throw new Error(`Backend responded with status: ${response.status}`);
     }
 
@@ -78,7 +67,7 @@ export async function POST(request: NextRequest) {
   } catch (error) {
     console.error('API Error:', error);
     return NextResponse.json(
-      { error: 'Failed to create invoice' },
+      { error: 'Failed to create inventory item' },
       { status: 500 }
     );
   }

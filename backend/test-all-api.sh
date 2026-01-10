@@ -97,6 +97,11 @@ test_endpoint "GET" "$BASE_URL/invoices" "" "-H 'X-Clinic-Code: $CLINIC_CODE'" "
 test_endpoint "GET" "$BASE_URL/invoices/overdue" "" "-H 'X-Clinic-Code: $CLINIC_CODE'" "Overdue Invoices"
 test_endpoint "GET" "$BASE_URL/payments" "" "-H 'X-Clinic-Code: $CLINIC_CODE'" "Payments"
 
+# Reports
+test_endpoint "GET" "$BASE_URL/reports" "" "-H 'X-Clinic-Code: $CLINIC_CODE'" "Reports"
+test_endpoint "GET" "$BASE_URL/reports?type=revenue" "" "-H 'X-Clinic-Code: $CLINIC_CODE'" "Revenue Reports"
+test_endpoint "GET" "$BASE_URL/reports?type=appointments" "" "-H 'X-Clinic-Code: $CLINIC_CODE'" "Appointment Reports"
+
 # Activities
 test_endpoint "GET" "$BASE_URL/activities/recent" "" "-H 'X-Clinic-Code: $CLINIC_CODE'" "Recent Activities"
 
@@ -123,6 +128,15 @@ test_endpoint "POST" "$BASE_URL/users" '{"name":"New User","email":"newuser@test
 test_endpoint "POST" "$BASE_URL/owners" '{"firstName":"Test","lastName":"Owner","email":"test@test.com","phone":"1234567890"}' "-H 'X-Clinic-Code: $CLINIC_CODE'" "Create Owner"
 test_endpoint "POST" "$BASE_URL/pets" '{"name":"TestPet","species":"Dog","breed":"Lab","age":3,"ownerId":1}' "-H 'X-Clinic-Code: $CLINIC_CODE'" "Create Pet"
 test_endpoint "POST" "$BASE_URL/veterinarians" '{"firstName":"Dr.","lastName":"Test","email":"vet@test.com","phone":"1234567890","specialization":"General"}' "-H 'X-Clinic-Code: $CLINIC_CODE'" "Create Vet"
+
+# Inventory creation
+test_endpoint "POST" "$BASE_URL/inventory" '{"name":"Test Item","category":"MEDICATION","currentStock":100,"minStock":10,"unitPrice":25.50}' "-H 'X-Clinic-Code: $CLINIC_CODE'" "Create Inventory Item"
+
+# Lab test creation
+test_endpoint "POST" "$BASE_URL/lab-tests" '{"petId":1,"testType":"Blood Test","veterinarianId":1,"notes":"Routine checkup"}' "-H 'X-Clinic-Code: $CLINIC_CODE'" "Create Lab Test"
+
+# Invoice creation
+test_endpoint "POST" "$BASE_URL/invoices" '{"petId":1,"ownerId":1,"veterinarianId":1,"items":[{"description":"Checkup","quantity":1,"unitPrice":50.00}],"total":50.00}' "-H 'X-Clinic-Code: $CLINIC_CODE'" "Create Invoice"
 
 # Payment processing
 test_endpoint "POST" "$BASE_URL/payments/process" '{"invoiceId":1,"amount":100.00,"method":"CASH","transactionId":"TEST123"}' "-H 'X-Clinic-Code: $CLINIC_CODE'" "Process Payment"

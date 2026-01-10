@@ -6,12 +6,16 @@ import com.pawcare.hub.entity.ClinicSettings;
 import com.pawcare.hub.repository.UserRepository;
 import com.pawcare.hub.repository.OwnerRepository;
 import com.pawcare.hub.repository.ClinicSettingsRepository;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.stereotype.Service;
 
 @Service
 public class AuthService {
+
+    private static final Logger logger = LoggerFactory.getLogger(AuthService.class);
 
     @Autowired
     private UserRepository userRepository;
@@ -42,7 +46,7 @@ public class AuthService {
                 }
             }
         } catch (Exception e) {
-            System.err.println("Authentication error: " + e.getMessage());
+            logger.error("Authentication failed for user: {}", email, e);
         }
         
         return null;
@@ -74,7 +78,7 @@ public class AuthService {
             // Fallback to regular user authentication
             return authenticate(identifier, password);
         } catch (Exception e) {
-            System.err.println("Authentication error: " + e.getMessage());
+            logger.error("Authentication failed for identifier: {}", identifier, e);
         }
         
         return null;
